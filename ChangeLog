@@ -1,0 +1,19 @@
+2009-06-02 Neil Voss <vossman77@yahoo.com>
+
+	* Added ability to write to MRC files, thanks Craig
+	* Rebuilt for distribution, v1.2
+
+2006-06-20 Neil Voss <vossman77@yahoo.com>
+
+	* Rebuilt for distribution, v1.1
+
+2005-01-27 Neil Voss <vossman77@yahoo.com>
+
+	* adjusted XMIN, YMIN, ZMIN to interget multiple of grid needed to better EZD file support
+	* added testLimits() function for tracking down out-of-range calls
+	* added zeroGrid(grid) function to zero out all points (cause of out-of-range calls)
+
+2005-01-26 Neil Voss <vossman77@yahoo.com>
+
+	* added surface area calculation
+

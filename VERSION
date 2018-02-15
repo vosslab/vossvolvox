@@ -1,0 +1,7 @@
+1.2	June 02, 2009 Added MRC ability
+1.1	Oct  24, 2006 Minimal updates
+1.0	June 20, 2006 Initial Public Release
+
+
+you can always get the latest version from subversion:
+ svn co http://vossvolvox.svn.sourceforge.net/svnroot/vossvolvox vossvolvox 
