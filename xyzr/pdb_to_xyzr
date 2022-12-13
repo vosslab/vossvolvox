@@ -28,10 +28,11 @@ if test $# -ge 1 ;then
 	shift
 	fi
 fi
-gawk 'BEGIN{
+
+numfile=$(dirname $(realpath $0))/atmtypenumbers
+gawk -v numfile=$numfile 'BEGIN{
 	# read radius table and patterns from supplied file
 	npats=0
-	numfile = "./atmtypenumbers"
 	while ((getline < numfile) > 0) {
 		if(NF==0||substr($1,1,1)=="#") continue;
 		if($1=="radius") {
