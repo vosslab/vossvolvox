@@ -30,6 +30,98 @@ If you use these tools in your research, please cite:
 
 - Contact: Mark Gerstein &lt;mark.gerstein@yale.edu&gt; or Neil Voss &lt;vossman77@yahoo.com&gt;
 
+## Installation
+
+To install the Voss Volume Voxelator package, follow these steps:
+
+1. **Clone or Download the Repository**
+   - If you have not already, clone or download the repository to your local machine:
+     ```bash
+     git clone https://github.com/vosslab/vossvolvox.git
+     ```
+
+2. **Navigate to the Source Code Directory**
+   - Open a terminal and navigate to the directory containing the source code. For example:
+     ```bash
+     cd /path/to/vossvolvox/src
+     ```
+
+3. **Compile the Package**
+   - In the terminal, type the following command to compile the package:
+     ```bash
+     make
+     ```
+   - This will build the necessary executables from the source code.
+
+4. **Check the Output**
+   - After compilation, you should see the output executables in the `/path/to/vossvolvox/bin/` directory. You can list the files in the bin folder:
+     ```bash
+     ls /path/to/vossvolvox/bin/
+     ```
+
+5. **Run the Programs**
+   - To test the programs, you can run any of the compiled executables. For example:
+     ```bash
+     ./bin/Volume.exe -h
+     ```
+   - This will display the help information for the Volume.exe program.
+
+For more details, see the `QUICKSTART` section below.
+
+## Quickstart
+
+To get started with the Voss Volume Voxelator tools, follow these steps:
+
+1. **Get the PDB of Hemoglobin (1A01)**
+   ```
+   wget -c "http://www.rcsb.org/pdb/cgi/export.cgi/1A01.pdb.gz?format=PDB&pdbId=1A01&compression=gz" -O 1A01.pdb.gz
+   gunzip 1A01.pdb.gz
+   ```
+
+2. **Remove Hetero Atoms (e.g., Water, Salt, etc.) from PDB**
+   ```
+   egrep "^ATOM  " 1A01.pdb > 1a01-noions.pdb
+   ```
+
+3. **Convert PDB to XYZR Format**
+   Ensure the 'atmtypenumbers' file is in the current directory when running `pdb_to_xyzr`:
+   ```
+   cd xyzr
+   pdb_to_xyzr ../1a01-noions.pdb > ../1a01-noions.xyzr
+   cd ..
+   ```
+
+4. **Compile the Program**
+   Navigate to the source directory and build the `vol` program:
+   ```
+   cd src
+   make vol
+   cd ..
+   ```
+
+5. **Calculate Solvent Excluded Volume**
+   Run the Volume.exe tool with the desired input and parameters:
+   ```
+   bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5
+   ```
+
+6. **Output to PDB (Visualize with RasMol or another molecular viewer)**
+   ```
+   bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5 -o 1a01-excluded.pdb
+   ```
+
+7. **Output to MRC format for visualization (e.g., in UCSF Chimera)**
+   ```
+   bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5 -m 1a01-excluded.mrc
+   ```
+
+8. **View MRC file in UCSF Chimera**
+   If you have UCSF Chimera installed, use the following command:
+   ```
+   chimera 1a01-excluded.mrc
+   ```
+   Alternatively, download Chimera from: http://www.cgl.ucsf.edu/chimera/
+
 ## Program Descriptions
 
 ### Primary Programs
