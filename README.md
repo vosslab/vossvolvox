@@ -9,8 +9,8 @@ If you use these tools in your research, please cite:
 > **Neil R. Voss, Mark Gerstein. *3V: cavity, channel, and cleft volume calculator and extractor*. Nucleic Acids Res. 2010 Jul;38(Web Server issue):W555-62.**  
 > DOI: [10.1093/nar/gkq395](https://doi.org/10.1093/nar/gkq395)  
 > PMID: [20478824](https://pubmed.ncbi.nlm.nih.gov/20478824)  
-> PMCID: [PMC2896178](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2896178/)
-> Download Pre-print PDF: [3V_cavity_channel_and_cleft_volume_calculator_and_extractor.pdf](https://github.com/vosslab/vossvolvox/raw/master/publications/3V_cavity_channel_and_cleft_volume_calculator_and_extractor.pdf)
+> PMCID: [PMC2896178](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2896178/)  
+> Download Pre-print PDF: [3V_cavity_channel_and_cleft_volume_calculator_and_extractor.pdf](https://github.com/vosslab/vossvolvox/raw/master/publications/3V_cavity_channel_and_cleft_volume_calculator_and_extractor.pdf)  
 
 ### Secondary Reference
 
