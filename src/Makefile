@@ -1,104 +1,108 @@
-### Use this for parallel processing:
-#FLAGS=-O3 -w -march=native -mtune=native -fopenmp
-### normal single processor, works on Mac
-FLAGS=-O3 -w -march=native -mtune=native
-#native flag requires gcc v4.2, here is the most basic
-#FLAGS=-O1 -w
+# Makefile for Voss Volvox Project with Conditional OpenMP Support
+# This file is used to compile various programs related to molecular structure analysis
 
-CC = g++
+# Compiler and compilation flags
+CC = g++                    # Set the compiler to g++
+BASE_FLAGS = -O3 -w         # Basic optimization and quiet mode flags
+CPU_FLAGS = -march=native -mtune=native  # CPU-specific optimizations for current architecture
+OPENMP_FLAGS = -fopenmp     # OpenMP flag for parallel processing
+FLAGS = $(BASE_FLAGS) $(CPU_FLAGS)       # Default to base flags; OpenMP will be added if supported
+
+# Directory to store binaries
+BIN_DIR = ../bin
+
+# Check if the compiler supports OpenMP
+ifeq ($(shell $(CC) -dM -E - < /dev/null | grep -q __OPENMP; echo $$?),0)
+	FLAGS += $(OPENMP_FLAGS)
+	@echo "OpenMP support detected; using -fopenmp flag."
+else
+	@echo "OpenMP not supported; proceeding without -fopenmp."
+endif
+
+# Object files used in all programs
 OBJS = utils-main.o utils-output.o utils-mrc.o
 
-all:	cav chan fsv sol tun vdw vol allchan allexc volnocav twovol 
+# The default target, which builds all programs
+all: cav chan allchan allexc fsv sol tun vdw vol volnocav twovol frac cust
 
-cavity:	cav
-cavities:	cav
-channel:	chan
-channels:	chan
-fsvcalc:	fsv
-solvent:	sol
-tunnel:	tun
-volume:	vol
-objects:	utils-main.o utils-output.o utils-mrc.o
-
-cav:	objects cavities.cpp
-	$(CC) $(FLAGS) -o Cavities.exe $(OBJS) cavities.cpp
-	chmod 755 Cavities.exe
-	mv -v Cavities.exe ../bin
-
-chan:	objects channel.cpp
-	$(CC) $(FLAGS) -o Channel.exe $(OBJS) channel.cpp
-	chmod 755 Channel.exe
-	mv -v Channel.exe ../bin
-
-allchan:	objects allchannel.cpp
-	$(CC) $(FLAGS) -o AllChannel.exe $(OBJS) allchannel.cpp
-	chmod 755 AllChannel.exe
-	mv -v AllChannel.exe ../bin
-
-allexc:	objects allchannelexc.cpp
-	$(CC) $(FLAGS) -o AllChannelExc.exe $(OBJS) allchannelexc.cpp
-	chmod 755 AllChannelExc.exe
-	mv -v AllChannelExc.exe ../bin
-
-fsv:	objects fsv_calc.cpp
-	$(CC) $(FLAGS) -o FsvCalc.exe $(OBJS) fsv_calc.cpp
-	chmod 755 FsvCalc.exe
-	mv -v FsvCalc.exe ../bin
-
-sol:	objects solvent.cpp
-	$(CC) $(FLAGS) -o Solvent.exe $(OBJS) solvent.cpp
-	chmod 755 Solvent.exe
-	mv -v Solvent.exe ../bin
-
-tun:	objects tunnel.cpp
-	$(CC) $(FLAGS) -o Tunnel.exe $(OBJS) tunnel.cpp
-	chmod 755 Tunnel.exe
-	mv -v Tunnel.exe ../bin
-
-vdw:	objects vdw.cpp
-	$(CC) $(FLAGS) -o VDW.exe $(OBJS) vdw.cpp
-	chmod 755 VDW.exe
-	mv -v VDW.exe ../bin
-
-vol:	objects volume.cpp
-	$(CC) $(FLAGS) -o Volume.exe $(OBJS) volume.cpp
-	chmod 755 Volume.exe
-	mv -v Volume.exe ../bin
-
-volnocav:	objects volnocav.cpp
-	$(CC) $(FLAGS) -o VolumeNoCav.exe $(OBJS) volnocav.cpp
-	chmod 755 VolumeNoCav.exe
-	mv -v VolumeNoCav.exe ../bin
-
-twovol:	objects twovolnocav.cpp
-	$(CC) $(FLAGS) -o TwoVol.exe $(OBJS) twovolnocav.cpp
-	chmod 755 TwoVol.exe
-	mv -v TwoVol.exe ../bin
-
-frac:	objects fracDim.cpp
-	$(CC) $(FLAGS) -o FracDim.exe $(OBJS) fracDim.cpp
-	chmod 755 FracDim.exe
-	mv -v FracDim.exe ../bin
-
-cust:	objects customvolume.cpp
-	$(CC) $(FLAGS) -o Custom.exe $(OBJS) customvolume.cpp
-	chmod 755 Custom.exe
-	mv -v Custom.exe ../bin
-
-utils-main.o:	utils-main.cpp
-	$(CC) $(FLAGS) -c -o utils-main.o utils-main.cpp
-
-utils-output.o:	utils-main.o utils-output.cpp
-	$(CC) $(FLAGS) -c -o utils-output.o utils-output.cpp
-
-utils-mrc.o:	utils-mrc.cpp
-	$(CC) $(FLAGS) -c -o utils-mrc.o utils-mrc.cpp
-
+# Clean target to remove all compiled binaries and object files
+.PHONY: clean
 clean:
 	rm -fv *.o  *~
+	@echo "Object files and temporary files have been removed."
 
-distclean:
-	rm -fv *.o ../bin/*.exe *~
+# Distclean target for additional cleanup, including binaries
+.PHONY: distclean
+distclean: clean
+	rm -fv $(BIN_DIR)/*.exe
+	@echo "All binaries in $(BIN_DIR)/ have been removed."
 
-none:	
-	echo "Please type make xxx, where xxx = cav, cha, fsv, sol, tun, vdw, or vol"
+# No target to remind the user to specify a target
+.PHONY: none
+none:
+	@echo "Please type make <target>, where <target> is one of the following:"
+	@echo "cav, chan, allchan, allexc, fsv, sol, tun, vdw, vol, volnocav, twovol, frac, or cust."
+
+# Compilation rules for individual object files
+utils-main.o: utils-main.cpp
+	$(CC) $(FLAGS) -c -o $(BIN_DIR)/utils-main.o utils-main.cpp
+
+utils-output.o: utils-main.o utils-output.cpp
+	$(CC) $(FLAGS) -c -o $(BIN_DIR)/utils-output.o utils-output.cpp
+
+utils-mrc.o: utils-mrc.cpp
+	$(CC) $(FLAGS) -c -o $(BIN_DIR)/utils-mrc.o utils-mrc.cpp
+
+# Individual program targets
+cav: $(OBJS) cavities.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/Cavities.exe $(OBJS) cavities.cpp
+	@chmod +x $(BIN_DIR)/Cavities.exe
+
+chan: $(OBJS) channel.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/Channel.exe $(OBJS) channel.cpp
+	@chmod +x $(BIN_DIR)/Channel.exe
+
+allchan: $(OBJS) allchannel.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/AllChannel.exe $(OBJS) allchannel.cpp
+	@chmod +x $(BIN_DIR)/AllChannel.exe
+
+allexc: $(OBJS) allchannelexc.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/AllChannelExc.exe $(OBJS) allchannelexc.cpp
+	@chmod +x $(BIN_DIR)/AllChannelExc.exe
+
+fsv: $(OBJS) fsv_calc.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/FsvCalc.exe $(OBJS) fsv_calc.cpp
+	@chmod +x $(BIN_DIR)/FsvCalc.exe
+
+sol: $(OBJS) solvent.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/Solvent.exe $(OBJS) solvent.cpp
+	@chmod +x $(BIN_DIR)/Solvent.exe
+
+tun: $(OBJS) tunnel.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/Tunnel.exe $(OBJS) tunnel.cpp
+	@chmod +x $(BIN_DIR)/Tunnel.exe
+
+vdw: $(OBJS) vdw.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/VDW.exe $(OBJS) vdw.cpp
+	@chmod +x $(BIN_DIR)/VDW.exe
+
+vol: $(OBJS) volume.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
+	@chmod +x $(BIN_DIR)/Volume.exe
+
+volnocav: $(OBJS) volnocav.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/VolumeNoCav.exe $(OBJS) volnocav.cpp
+	@chmod +x $(BIN_DIR)/VolumeNoCav.exe
+
+twovol: $(OBJS) twovolnocav.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/TwoVol.exe $(OBJS) twovolnocav.cpp
+	@chmod +x $(BIN_DIR)/TwoVol.exe
+
+frac: $(OBJS) fracDim.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/FracDim.exe $(OBJS) fracDim.cpp
+	@chmod +x $(BIN_DIR)/FracDim.exe
+
+cust: $(OBJS) customvolume.cpp
+	$(CC) $(FLAGS) -o $(BIN_DIR)/Custom.exe $(OBJS) customvolume.cpp
+	@chmod +x $(BIN_DIR)/Custom.exe
+
