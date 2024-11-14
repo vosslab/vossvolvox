@@ -4,6 +4,7 @@
 #include "utils.h"
 #include <cmath>
 #include <iostream>
+#include <fstream>
 
 float XMIN, YMIN, ZMIN;
 float XMAX, YMAX, ZMAX;
@@ -50,12 +51,12 @@ float getIdealGrid () {
   double increment = 0.001;
   idealgrid = int(idealgrid/increment)*increment;
   while(maxgrid - mingrid > 2*increment) {
-  	//cerr << "xx ideal grid: " << idealgrid << endl;
+  	//cerr << "xx ideal grid: " << idealgrid << std::endl;
 	dx=int((XMAX-XMIN)/idealgrid/4.0+1)*4;
   	dy=int((YMAX-YMIN)/idealgrid/4.0+1)*4;
   	dz=int((ZMAX-ZMIN)/idealgrid/4.0+1)*4;
 	voxels = dx*dy*dz;
-  	//cerr << "voxels: " << voxels << "/" << maxvoxels << endl;
+  	//cerr << "voxels: " << voxels << "/" << maxvoxels << std::endl;
 	if (voxels > maxvoxels) {
 		mingrid = idealgrid;
 		idealgrid += increment;
@@ -90,7 +91,7 @@ float OLDgetIdealGrid () {
 
     diff = MAXBINS - numbins;
     //cerr << "grid = " << grid << "\tdiff = " << diff << 
-//	"\tnumbins = " << numbins << endl;
+//	"\tnumbins = " << numbins << std::endl;
     if(diff < 0) {
       if(bng < 0 || diff > bnd) {
         bng = grid;
@@ -105,8 +106,8 @@ float OLDgetIdealGrid () {
       }
       grid -= 0.0001;
     }
-//    cerr << "\tbpg = " << bpg << "\tbng = " << bng << endl;
-//    cerr << "\tbpdiff = " << bpd << "\tbndiff = " << bnd << endl;
+//    std::cerr << "\tbpg = " << bpg << "\tbng = " << bng << std::endl;
+//    std::cerr << "\tbpdiff = " << bpd << "\tbndiff = " << bnd << std::endl;
     if(fabs(bpg - bng) < 0.0002 || counts > 10000) {
       cont = 0;
     }
@@ -148,27 +149,27 @@ void assignLimits() {
 
 /*********************************************/
 void testLimits (gridpt grid[]) {
-  cerr << "int(1.2) is " << int(1.2) << endl;
-  cerr << "int(-1.2) is " << int(-1.2) << endl;
+  std::cerr << "int(1.2) is " << int(1.2) << std::endl;
+  std::cerr << "int(-1.2) is " << int(-1.2) << std::endl;
 
-  cerr << "XMIN: " << XMIN << endl;
-  cerr << "YMIN: " << YMIN << endl;
-  cerr << "ZMIN: " << ZMIN << endl;
+  std::cerr << "XMIN: " << XMIN << std::endl;
+  std::cerr << "YMIN: " << YMIN << std::endl;
+  std::cerr << "ZMIN: " << ZMIN << std::endl;
 
-  cerr << "DX: " << DX << endl;
-  cerr << "DY: " << DY << endl;
-  cerr << "DZ: " << DZ << endl;
-  cerr << "DXY: " << DXY << endl;
-  cerr << "DXYZ: " << DXYZ << endl;
-  cerr << "NUMBINS: " << NUMBINS << endl;
+  std::cerr << "DX: " << DX << std::endl;
+  std::cerr << "DY: " << DY << std::endl;
+  std::cerr << "DZ: " << DZ << std::endl;
+  std::cerr << "DXY: " << DXY << std::endl;
+  std::cerr << "DXYZ: " << DXYZ << std::endl;
+  std::cerr << "NUMBINS: " << NUMBINS << std::endl;
 
   unsigned int i;
-  cerr << "First filled spot: ";
+  std::cerr << "First filled spot: ";
   for(i=0; i<NUMBINS && !grid[i]; i++) { }
-  cerr << i << endl << "Last filled spot: ";
+  std::cerr << i << std::endl << "Last filled spot: ";
   for(i=NUMBINS-1; i>=0 && !grid[i]; i--) { }
-  cerr << i << endl;
-  cerr << endl;
+  std::cerr << i << std::endl;
+  std::cerr << std::endl;
 };
 
 /*********************************************
@@ -182,7 +183,7 @@ int countGrid (gridpt grid[]) {
   int voxels=0;
 
   if (DEBUG > 0)
-    cerr << "Counting up Voxels in Grid for Volume...  " << flush;
+    std::cerr << "Counting up Voxels in Grid for Volume...  " << std::flush;
 
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     if(grid[pt]) {
@@ -190,27 +191,27 @@ int countGrid (gridpt grid[]) {
     }
   }
   if (DEBUG > 0)
-    cerr << "done [ " << voxels << " voxels ]" << endl << endl;
+    std::cerr << "done [ " << voxels << " voxels ]" << std::endl << std::endl;
   return voxels;
 };
 
 /*********************************************/
 void zeroGrid (gridpt grid[]) {
   if (grid==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     grid = (gridpt*) malloc (NUMBINS);
-    if (grid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
 
   if (DEBUG > 0)
-    cerr << "Zero-ing All Voxels in the Grid...  " << flush;
+    std::cerr << "Zero-ing All Voxels in the Grid...  " << std::flush;
 
   #pragma omp parallel for
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     grid[pt] = 0;
   }
   if (DEBUG > 0)
-    cerr << "done " << endl << endl;
+    std::cerr << "done " << std::endl << std::endl;
   return;
 };
 
@@ -224,13 +225,13 @@ int copyGrid (gridpt oldgrid[], gridpt newgrid[]) {
   //Zero Grid Not Required
   int voxels=0;
   if (newgrid==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     newgrid = (gridpt*) malloc (NUMBINS);
-    if (newgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (newgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
 
   if (DEBUG > 0)
-    cerr << "Duplicating Grid and Counting up Voxels...  " << flush;
+    std::cerr << "Duplicating Grid and Counting up Voxels...  " << std::flush;
 
   #pragma omp parallel for
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
@@ -243,19 +244,19 @@ int copyGrid (gridpt oldgrid[], gridpt newgrid[]) {
     }
   }
   if (DEBUG > 0)
-    cerr << "done [ " << voxels << " voxels ]" << endl << endl;
+    std::cerr << "done [ " << voxels << " voxels ]" << std::endl << std::endl;
   return voxels;
 };
 
 /*********************************************/
 void inverseGrid (gridpt grid[]) {
   if (grid==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     grid = (gridpt*) malloc (NUMBINS);
-    if (grid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
   if (DEBUG > 0)
-    cerr << "Inversing All Voxels in the Grid...  " << flush;
+    std::cerr << "Inversing All Voxels in the Grid...  " << std::flush;
 
   #pragma omp parallel for
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
@@ -266,7 +267,7 @@ void inverseGrid (gridpt grid[]) {
     }
   }
   if (DEBUG > 0)
-    cerr << "done " << endl << endl;
+    std::cerr << "done " << std::endl << std::endl;
   return;
 };
 
@@ -287,14 +288,14 @@ int read_NumAtoms (char file[]) {
   minmax[3] = -100;  minmax[4] = -100;  minmax[5] = -100;
   strcpy(XYZRFILE,file);
 
-  cerr << "Reading file for Min/Max: " << file << endl;
+  std::cerr << "Reading file for Min/Max: " << file << std::endl;
   infile.open(file);
   while(infile.getline(line,255)) {
     float x,y,z,r;
     sscanf(line," %f %f %f %f",&x,&y,&z,&r);
     if (r > 0 && r < 100) {
       count++;
-      if(count % 3000 == 0) { cerr << "." << flush; }
+      if(count % 3000 == 0) { std::cerr << "." << std::flush; }
       if(x < minmax[0]) { minmax[0] = x; }
       if(x > minmax[3]) { minmax[3] = x; }
       if(y < minmax[1]) { minmax[1] = y; }
@@ -304,13 +305,13 @@ int read_NumAtoms (char file[]) {
     }
   }
   infile.close();
-  cerr << endl;
+  std::cerr << std::endl;
   for(int i=0; i<=5; i++) {
-    cerr << minmax[i] << " -- " << flush;
+    std::cerr << minmax[i] << " -- " << std::flush;
   }
-  cerr << endl << " [ read " << count << " atoms ]" << endl << endl;
+  std::cerr << std::endl << " [ read " << count << " atoms ]" << std::endl << std::endl;
   if (count < 3) {
-    cerr << endl << " not enough atoms were found" << endl << endl;
+    std::cerr << std::endl << " not enough atoms were found" << std::endl << std::endl;
     exit(1);
   }
 
@@ -332,7 +333,7 @@ int read_NumAtoms (char file[]) {
   if(minmax[4] > YMAX) { YMAX = minmax[4]; }
   if(minmax[5] > ZMAX) { ZMAX = minmax[5]; }
 
-  cerr << "Now Run AssignLimits() to Get NUMBINS Variable" << endl << endl;
+  std::cerr << "Now Run AssignLimits() to Get NUMBINS Variable" << std::endl << std::endl;
 
   return count;
 };
@@ -342,9 +343,9 @@ int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
 	gridpt grid[]) {
 
   if (grid==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     grid = (gridpt*) malloc (NUMBINS);
-    if (grid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
   zeroGrid(grid);
 
@@ -356,8 +357,8 @@ int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
   const float cat = float(numatoms)/60.0;
   float cut = cat;
 
-  cerr << "Reading file " << file << endl;
-  cerr << "Filling Atoms into Grid (probe " << probe << ")..." << endl;
+  std::cerr << "Reading file " << file << std::endl;
+  std::cerr << "Filling Atoms into Grid (probe " << probe << ")..." << std::endl;
   printBar();
 
   infile.open(file);
@@ -366,7 +367,7 @@ int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
     float x,y,z,r;
     count++;
     if(count > cut) {
-      cerr << "^" << flush;
+      std::cerr << "^" << std::flush;
       cut += cat;
     }
     sscanf(line," %f %f %f %f",&x,&y,&z,&r);
@@ -374,15 +375,15 @@ int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
     filled += fill_AccessGrid(x,y,z,r+probe,grid);
   }
   infile.close();
-  cerr << endl << "[ read " << count << " atoms ]" << endl;
+  std::cerr << std::endl << "[ read " << count << " atoms ]" << std::endl;
 
   //OUTPUT INFO
-  cerr << endl << "Access volume for probe " << probe << flush;
-  cerr << "   voxels " << filled << flush;
-  cerr << " x gridvol " << GRIDVOL << endl;
-  cerr << "  ACCESS VOL:  ";
+  std::cerr << std::endl << "Access volume for probe " << probe << std::flush;
+  std::cerr << "   voxels " << filled << std::flush;
+  std::cerr << " x gridvol " << GRIDVOL << std::endl;
+  std::cerr << "  ACCESS VOL:  ";
   printVol(filled);
-  cerr << endl;
+  std::cerr << std::endl;
 
   return filled;
 };
@@ -392,9 +393,9 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
 	char file[], gridpt EXCgrid[]) {
 //READ FILE INTO ACCGRID
   gridpt *ACCgrid;
-  cerr << "Allocating Grid..." << endl;
+  std::cerr << "Allocating Grid..." << std::endl;
   ACCgrid = (gridpt*) malloc (NUMBINS);
-  if (ACCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+  if (ACCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   fill_AccessGrid_fromFile(numatoms,probe,file,ACCgrid);
 
 //TRUNCATE GRID
@@ -405,13 +406,13 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
 
 //OUTPUT INFO
   int voxels = countGrid(EXCgrid);
-  cerr << endl << "******************************************" << endl;
-  cerr << "Excluded Volume for Probe " << probe << flush;
-  cerr << "   voxels " << voxels << flush;
-  cerr << " x gridvol " << GRIDVOL << endl;
-  cerr << "  EXCLUDED VOL:  ";
+  std::cerr << std::endl << "******************************************" << std::endl;
+  std::cerr << "Excluded Volume for Probe " << probe << std::flush;
+  std::cerr << "   voxels " << voxels << std::flush;
+  std::cerr << " x gridvol " << GRIDVOL << std::endl;
+  std::cerr << "  EXCLUDED VOL:  ";
   printVol(voxels);
-  cerr << endl << "******************************************" << endl;
+  std::cerr << std::endl << "******************************************" << std::endl;
 
   return voxels;
 };
@@ -444,20 +445,20 @@ void trun_ExcludeGrid (const float probe, gridpt ACCgrid[],
   float cut = cat;
 
   if (EXCgrid==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     EXCgrid = (gridpt*) malloc (NUMBINS);
-    if (EXCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (EXCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
   copyGridFromTo(ACCgrid,EXCgrid);
 
-  cerr << "Truncating Excluded Grid from Accessible" 
-	<< "Grid by Probe " << probe << "..." << endl;
+  std::cerr << "Truncating Excluded Grid from Accessible"
+	<< "Grid by Probe " << probe << "..." << std::endl;
   printBar();
 
   for(int k=kmin; k<kmax; k+=DXY) {
   count++;
   if(count > cut) {
-    cerr << "^" << flush;
+    std::cerr << "^" << std::flush;
     cut += cat;
   }
   #pragma omp parallel for
@@ -471,7 +472,7 @@ void trun_ExcludeGrid (const float probe, gridpt ACCgrid[],
         }
       }
   }}}
-   cerr << endl << "done" << endl << endl;
+   std::cerr << std::endl << "done" << std::endl << std::endl;
   return;
 }
 
@@ -490,9 +491,9 @@ void grow_ExcludeGrid (const float probe, gridpt ACCgrid[],
   const int kmax = DXYZ;
 
   if (EXCgrid==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     EXCgrid = (gridpt*) malloc (NUMBINS);
-    if (EXCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (EXCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
   copyGrid(ACCgrid,EXCgrid);
 
@@ -503,14 +504,14 @@ void grow_ExcludeGrid (const float probe, gridpt ACCgrid[],
   const float cat = ((kmax-kmin)/DXY)/60.0;
   float cut = cat;
 
-  cerr << endl << "Growing Excluded Grid from Accessible " 
-	<< "Grid by Probe " << probe << "..." << endl;
+  std::cerr << std::endl << "Growing Excluded Grid from Accessible "
+	<< "Grid by Probe " << probe << "..." << std::endl;
   printBar();
 
   for(int k=kmin; k<kmax; k+=DXY) {
   count++;
   if(count > cut) {
-    cerr << "^" << flush;
+    std::cerr << "^" << std::flush;
     cut += cat;
   }
   #pragma omp parallel for
@@ -527,7 +528,7 @@ void grow_ExcludeGrid (const float probe, gridpt ACCgrid[],
         }
       }
   }}}
-  cerr << endl << "done" << endl << endl;
+  std::cerr << std::endl << "done" << std::endl << std::endl;
   return;
 };
 
@@ -541,12 +542,12 @@ float *get_Point (gridpt grid[]) {
       for(i=0; i<DX; i++) {
         gp = ijk2pt(i,j,k);
         if(grid[gp] == 1) {
-          cerr << endl << "grid point: " << gp << " value: " << grid[gp] << endl;
-          cerr << endl << "i:" << i << " j:" << j << " k:" << k << endl;
+          std::cerr << std::endl << "grid point: " << gp << " value: " << grid[gp] << std::endl;
+          std::cerr << std::endl << "i:" << i << " j:" << j << " k:" << k << std::endl;
           xyz[0] = float(i-0.5)*GRID + XMIN;
           xyz[1] = float(j-0.5)*GRID + YMIN;
           xyz[2] = float(k-0.5)*GRID + ZMIN;
-          cerr << endl << "x:" << xyz[0] << " y:" << xyz[1] << " z:" << xyz[2] << endl;
+          std::cerr << std::endl << "x:" << xyz[0] << " y:" << xyz[1] << " z:" << xyz[2] << std::endl;
           return xyz;
         }
       }
@@ -559,12 +560,12 @@ float *get_Point (gridpt grid[]) {
 int get_GridPoint (gridpt grid[]) {
   int gp;
   if (DEBUG > 0)
-    cerr << "searching for first filled grid point... " << endl;
+    std::cerr << "searching for first filled grid point... " << std::endl;
   for(gp=0; gp<DXYZ; gp++) {
     if(grid[gp] == 1) {
 		if (DEBUG > 0)
       	cerr << "grid point: " << gp << " of " << DXYZ 
-              << "; value: " << grid[gp] << endl;
+              << "; value: " << grid[gp] << std::endl;
       return gp;
     }
   }
@@ -573,20 +574,20 @@ int get_GridPoint (gridpt grid[]) {
 
 /*********************************************/
 int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y, const float z) {
-  cerr << endl << "x:" << x << " y:" << y << " z:" << z << endl;
+  std::cerr << std::endl << "x:" << x << " y:" << y << " z:" << z << std::endl;
   const int gp = xyz2pt(x,y,z);
   if (DEBUG > 0)
-    cerr << "gp: " << gp << " grid value: " << grid[gp] << endl;
+    std::cerr << "gp: " << gp << " grid value: " << grid[gp] << std::endl;
 
   if (connect==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     connect = (gridpt*) malloc (NUMBINS);
-    if (connect==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (connect==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
     zeroGrid(connect);
   }
 
   if (grid[gp] == 0) {
-    cerr << "GetConnected: Point is NOT FILLED" << endl;
+    std::cerr << "GetConnected: Point is NOT FILLED" << std::endl;
     int pt;
     const int delta = int(3.0/GRID); 
     bool stop=0;
@@ -600,7 +601,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
       if(grid[pt]) {
         float xn,yn,zn;
         pt2xyz(pt, xn, yn, zn);
-	     cerr << "nearest filled pt: " << xn << " " << yn << " " << zn << endl;
+	     std::cerr << "nearest filled pt: " << xn << " " << yn << " " << zn << std::endl;
         stop=1;
       }
     }}}
@@ -612,7 +613,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
   if(gp >= 0 && gp <= max && grid[gp]) {
     connect[gp] = 1;
     if (DEBUG > 0)
-      cerr << "GetConnected..." << flush;
+      std::cerr << "GetConnected..." << std::flush;
 // defined in utils.h
 //    #define MAXLIST 1048576 //2^20
 //    #define MAXLIST 32768 //2^15
@@ -623,7 +624,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
     LIST[1] = 0;
 
     while(last != 0) {
-    //cerr << "." << flush;
+    //cerr << "." << std::flush;
       int newlast = 0;
       int NEWLIST[MAXLIST];
       for(int n=0; n<last; n++) {
@@ -650,20 +651,20 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
       last=newlast;
       LIST[last]=0;
     }
-    //cerr << endl;
+    //cerr << std::endl;
     if(steps > 1) {
       if (DEBUG > 0)
-        cerr << " performed " << steps << " steps" << endl;
+        std::cerr << " performed " << steps << " steps" << std::endl;
     } else {
       if (DEBUG > 0)
-        cerr << " done" << endl;
+        std::cerr << " done" << std::endl;
     }
   } else if(gp > 0 && gp < max) { 
     if (DEBUG > 0)
-      cerr << "GetConnected: Point is NOT FILLED" << endl;
+      std::cerr << "GetConnected: Point is NOT FILLED" << std::endl;
   } else {
     if (DEBUG > 0)
-      cerr << "GetConnected: Point OUT OF RANGE" << endl; 
+      std::cerr << "GetConnected: Point OUT OF RANGE" << std::endl;
   }
   return connected;
 };
@@ -677,9 +678,9 @@ int get_ConnectedRange (gridpt grid[], gridpt connect[], const float x, const fl
   jp = int((y-YMIN)/GRID+0.5);
   kp = int((z-ZMIN)/GRID+0.5);
   if (connect==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     connect = (gridpt*) malloc (NUMBINS);
-    if (connect==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (connect==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
     zeroGrid(connect);
   }
 
@@ -705,7 +706,7 @@ int get_ConnectedRange (gridpt grid[], gridpt connect[], const float x, const fl
   if(gp >= 0 && gp <= max && grid[gp]) {
     connect[gp] = 1;
     if (DEBUG > 0)
-      cerr << "GetConnected..." << flush;
+      std::cerr << "GetConnected..." << std::flush;
 
 //    #define MAXLIST 1048576 //2^20
 //    #define MAXLIST 32768 //2^15
@@ -716,7 +717,7 @@ int get_ConnectedRange (gridpt grid[], gridpt connect[], const float x, const fl
     LIST[1] = 0;
 
     while(last != 0) {
-    //cerr << "." << flush;
+    //cerr << "." << std::flush;
       int newlast = 0;
       int NEWLIST[MAXLIST];
       for(int n=0; n<last; n++) {
@@ -743,20 +744,20 @@ int get_ConnectedRange (gridpt grid[], gridpt connect[], const float x, const fl
       last=newlast;
       LIST[last]=0;
     }
-    //cerr << endl;
+    //cerr << std::endl;
     if(steps > 1) {
       if (DEBUG > 0)
-        cerr << " performed " << steps << " steps" << endl;
+        std::cerr << " performed " << steps << " steps" << std::endl;
     } else {
       if (DEBUG > 0)
-        cerr << " done" << endl;
+        std::cerr << " done" << std::endl;
     }
   } else if(gp > 0 && gp < max) {
     if (DEBUG > 0)
-      cerr << "GetConnected: Point OUT OF RANGE" << endl; 
+      std::cerr << "GetConnected: Point OUT OF RANGE" << std::endl;
   } else {
     if (DEBUG > 0)
-      cerr << "GetConnected: Point is NOT FILLED" << endl;
+      std::cerr << "GetConnected: Point is NOT FILLED" << std::endl;
   }
   return connected;
 };
@@ -764,11 +765,11 @@ int get_ConnectedRange (gridpt grid[], gridpt connect[], const float x, const fl
 /*********************************************/
 int get_Connected_Point (gridpt grid[], gridpt connect[], const int gp) {
   if (DEBUG > 0)
-    cerr << "Initialize Get Connected Point..." << endl;	
+    std::cerr << "Initialize Get Connected Point..." << std::endl;
   if (connect==NULL) {
-    cerr << "Allocating Grid..." << endl;
+    std::cerr << "Allocating Grid..." << std::endl;
     connect = (gridpt*) malloc (NUMBINS);
-    if (connect==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+    if (connect==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
     zeroGrid(connect);
   }
   const int max = NUMBINS;
@@ -777,7 +778,7 @@ int get_Connected_Point (gridpt grid[], gridpt connect[], const int gp) {
   if(gp >= 0 && gp <= max && grid[gp]) {
     connect[gp] = 1;
     if (DEBUG > 0)
-      cerr << "Get Connected to Point..." << flush;
+      std::cerr << "Get Connected to Point..." << std::flush;
 
 //    #define MAXLIST 1048576 //2^20
 //    #define MAXLIST 32768 //2^15
@@ -789,7 +790,7 @@ int get_Connected_Point (gridpt grid[], gridpt connect[], const int gp) {
 
 
     while(last != 0) {
-    //cerr << "." << flush;
+    //cerr << "." << std::flush;
       int newlast = 0;
       int NEWLIST[MAXLIST];
       for(int n=0; n<last; n++) {
@@ -816,13 +817,13 @@ int get_Connected_Point (gridpt grid[], gridpt connect[], const int gp) {
       last=newlast;
       LIST[last]=0;
     }
-    //cerr << endl;
+    //cerr << std::endl;
     if(steps > 1) {
       if (DEBUG > 0)
-        cerr << " performed " << steps << " steps" << endl;
+        std::cerr << " performed " << steps << " steps" << std::endl;
     } else {
       if (DEBUG > 0)
-        cerr << " done" << endl;
+        std::cerr << " done" << std::endl;
     }
   }
   return connected;
@@ -844,13 +845,13 @@ int subt_Grids (gridpt biggrid[], gridpt smgrid[]) {
   //const float cat = DZ/60.0;
   //float cut = cat;
   if (DEBUG > 0)
-    cerr << "Subtracting Grids (Modifies biggrid)...  " << flush;
+    std::cerr << "Subtracting Grids (Modifies biggrid)...  " << std::flush;
   //printBar();
 
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
   /*count++;
   if(count > cut) {
-    cerr << "^" << flush;
+    std::cerr << "^" << std::flush;
     cut += cat;
   }*/
       if(smgrid[pt]) {
@@ -863,10 +864,10 @@ int subt_Grids (gridpt biggrid[], gridpt smgrid[]) {
       }
   }
   if (DEBUG > 0) {
-    cerr << "done [ " << voxels << " vox changed ]" << endl;
+    std::cerr << "done [ " << voxels << " vox changed ]" << std::endl;
   //cerr << "done [ " << error << " errors : " <<
-//	int(1000.0*error/(voxels+error))/10.0 << "% ]" << endl;
-    cerr << endl;
+//	int(1000.0*error/(voxels+error))/10.0 << "% ]" << std::endl;
+    std::cerr << std::endl;
   }
   return voxels;
 };
@@ -888,13 +889,13 @@ int intersect_Grids (gridpt grid1[], gridpt grid2[]) {
   //const float cat = NUMBINS/60.0;
   //float cut = cat;
   if (DEBUG > 0)
-    cerr << "Intersecting Grids...  " << flush;
+    std::cerr << "Intersecting Grids...  " << std::flush;
   //printBar();
 
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     /*count++;
     if(count > cut) {
-      cerr << "^" << flush;
+      std::cerr << "^" << std::flush;
       cut += cat;
     }*/
     if(grid1[pt]) {
@@ -906,12 +907,12 @@ int intersect_Grids (gridpt grid1[], gridpt grid2[]) {
       }
     }
   } 
-  //cerr << endl;
+  //cerr << std::endl;
   if (DEBUG > 0) {
-    cerr << "done [ " << changed << " vox changed ] " << flush;
-    cerr << "[ " << voxels << " vox overlap :: " << flush;
-    cerr << int(1000.0*voxels/(voxels+changed))/10.0 << "% ]" << flush;
-    cerr << endl << endl;
+    std::cerr << "done [ " << changed << " vox changed ] " << std::flush;
+    std::cerr << "[ " << voxels << " vox overlap :: " << std::flush;
+    std::cerr << int(1000.0*voxels/(voxels+changed))/10.0 << "% ]" << std::flush;
+    std::cerr << std::endl << std::endl;
   } 
   return voxels;
 };
@@ -934,13 +935,13 @@ int merge_Grids (gridpt grid1[], gridpt grid2[]) {
   //const float cat = NUMBINS/60.0;
   //float cut = cat;
   if (DEBUG > 0)
-    cerr << "Merging Grids...  " << flush;
+    std::cerr << "Merging Grids...  " << std::flush;
   //printBar();
 
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     /*count++;
     if(count > cut) {
-      cerr << "^" << flush;
+      std::cerr << "^" << std::flush;
       cut += cat;
     }*/
     if(grid2[pt]) {
@@ -952,12 +953,12 @@ int merge_Grids (gridpt grid1[], gridpt grid2[]) {
       }
     }
   } 
-  //cerr << endl;
+  //cerr << std::endl;
   if (DEBUG > 0) {
-    cerr << "done [ " << changed << " vox changed ] " << flush;
-    cerr << "[ " << voxels << " vox overlap :: " << flush;
-    cerr << int(1000.0*voxels/(voxels+changed))/10.0 << "% ]" << flush;
-    cerr << endl << endl;
+    std::cerr << "done [ " << changed << " vox changed ] " << std::flush;
+    std::cerr << "[ " << voxels << " vox overlap :: " << std::flush;
+    std::cerr << int(1000.0*voxels/(voxels+changed))/10.0 << "% ]" << std::flush;
+    std::cerr << std::endl << std::endl;
   } 
   return voxels;
 };
@@ -1073,7 +1074,7 @@ void fill_ExcludeGrid (const int i, const int j, const int k,
 int ijk2pt(int i, int j, int k) {
   int pt = int(i+j*DX+k*DXY);
   if (pt > DXYZ) {
-    cerr << "ijk2pt off end :: " << i << ", " << j << ", " << k << endl;
+    std::cerr << "ijk2pt off end :: " << i << ", " << j << ", " << k << std::endl;
     return DXYZ-1;
   }
   return pt;
@@ -1130,7 +1131,7 @@ bool isEdgePoint (const int i, const int j, const int k, gridpt grid[]) {
       return 1;
     }
   }
-  if(count != 6) { cerr << "EdgePoint count " << count << " != 6" << endl; }
+  if(count != 6) { std::cerr << "EdgePoint count " << count << " != 6" << std::endl; }
   return 0;
 };
 
@@ -1145,8 +1146,8 @@ bool isEdgePoint_Fill (const int pt, gridpt grid[]) {//look at neighbors
       return 1;
     }
   }}}
-  //cerr << "!" << endl;
-  if(count != 27) { cerr << "EdgePoint count " << count << " != 27" << endl; }
+  //cerr << "!" << std::endl;
+  if(count != 27) { std::cerr << "EdgePoint count " << count << " != 27" << std::endl; }
   return 0;
 };
 
@@ -1172,7 +1173,7 @@ bool isEdgePoint_Star (const int pt, gridpt grid[]) {
       return 1;
     }
   }
-  if(count != 6) { cerr << "EdgePoint count " << count << " != 6" << endl; }
+  if(count != 6) { std::cerr << "EdgePoint count " << count << " != 6" << std::endl; }
   return 0;
 };
 
@@ -1183,10 +1184,10 @@ bool isEdgePoint_Star (const int pt, gridpt grid[]) {
 void ijk2pdb (char line[], int i, int j, int k, int n) {
   //char line[128];
 
-  //cerr << "[i = " << i << "] " << flush;
-  //cerr << "[j = " << j << "] " << flush;
-  //cerr << "[k = " << k << "] " << flush;
-  //cerr << "n = " << n << endl;
+  //cerr << "[i = " << i << "] " << std::flush;
+  //cerr << "[j = " << j << "] " << std::flush;
+  //cerr << "[k = " << k << "] " << std::flush;
+  //cerr << "n = " << n << std::endl;
 
   line[0] = '\0';
 
@@ -1236,14 +1237,14 @@ void ijk2pdb (char line[], int i, int j, int k, int n) {
   strcat(line,temp);
 
   //PRINT OUT
-  //cerr << line << endl;
+  //cerr << line << std::endl;
 
   return;
 };
 
 /*********************************************/
 void limitToTunnelArea(const float radius, gridpt grid[]) {
-  cerr << "Limiting to Cylinder Around Exit Tunnel...  " << flush;
+  std::cerr << "Limiting to Cylinder Around Exit Tunnel...  " << std::flush;
 
   #pragma omp parallel for
   for(int pt=0; pt<=DXYZ; pt++) {
@@ -1252,7 +1253,7 @@ void limitToTunnelArea(const float radius, gridpt grid[]) {
     }
   }
   if (DEBUG > 0)
-    cerr << "done " << endl << endl;
+    std::cerr << "done " << std::endl << std::endl;
   return;
 };
 
@@ -1344,10 +1345,10 @@ float crossSection (const gridpt grid[])
   float count;
   //double mult = GRID*GRID*0.5*0.5*2.0/3.0;
   double mult = GRID*GRID/6.0;
-  cerr << "stepping" << flush;
+  std::cerr << "stepping" << std::flush;
   for(float k=-5; k<100; k+=0.5) {
    k = int(k*4.0)/4.0;
-   cerr << "." << flush;
+   std::cerr << "." << std::flush;
    count = 0.0;
    float total = 0.0;
    for(float i=-200; i<=200; i+=GRID*0.5) {
@@ -1367,10 +1368,10 @@ float crossSection (const gridpt grid[])
     }
    }
 
-   //cerr << "crossSection:  " << k << " " << count << " of " << total << endl;
-   cout << k << "\t" << count*mult << endl;
+   //cerr << "crossSection:  " << k << " " << count << " of " << total << std::endl;
+   std::cout << k << "\t" << count*mult << std::endl;
   }
-   cerr << endl;
+   std::cerr << std::endl;
 
   return count;
 };
@@ -1411,7 +1412,7 @@ void padRight(char a[], int n) {
 
 /*********************************************/
 void printBar () {
-  cerr << "|----+----+----+----+----+---<>---+----+----+----+----+----|" << endl;
+  std::cerr << "|----+----+----+----+----+---<>---+----+----+----+----+----|" << std::endl;
   return;
 };
 
@@ -1422,32 +1423,32 @@ void printVol (int vox) {
   tenp = 1000000.0;
   if(float(vox)*GRIDVOL > tenp) {
     int cut = int((float(vox)/tenp)*GRIDVOL);
-      cerr << cut << "," << flush;
+      std::cerr << cut << "," << std::flush;
     vox = vox - int(cut*tenp/GRIDVOL);
   }
   tenp = 1000.0;
   if(float(vox)*GRIDVOL > tenp) {
     int cut = int((float(vox)/tenp)*GRIDVOL);
     if(cut >= 100) {
-      cerr << cut << "," << flush;
+      std::cerr << cut << "," << std::flush;
     } else if(cut >= 10) {
-      cerr << "0" << cut << "," << flush;
+      std::cerr << "0" << cut << "," << std::flush;
     } else if(cut >= 1) {
-      cerr << "00" << cut << flush;
+      std::cerr << "00" << cut << std::flush;
     } else {
-      cerr << "000" << flush;
+      std::cerr << "000" << std::flush;
     }
     vox = vox - int(cut*tenp/GRIDVOL);
   }
   double cut = float(vox)*GRIDVOL;
   if(cut >= 100) {
-    cerr << cut << flush;
+    std::cerr << cut << std::flush;
   } else if(cut >= 10) {
-    cerr << "0" << cut << flush;
+    std::cerr << "0" << cut << std::flush;
   } else if(cut >= 1) {
-    cerr << "00" << cut << flush;
+    std::cerr << "00" << cut << std::flush;
   } else {
-    cerr << "000" << flush;
+    std::cerr << "000" << std::flush;
   }
   return;
 };
@@ -1459,34 +1460,34 @@ void printVolCout (int vox) {
   tenp = 1000000.0; //Millions
   if(float(vox)*GRIDVOL > tenp) {
     int cut = int((float(vox)/tenp)*GRIDVOL);
-      cout << cut << flush;
+      std::cout << cut << std::flush;
     vox = vox - int(cut*tenp/GRIDVOL);
   }
   tenp = 1000.0; //Thousands
   if(float(vox)*GRIDVOL > tenp) {
     int cut = int((float(vox)/tenp)*GRIDVOL);
     if(cut >= 100 || vol < 100000) {
-      cout << cut << flush;
+      std::cout << cut << std::flush;
     } else if(cut >= 10) {
-      cout << "0" << cut << flush;
+      std::cout << "0" << cut << std::flush;
     } else if(cut >= 1) {
-      cout << "00" << cut << flush;
+      std::cout << "00" << cut << std::flush;
     } else {
-      cout << "000" << flush;
+      std::cout << "000" << std::flush;
     }
     vox = vox - int(cut*tenp/GRIDVOL);
   }
   double cut = float(vox)*GRIDVOL;
   if(cut >= 100 || vol < 1000) {
-    cout << cut << flush;
+    std::cout << cut << std::flush;
   } else if(cut >= 10) {
-    cout << "0" << cut << flush;
+    std::cout << "0" << cut << std::flush;
   } else if(cut >= 1) {
-    cout << "00" << cut << flush;
+    std::cout << "00" << cut << std::flush;
   } else {
-    cout << "000" << flush;
+    std::cout << "000" << std::flush;
   }
-  cout << "\t" << flush;
+  std::cout << "\t" << std::flush;
   return;
 };
 
@@ -1522,8 +1523,8 @@ int countEdgePoints (gridpt grid[]) {
   const float cat = DZ/60.0;
   float cut = cat;
 
-  //cerr << "DXY: " << DXY << "\tDX: " << DX << endl;
-  cerr << "Count Surface Voxels..." << endl;
+  //cerr << "DXY: " << DXY << "\tDX: " << DX << std::endl;
+  std::cerr << "Count Surface Voxels..." << std::endl;
   printBar();
 
   int sk=-1, sj=-1;
@@ -1531,7 +1532,7 @@ int countEdgePoints (gridpt grid[]) {
     sk++;
     count++;
     if(count > cut) {
-      cerr << "^" << flush;
+      std::cerr << "^" << std::flush;
       cut += cat;
     }
     sj=-1;
@@ -1567,8 +1568,8 @@ float surface_area (gridpt grid[]) {
   const float cat = DZ/60.0;
   float cut = cat;
 
-  //cerr << "DXY: " << DXY << "\tDX: " << DX << endl;
-  cerr << "Count Surface Voxels for Surface Area..." << endl;
+  //cerr << "DXY: " << DXY << "\tDX: " << DX << std::endl;
+  std::cerr << "Count Surface Voxels for Surface Area..." << std::endl;
   printBar();
 
   int sk=-1, sj=-1;
@@ -1576,7 +1577,7 @@ float surface_area (gridpt grid[]) {
     sk++;
     count++;
     if(count > cut) {
-      cerr << "^" << flush;
+      std::cerr << "^" << std::flush;
       cut += cat;
     }
     sj=-1;
@@ -1591,16 +1592,16 @@ float surface_area (gridpt grid[]) {
           edges[type]++;
         }
   } } }
-  cerr << endl << "EDGES: ";
+  std::cerr << std::endl << "EDGES: ";
   float totedge=0;
   for(int i=1; i<=9; i++) {
     totedge += float(edges[i]);
   }
   for(int i=1; i<=9; i++) {
-    cerr << "s" << i << ":" << int(float(100000*edges[i])/totedge)/1000.0 << " ";
+    std::cerr << "s" << i << ":" << int(float(100000*edges[i])/totedge)/1000.0 << " ";
     surf += edges[i]*wt[i];
   }
-  cerr << endl << endl;
+  std::cerr << std::endl << std::endl;
   return surf*GRID*GRID;
 }
 
@@ -1629,13 +1630,13 @@ int classifyEdgePoint (const int pt, gridpt grid[]) {
   }
   //RETURN BASED ON NUMBER OF EMPTY NEIGHBORS (nb)
   if(count != 6) {
-    cerr << "classifyEdgePoint count " << count << " != 6" << endl; 
+    std::cerr << "classifyEdgePoint count " << count << " != 6" << std::endl;
   }
   if(pt < DXY) {
-    cerr << "pt < DXY " << pt << " < " << DXY << endl;
+    std::cerr << "pt < DXY " << pt << " < " << DXY << std::endl;
   }
   //if(pt + DXY > NUMBINS) { 
-  //cerr << "pt > NUMBINS " << pt << " > " << NUMBINS << endl;
+  //cerr << "pt > NUMBINS " << pt << " > " << NUMBINS << std::endl;
   //}
   if(nb == 0 || nb == 1) {
     return nb;
@@ -1686,7 +1687,7 @@ int classifyEdgePoint (const int pt, gridpt grid[]) {
   } else if(nb == 6) {
     return 9;
   }
-  cerr << "classifyEdgePoint neighbor count " << nb << " is weird!" << endl;
+  std::cerr << "classifyEdgePoint neighbor count " << nb << " is weird!" << std::endl;
   return 0;
 };
 
@@ -1712,13 +1713,13 @@ int fill_cavities(gridpt grid[]) {
   for(unsigned int pt=0; pt<NUMBINS && stop; pt++) {
     if(cavACC[pt]) { stop = 0; firstpt = pt;}
   }
-  cerr << "FIRST POINT: " << firstpt << endl;
+  std::cerr << "FIRST POINT: " << firstpt << std::endl;
 //LAST POINT
   stop = 1; int lastpt = 0;
   for(unsigned int pt=NUMBINS-10; pt>0 && stop; pt--) {
     if(cavACC[pt]) { stop = 0; lastpt = pt;}
   }
-  cerr << "LAST  POINT: " << lastpt << endl;
+  std::cerr << "LAST  POINT: " << lastpt << std::endl;
 
 //Pull channels out of inverse access map
   gridpt *chanACC=NULL;
@@ -1743,15 +1744,15 @@ int fill_cavities(gridpt grid[]) {
   int grid_after = countGrid(grid);
   free (cavACC);
 
-  cerr << endl << "CAVITY VOLUME: ";
+  std::cerr << std::endl << "CAVITY VOLUME: ";
   printVol(cavACC_voxels);
-  cerr << endl << "BEFORE VOLUME: ";
+  std::cerr << std::endl << "BEFORE VOLUME: ";
   printVol(grid_before);
-  cerr << endl << "AFTER VOLUME:  ";
+  std::cerr << std::endl << "AFTER VOLUME:  ";
   printVol(grid_after);
-  cerr << endl << "DIFFERENCE:    ";
+  std::cerr << std::endl << "DIFFERENCE:    ";
   printVol(grid_after-grid_before);
-  cerr << endl << endl;
+  std::cerr << std::endl << std::endl;
 
   return cavACC_voxels;
 };
@@ -1760,7 +1761,7 @@ int fill_cavities(gridpt grid[]) {
 void determine_MinMax(gridpt grid[], int minmax[]) {
   //minmax MUST be an array of length 6
   if (DEBUG > 0)
-    cerr << "Determining Minima and Maxima..." << flush;
+    std::cerr << "Determining Minima and Maxima..." << std::flush;
   int xmin=DX, ymin=DXY, zmin=DXYZ;
   int xmax=0, ymax=0, zmax=0;
   for(int k=0; k<DXYZ; k+=DXY) {
@@ -1777,7 +1778,7 @@ void determine_MinMax(gridpt grid[], int minmax[]) {
         }
   } } }
   if (DEBUG > 0)
-    cerr << "  DONE" << endl;;
+    std::cerr << "  DONE" << std::endl;;
   minmax[0] = xmin;
   minmax[1] = ymin;
   minmax[2] = zmin;
@@ -1785,9 +1786,9 @@ void determine_MinMax(gridpt grid[], int minmax[]) {
   minmax[4] = ymax;
   minmax[5] = zmax;
   if (DEBUG > 0) {
-    cerr << "X: " << xmin << " <> " << xmax << endl;
-    cerr << "Y: " << ymin/DX << " <> " << ymax/DX << endl;
-    cerr << "Z: " << zmin/DXY << " <> " << zmax/DXY << endl;
+    std::cerr << "X: " << xmin << " <> " << xmax << std::endl;
+    std::cerr << "Y: " << ymin/DX << " <> " << ymax/DX << std::endl;
+    std::cerr << "Z: " << zmin/DXY << " <> " << zmax/DXY << std::endl;
   }
   return;
 };
@@ -1814,7 +1815,7 @@ int makerbot_fill(gridpt ingrid[], gridpt outgrid[]) {
 
   int minmax[6];
   determine_MinMax(outgrid, minmax);
-  cerr << "makerbot fill" << endl;
+  std::cerr << "makerbot fill" << std::endl;
 //Get first point
   unsigned int iter = 0;
   unsigned int changed = 1;
@@ -1835,9 +1836,9 @@ int makerbot_fill(gridpt ingrid[], gridpt outgrid[]) {
       }
     }
     totalChanged += changed;
-    cerr << "ITER: " << iter << " :: changed " << changed << endl;
+    std::cerr << "ITER: " << iter << " :: changed " << changed << std::endl;
   }
-  cerr << "Total Changed: " << totalChanged << endl;
+  std::cerr << "Total Changed: " << totalChanged << std::endl;
 
   return totalChanged;
 };
@@ -2004,12 +2005,12 @@ int bounding_box(gridpt grid[], gridpt bbox[]) {
   int count = 0;
   const float cat = DZ/60.0;
   float cut = cat;
-  cerr << "Fill Box..." << endl;
+  std::cerr << "Fill Box..." << std::endl;
   printBar();
   for(int k=zmin; k<=zmax; k+=DXY) {
     count++;
     if(count > cut) {
-      cerr << "^" << flush;
+      std::cerr << "^" << std::flush;
       cut += cat;
     }
     for(int j=ymin; j<=ymax; j+=DX) {
@@ -2017,9 +2018,9 @@ int bounding_box(gridpt grid[], gridpt bbox[]) {
         bbox[i+j+k] = 1;
         vol++;
   } } }
-  cerr << endl << "BOX VOXELS: ";
+  std::cerr << std::endl << "BOX VOXELS: ";
   printVol(vol);
-  cerr << endl << endl;
+  std::cerr << std::endl << std::endl;
 
   return vol;
 };
