@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
 // USER INPUT
 // ****************************************************
 
-  COMPILE_INFO;
-  CITATION;
+printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
+printCitation(); // Replaces CITATION;
 
   char file1[256]; file1[0] = '\0';
   char mrcfile1[256]; mrcfile1[0] = '\0';

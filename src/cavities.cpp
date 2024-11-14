@@ -22,8 +22,8 @@ int main(int argc, char *argv[]) {
 // USER INPUT
 // ****************************************************
 
-  COMPILE_INFO;
-  CITATION;
+printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
+printCitation(); // Replaces CITATION;
 
   char file[256]; file[0] = '\0';
   char ezdfile[256]; ezdfile[0] = '\0';

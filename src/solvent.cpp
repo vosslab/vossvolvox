@@ -16,8 +16,8 @@ extern char XYZRFILE[256];
 int main(int argc, char *argv[]) {
   cerr << endl;
  
-  COMPILE_INFO;
-  CITATION;
+printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
+printCitation(); // Replaces CITATION;
 
 // ****************************************************
 // INITIALIZATION
