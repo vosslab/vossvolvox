@@ -18,17 +18,24 @@ If you use these tools in your research, please cite:
 
 ## Program Descriptions
 
+### Primary Programs
+
+- **Volume.exe**
+  - **Description**: Calculates the solvent-excluded volume and surface area for any specified probe radius.
+  - **Input**: Structure file, grid spacing, and probe radius.
+  - **Output**: PDB, EZD, and MRC files containing volume and surface data.
+
+- **Channel.exe**
+  - **Description**: Identifies and extracts a specific solvent channel from a structure.
+  - **Input**: Structure file, probe radius, grid spacing, and coordinates for channel location.
+  - **Output**: PDB, EZD, and MRC files containing the specified channel.
+
 ### Simple Programs
 
 - **Cavities.exe**
   - **Description**: Extracts cavities within a molecular structure based on a specified probe radius.
   - **Input**: Molecular structure file, grid spacing, probe radius, and output file paths.
   - **Output**: PDB, EZD, and MRC files containing identified cavities.
-
-- **Channel.exe**
-  - **Description**: Identifies and extracts a specific solvent channel from a structure.
-  - **Input**: Structure file, probe radius, grid spacing, and coordinates for channel location.
-  - **Output**: PDB, EZD, and MRC files containing the specified channel.
 
 - **FsvCalc.exe**
   - **Description**: Calculates the fractional solvent volume for a structure based on given probe radii.
@@ -50,11 +57,20 @@ If you use these tools in your research, please cite:
   - **Input**: Structure file, grid spacing, and probe radius.
   - **Output**: PDB, EZD, and MRC files with VDW volume data.
 
-- **Volume.exe**
-  - **Description**: Calculates the solvent-excluded volume and surface area for any specified probe radius.
-  - **Input**: Structure file, grid spacing, and probe radius.
-  - **Output**: PDB, EZD, and MRC files containing volume and surface data.
+### Looping Programs
 
+- **AllChannel.exe**
+  - **Description**: Extracts all solvent channels from a structure that exceed a specified cutoff.
+  - **Input**: Structure file, probe radius, grid spacing, minimum volume, and channel count.
+  - **Output**: Data for channels meeting the cutoff criteria.
+
+- **AllChannelExc.exe**
+  - **Description**: Similar to AllChannel.exe but includes additional cutoff and percentage criteria.
+  - **Input**: Structure file, probe radius, grid spacing, minimum volume, and percentage.
+  - **Output**: Data for channels meeting the cutoff and percentage criteria.
+  
+### Experimental Programs
+  
 - **FracDim.exe**
   - **Description**: Calculates the fractal dimension of the molecular structure based on different grid resolutions.
   - **Input**: Structure file, probe radius, and grid spacing parameters.
@@ -69,18 +85,6 @@ If you use these tools in your research, please cite:
   - **Description**: Similar to Volume.exe but excludes cavities from the solvent-excluded volume calculation.
   - **Input**: Structure file, grid spacing, and probe radius.
   - **Output**: PDB, EZD, and MRC files excluding cavity volumes.
-
-### Looping Programs
-
-- **AllChannel.exe**
-  - **Description**: Extracts all solvent channels from a structure that exceed a specified cutoff.
-  - **Input**: Structure file, probe radius, grid spacing, minimum volume, and channel count.
-  - **Output**: Data for channels meeting the cutoff criteria.
-
-- **AllChannelExc.exe**
-  - **Description**: Similar to AllChannel.exe but includes additional cutoff and percentage criteria.
-  - **Input**: Structure file, probe radius, grid spacing, minimum volume, and percentage.
-  - **Output**: Data for channels meeting the cutoff and percentage criteria.
 
 ### Additional Notes
 
