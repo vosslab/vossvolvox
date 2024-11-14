@@ -2,7 +2,7 @@
 ** output.cpp
 */
 #include "utils.h"
-#include <sys/time.h>
+#include <fstream>
 
 const float INV_SQRT_2 = 0.7071;
 const float INV_SQRT_3 = 0.5774;
