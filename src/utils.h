@@ -1,23 +1,35 @@
-#include <iostream>
-#include <fstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
-#include <cstring>
-#include <cctype>
+/*
+** utils.h
+*/
+#ifndef UTILS_H
+#define UTILS_H
 
-# define CITATION \
-  fprintf(stderr,\
- "Citation: %s.\nDOI: %s\nE-mail: M Gerstein <%s> or NR Voss <%s>.\n\n",\
- "Neil R Voss, et al. J Mol Biol. v360 (4): 2006, pp. 893-906",\
- "http://dx.doi.org/10.1016/j.jmb.2006.05.023",\
- "mark.gerstein@yale.edu","vossman77@yahoo.com")
+#include <iostream>   // For std::cerr, std::endl in printCitation and printCompileInfo
 
-# define COMPILE_INFO \
-  fprintf(stderr,\
- "Program: %s at line %d in source %s,\n which was compiled on %s at %s.\n\n",\
- argv[0],__LINE__,__FILE__,__DATE__,__TIME__)
+// Function to print citation information (only prints once)
+inline void printCitation() {
+  static bool CitationHasPrinted = false; // Prevent multiple prints
+  if (!CitationHasPrinted) {
+    std::cerr << "Citation: Neil R Voss, et al. J Mol Biol. v360 (4): 2006, pp. 893-906.\n"
+      << "DOI: http://dx.doi.org/10.1016/j.jmb.2006.05.023\n"
+      << "E-mail: M Gerstein <mark.gerstein@yale.edu> or NR Voss <vossman77@yahoo.com>\n"
+      << std::endl;
+    CitationHasPrinted = true;
+  }
+}
+
+// Function to print compilation information
+inline void printCompileInfo(const char* programName) {
+  static bool CompileHasPrinted = false; // Prevent multiple prints
+  if (!CompileHasPrinted) {
+    std::cerr << "Program: " << programName << "\n"
+      << "Compiled on: " << __DATE__ << " at " << __TIME__ << "\n"
+      << "C++ Standard: " << __cplusplus << "\n"
+      << "Source file: " << __FILE__ << ", line " << __LINE__ << "\n"
+      << std::endl;
+    CompileHasPrinted = true;
+  }
+}
 
 //#define MAXPROBE   10.0
 #define MAXVDW  2.0
@@ -163,3 +175,4 @@ void write_FifthEZD (gridpt grid[], char outfile[]);
 int writeMRCFile( gridpt data[], char filename[] );
 int writeSmallMRCFile( gridpt data[], char filename[] );
 
+#endif // UTILS_H
