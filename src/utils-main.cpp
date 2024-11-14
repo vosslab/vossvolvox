@@ -1,7 +1,9 @@
 /*
-** utils.cpp
+** utils-main.cpp
 */
 #include "utils.h"
+#include <cmath>
+#include <iostream>
 
 float XMIN, YMIN, ZMIN;
 float XMAX, YMAX, ZMAX;
@@ -112,33 +114,37 @@ float OLDgetIdealGrid () {
   return bpg;
 };*/
 
-
 /*********************************************/
-void assignLimits () {
-  //always even for EMAN filtering
-  DX=int((XMAX-XMIN)/GRID/4.0+1)*4;
-  DY=int((YMAX-YMIN)/GRID/4.0+1)*4;
-  DZ=int((ZMAX-ZMIN)/GRID/4.0+1)*4;
-  DXY=(DY*DX);
-  //unsigned int DYZ=(DY*DZ);
-  //unsigned int DXZ=(DZ*DX);
-  DXYZ=(DZ*DY*DX);
-  //NUMBINS = 3*DXYZ;
-  //NUMBINS = DXYZ + DXY + DXZ + DYZ + DX + DY + DZ + 1;
+// A helper function for clarity and reuse
+unsigned int calculateDimension(float min, float max, float grid) {
+  return static_cast<unsigned int>(std::ceil((max - min) / grid / 4.0)) * 4;
+}
+
+void assignLimits() {
+  DX = calculateDimension(XMIN, XMAX, GRID);
+  DY = calculateDimension(YMIN, YMAX, GRID);
+  DZ = calculateDimension(ZMIN, ZMAX, GRID);
+  DXY = DY * DX;
+  DXYZ = DZ * DXY;
   NUMBINS = DXYZ + DXY + DX + 1;
 
-  cerr << "Precent filled NUMBINS/2^31: " <<
-        int(NUMBINS*1000.0/MAXBINS)/10.0 << "%" << endl;
-  float idealGrid = getIdealGrid();
-  cerr << "Ideal Grid: " << idealGrid << endl;
+  std::cerr << "Percent filled NUMBINS/2^31: " <<
+            (NUMBINS * 1000.0 / MAXBINS) / 10.0 << "%" << std::endl;
+
+  float idealGrid = getIdealGrid(); // Assuming getIdealGrid() is defined elsewhere
+  std::cerr << "Ideal Grid: " << idealGrid << std::endl;
+
+  // Improved debug message for when NUMBINS exceeds MAXBINS
   /*if(NUMBINS > MAXBINS) {
-    cout << MAXPROBE << "  grid " << GRID << " is too large; use " << 
-	idealGrid << " for " << XYZRFILE << endl;
-    cerr << "###### grid is too large ######" << endl << endl;
-    exit (1);
+    std::cerr << "MAXPROBE " << MAXPROBE << ", grid " << GRID
+              << " is too large; consider using " << idealGrid
+              << " for " << XYZRFILE // Assuming XYZRFILE is defined and used elsewhere
+              << std::endl << "###### grid is too large ######" << std::endl << std::endl;
+    exit(1); // Consider throwing an exception instead of calling exit for better error handling
   }*/
-  cerr << endl;
-};
+
+  std::cerr << std::endl;
+}
 
 /*********************************************/
 void testLimits (gridpt grid[]) {
