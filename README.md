@@ -8,9 +8,7 @@ If you use these tools in your research, please cite:
 
 - **Neil R. Voss, Mark Gerstein.**  
   *3V: cavity, channel, and cleft volume calculator and extractor.*  
-  --------------------------------------  
   Nucleic Acids Res. 2010 Jul;38(Web Server issue):W555-62.  
-  --------------------------------------  
   - DOI: [10.1093/nar/gkq395](https://doi.org/10.1093/nar/gkq395)  
   - PubMed: [20478824](https://pubmed.ncbi.nlm.nih.gov/20478824)  
   - PubMed Central: [PMC2896178](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2896178/)  
@@ -20,16 +18,12 @@ If you use these tools in your research, please cite:
 
 - **Voss NR.**  
   *Geometric Studies of RNA and Ribosomes, and Ribosome Crystallization.*  
-  --------------------------------------  
   Doctoral Dissertation. Yale University; November 2006. Dissertation Director: Prof. Peter B. Moore.  
-  --------------------------------------  
   - Download PDF: [NR_Voss-thesis-Geometric_Studies_of_RNA_and_Ribosomes.pdf](https://github.com/vosslab/vossvolvox/raw/master/publications/NR_Voss-thesis-Geometric_Studies_of_RNA_and_Ribosomes.pdf)
 
 - **Voss NR, et al.**  
   *The Geometry of the Ribosomal Polypeptide Exit Tunnel.*  
-  --------------------------------------  
   J Mol Biol. 2006 Jul 21;360(4):893-906.  
-  --------------------------------------  
   - DOI: [10.1016/j.jmb.2006.05.023](http://dx.doi.org/10.1016/j.jmb.2006.05.023)  
   - PubMed: [16784753](https://pubmed.ncbi.nlm.nih.gov/16784753)  
   - Download Pre-print PDF: [Geometry_of_the_Ribosomal_Polypeptide_Exit_Tunnel.pdf](https://github.com/vosslab/vossvolvox/raw/master/publications/Geometry_of_the_Ribosomal_Polypeptide_Exit_Tunnel.pdf)
