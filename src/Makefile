@@ -1,17 +1,26 @@
 # Makefile for Voss Volvox Project with Conditional OpenMP Support
 # This file is used to compile various programs related to molecular structure analysis
 
+# Set vol as the default target
+.DEFAULT_GOAL := vol
+
 # Compiler and compilation flags
-CC = g++                    # Set the compiler to g++
-BASE_FLAGS = -O3 -w         # Basic optimization and quiet mode flags
-CPU_FLAGS = -march=native -mtune=native  # CPU-specific optimizations for current architecture
-OPENMP_FLAGS = -fopenmp     # OpenMP flag for parallel processing
-FLAGS = $(BASE_FLAGS) $(CPU_FLAGS)       # Default to base flags; OpenMP will be added if supported
+# Set the compiler to g++
+CC = g++
+# Basic optimization and quiet mode flags
+BASE_FLAGS = -O3 -w
+# CPU-specific optimizations for current architecture
+CPU_FLAGS = -march=native -mtune=native
+# OpenMP flag for parallel processing
+OPENMP_FLAGS = -fopenmp
+# Default to base flags; OpenMP will be added if supported
+FLAGS = $(strip $(BASE_FLAGS) $(CPU_FLAGS))
 
 # Directory to store binaries
 BIN_DIR = ../bin
 
-# Check if the compiler supports OpenMP
+# Setup target to configure flags based on OpenMP support
+setup:
 ifeq ($(shell $(CC) -dM -E - < /dev/null | grep -q __OPENMP; echo $$?),0)
 	FLAGS += $(OPENMP_FLAGS)
 	@echo "OpenMP support detected; using -fopenmp flag."
@@ -45,13 +54,13 @@ none:
 
 # Compilation rules for individual object files
 utils-main.o: utils-main.cpp
-	$(CC) $(FLAGS) -c -o $(BIN_DIR)/utils-main.o utils-main.cpp
+	$(CC) $(FLAGS) -c -o utils-main.o utils-main.cpp
 
 utils-output.o: utils-main.o utils-output.cpp
-	$(CC) $(FLAGS) -c -o $(BIN_DIR)/utils-output.o utils-output.cpp
+	$(CC) $(FLAGS) -c -o utils-output.o utils-output.cpp
 
 utils-mrc.o: utils-mrc.cpp
-	$(CC) $(FLAGS) -c -o $(BIN_DIR)/utils-mrc.o utils-mrc.cpp
+	$(CC) $(FLAGS) -c -o utils-mrc.o utils-mrc.cpp
 
 # Individual program targets
 cav: $(OBJS) cavities.cpp
