@@ -118,14 +118,14 @@ int ijk2pt(int i, int j, int k);
 void pt2ijk(int pt, int &i, int &j, int &k);
 void pt2xyz(int pt, float &x, float &y, float &z);
 int xyz2pt(float x, float y, float z);
-bool isEdgePoint_Fill (const int pt, gridpt grid[]);
-bool isEdgePoint_Star (const int pt, gridpt grid[]);
+bool isEdgePoint_Fill (const int pt, const gridpt grid[]);
+bool isEdgePoint_Star (const int pt, const gridpt grid[]);
 //void expand_Point (const int pt, gridpt grid[]);
 //void contract_Point (const int pt, gridpt grid[]);
-void ijk2pdb (char line[], int i, int j, int k, int n);
+//void ijk2pdb (char line[], int i, int j, int k, int n);
+std::string ijk2pdb(int i, int j, int k, int n);
 bool isContainedPoint (const int pt, gridpt ingrid[], gridpt outgrid[], int minmax[]);
 bool isNearEdgePoint (const int pt, gridpt ingrid[], gridpt outgrid[]);
-
 
 //special
 bool isCloseToVector (const float radius, const int pt);
@@ -161,13 +161,13 @@ int makerbot_fill(gridpt ingrid[], gridpt outgrid[]);
 /*************************************************
 //output functions (in utils-output.cpp)
 **************************************************/
-void write_PDB (gridpt grid[], char outfile[]);
-void write_SurfPDB (gridpt grid[], char outfile[]);
-void write_EZD (gridpt grid[], char outfile[]);
-void write_BlurEZD (gridpt grid[], char outfile[]);
-void write_HalfEZD (gridpt grid[], char outfile[]);
-void write_ThirdEZD (gridpt grid[], char outfile[]);
-void write_FifthEZD (gridpt grid[], char outfile[]);
+void write_PDB (const gridpt grid[], const char outfile[]);
+void write_SurfPDB (const gridpt grid[], const char outfile[]);
+void write_EZD (const gridpt grid[], const char outfile[]);
+void write_BlurEZD (const gridpt grid[], const char outfile[]);
+void write_HalfEZD (const gridpt grid[], const char outfile[]);
+void write_ThirdEZD (const gridpt grid[], const char outfile[]);
+void write_FifthEZD (const gridpt grid[], const char outfile[]);
 
 /*************************************************
 //output functions (in utils-mrc.cpp)
