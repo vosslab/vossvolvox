@@ -6,16 +6,11 @@
 #include <sstream> // Required for std::ostringstream
 #include <iomanip> // Required for std::setw and std::setprecision
 
-
-const float INV_SQRT_2 = 0.7071;
-const float INV_SQRT_3 = 0.5774;
-
 /*********************************************
 **********************************************
        PDB OUTPUT FUNCTIONS
 **********************************************
 *********************************************/
-
 
 //========================================================
 //========================================================
@@ -160,657 +155,214 @@ void write_SurfPDB(const gridpt grid[], const char outfile[]) {
 
 /*********************************************
 **********************************************
-       EZD OUTPUT FUNCTIONS
+       EZD OUTPUT MASTER FUNCTION
 **********************************************
 *********************************************/
 
 //========================================================
+// Function: computeBlurredValue
+// Purpose: Compute a blurred value for a voxel based on its neighbors,
+//          applying weights based on their Manhattan distances.
+// Parameters:
+//    - grid: The grid array representing the 3D voxel structure.
+//    - voxelIndex: The index of the voxel for which to compute the blurred value.
+// Returns:
+//    - The blurred value (normalized or thresholded) for the given voxel.
 //========================================================
-void write_EZD (const gridpt grid[], const char outfile[]) {
-  cerr << "Writing RIGID EZD to file:" << outfile << endl;
-  //starts
-  int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
-//ends
-  int ie=0,je=0,ke=0;
-//PARSE
-  const float pcat = NUMBINS/60.0;
-  float pcut = pcat;
-  cerr << "Finding Limits of the GRID..." << endl;
-  printBar();
-  for(unsigned int ind=0; ind<NUMBINS; ind++) {
-    if(float(ind) > pcut) {
-      cerr << "^" << flush;
-      pcut += pcat;
-    }
-    if(grid[ind]) {
-      const int i = int(ind % DX);
-      const int j = int((ind % DXY)/ DX);
-      const int k = int(ind / DXY);
-      if(i < is) { is = i; }
-      if(j < js) { js = j; }
-      if(k < ks) { ks = k; }
-      if(i > ie) { ie = i; }
-      if(j > je) { je = j; }
-      if(k > ke) { ke = k; }
-    }
-  }
-  cerr << endl;
-//extend
-  is--; js--; ks--; ie++; je++; ke++;
-//minmaxs
-  const float xmin = is * GRID + XMIN;
-  const float ymin = js * GRID + YMIN;
-  const float zmin = ks * GRID + ZMIN;
-  const float xmax = ie * GRID + XMIN;
-  const float ymax = je * GRID + YMIN;
-  const float zmax = ke * GRID + ZMIN;
+float computeBlurredValue(const gridpt grid[], int voxelIndex) {
+  // Initialize the blurred value
+  float value = 0.0;
 
-  std::ofstream out;
-  time_t t;
-  out.open(outfile);
-  out << "EZD_MAP" << endl;
-  out << "! EZD file (c) Neil Voss, 2005" << endl;
-  time(&t);
-  out << "! Grid: " << GRID << "\tGRIDVOL" << GRIDVOL << "\tWater_Res: " << WATER_RES
-        << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << endl;
-  out << "! Input File: " << XYZRFILE << endl;
-  out << "! Date: " << ctime(&t) << "! " << endl;
-//CELL: cell size based on GRID NOT on EXTENT, given GRID 100 and
-//Dens 0.1 CELL = 10.0 (or maybe not, might be vector pointing axes)
-  out << "CELL " << int(xmax-xmin+1) << ".0 " << int(ymax-ymin+1)
-        << ".0 " << int(zmax-zmin+1) << ".0 90.0 90.0 90.0" << endl;
-//ORIGIN (x,y,z) in voxels (mult by $gridDens to get Angstroms)
-//must cover min (x,y,z)
-  int OX = int(float(xmin)/GRID-1.0);
-  int OY = int(float(ymin)/GRID-1.0);
-  int OZ = int(float(zmin)/GRID-1.0);
-  out << "ORIGIN " << OX << " " << OY << " " << OZ << endl;
-//EXTENT maximum dimensions of actual cell (in voxels)
-//must cover max (x,y,z) //defines range(?)
-  int MX = ie-is+1; //int(float(xmax-xmin)/GRID+1.0);
-  int MY = je-js+1; //int(float(xmax-xmin)/GRID+1.0);
-  int MZ = ke-ks+1; //int(float(xmax-xmin)/GRID+1.0);
-  out << "EXTENT " << MX << " " << MY << " " << MZ << endl;
-//  out << "EXTENT " << DX << " " << DY << " " << DZ << endl; //big version
-  out << "GRID " << MX << " " << MY << " " << MZ << endl; //doesn't matter
-  out << "SCALE 1.0" << endl;
-  out << "MAP" << endl;
-  int outcnt = 0;
-  float count = 0;
-  const float cat = MZ/60.0;
-  float cut = cat;
+  // Constants for weighted distances
+  const float INV_SQRT_2 = 0.7071; // Weight for neighbors at diagonal distance 2
+  const float INV_SQRT_3 = 0.5774; // Weight for neighbors at diagonal distance 3
+  const float fill = 21.1044;      // Total possible contribution of all neighbors
 
-  cerr << "Writing the Grid to [" << outfile << "]..." << endl;
-  printBar();
+  // Iterate over the 3x3x3 neighborhood centered on the voxel
+  for (int di = -1; di <= 1; di++) {         // Neighbor offset along the x-axis
+    for (int dj = -1; dj <= 1; dj++) {       // Neighbor offset along the y-axis
+      for (int dk = -1; dk <= 1; dk++) {     // Neighbor offset along the z-axis
+        // Compute the neighbor index
+        int neighborIndex = voxelIndex + di + dj * DX + dk * DXY;
 
-  for(int k=ks; k<=ke; k++) {
-  count++;
-  if(count > cut) {
-    cerr << "^" << flush;
-    cut += cat;
-  }
-  for(int j=js; j<=je; j++) {
-  for(int i=is; i<=ie; i++) {
-      if(grid[i+j*DX+k*DXY]) {
-        out << "1 ";
-      } else {
-        out << "0 ";
+        // Check if the neighbor is occupied
+        if (grid[neighborIndex]) {
+          // Calculate Manhattan distance from the central voxel
+          int dist = abs(di) + abs(dj) + abs(dk);
+
+          // Assign weights based on distance
+          if (dist == 0) {
+            value += 2.0;            // Central voxel
+          } else if (dist == 1) {
+            value += 1.0;            // Direct neighbor
+          } else if (dist == 2) {
+            value += INV_SQRT_2;     // Diagonal neighbor (e.g., edge)
+          } else if (dist == 3) {
+            value += INV_SQRT_3;     // Corner neighbor
+          }
+        }
       }
-      outcnt++;
-      if(outcnt % 7 == 0) { out << endl; }
-  }}}
-
-  out << endl << "END" << endl;
-  out.close();
-  cerr << endl << "done [ wrote " << count << " lines ]" 
-	<< endl << endl;
-  return;
-};
-
-//========================================================
-//========================================================
-void write_HalfEZD (const gridpt grid[], const char outfile[]) {
-  cerr << "Calculating HALVED EZD for file: " << outfile << endl;
-//starts
-  int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
-//ends
-  int ie=0,je=0,ke=0;
-//PARSE
-  const float pcat = NUMBINS/60.0;
-  const float newgrid = GRID*2.0;
-  float pcut = pcat;
-  cerr << "Finding Limits of the GRID..." << endl;
-  printBar();
-  for(unsigned int ind=0; ind<NUMBINS; ind++) {
-    if(float(ind) > pcut) {
-      cerr << "^" << flush;
-      pcut += pcat;
-    }
-    if(grid[ind]) {
-      const int i = int(ind % DX);
-      const int j = int((ind % DXY)/ DX);
-      const int k = int(ind / DXY);
-      if(i < is) { is = i; }
-      if(j < js) { js = j; }
-      if(k < ks) { ks = k; }
-      if(i > ie) { ie = i; }
-      if(j > je) { je = j; }
-      if(k > ke) { ke = k; }
     }
   }
-  cerr << endl;
-//extend
-  is-=3; js-=3; ks-=3; ie+=3; je+=3; ke+=3;
-//minmaxs
-  const float xmin = is * GRID + XMIN;
-  const float ymin = js * GRID + YMIN;
-  const float zmin = ks * GRID + ZMIN;
-  const float xmax = ie * GRID + XMIN;
-  const float ymax = je * GRID + YMIN;
-  const float zmax = ke * GRID + ZMIN;
 
-  std::ofstream out;
-  time_t t;
-  out.open(outfile);
-  out << "EZD_MAP" << endl;
-  out << "! EZD file (c) Neil Voss, 2005" << endl;
-  time(&t);
-
-  out << "! Grid: " << GRID << "\tGRIDVOL" << GRIDVOL << "\tWater_Res: " << WATER_RES
-        << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << endl;
-  out << "! Input File: " << XYZRFILE << endl;
-  out << "! THIS GRID IS HALVED; NEW GRID SIZE: " << newgrid << endl;
-  out << "! Date: " << ctime(&t) << "! " << endl;
-//CELL: cell size based on GRID NOT on EXTENT, given GRID 100 and
-//Dens 0.1 CELL = 10.0 (or maybe not, might be vector pointing axes)
-  out << "CELL " << int(xmax-xmin+1) << ".0 " << int(ymax-ymin+1)
-        << ".0 " << int(zmax-zmin+1) << ".0 90.0 90.0 90.0" << endl;
-//ORIGIN (x,y,z) in voxels (mult by $gridDens to get Angstroms)
-//must cover min (x,y,z)
-
-  int OX = int((float(xmin)/GRID-1.0)/2.0+0.5);
-  int OY = int((float(ymin)/GRID-1.0)/2.0+0.5);
-  int OZ = int((float(zmin)/GRID-1.0)/2.0+0.5);
-  out << "ORIGIN " << OX << " " << OY << " " << OZ << endl;
-//EXTENT maximum dimensions of actual cell (in voxels)
-//must cover max (x,y,z) //defines range(?)
-  int MX = int((ie-is+1)/2.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  int MY = int((je-js+1)/2.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  int MZ = int((ke-ks+1)/2.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  out << "EXTENT " << MX << " " << MY << " " << MZ << endl;
-//  out << "EXTENT " << DX << " " << DY << " " << DZ << endl; //big version
-  out << "GRID " << MX << " " << MY << " " << MZ << endl; //doesn't matter
-  out << "SCALE 1.0" << endl;
-  out << "MAP" << endl;
-  int outcnt = 0;
-  float count = 0;
-  const float cat = MZ/60.0;
-  float cut = cat;
-
-  cerr << "Halving GRID and Writing to EZD File: " << outfile << endl;
-  cerr << "THIS MAY TAKE A LONG TIME" << endl;
-  printBar();
-
-  for(int k=ks; k<=ke; k+=2) {
-  count++;
-  if(count > cut) {
-    cerr << "^" << flush;
-    cut += cat;
+  // Normalize or threshold the value
+  if (value > 0.5 && value < fill) {
+    // Scale to 4 decimal places
+    value = int(10000.0 * value / fill + 0.5) / 10000.0;
+  } else if (value >= fill) {
+    // Maximum value
+    value = 1.0;
+  } else {
+    // Minimum value
+    value = 0.0;
   }
-  for(int j=js; j<=je; j+=2) {
-  for(int i=is; i<=ie; i+=2) {
-      int index = i+j*DX+k*DXY;
-//HARD CODE IT; 8 VOXELS --> 64 VOXELS
-//MAIN EIGHT; TOTAL 8 POINTS
-      long double sum = grid[index] + grid[index+1]
-  + grid[index+DX] + grid[index+DX+1]
-  + grid[index+DXY] + grid[index+DXY+1]
-  + grid[index+DX+DXY] + grid[index+DX+DXY+1];
-//FIRST DIST, 24 VOXELS; TOTAL 12 POINTS
-      sum += 0.2*(grid[index-1] + grid[index-1+DX]
-  + grid[index-DX] + grid[index-DX+1]
-  + grid[index+2] + grid[index+2+DX]
-  + grid[index+2*DX] + grid[index+2*DX+1]
 
-  + grid[index-1+DXY] + grid[index-1+DX+DXY]
-  + grid[index-DX+DXY] + grid[index-DX+1+DXY]
-  + grid[index+2+DXY] + grid[index+2+DX+DXY]
-  + grid[index+2*DX+DXY] + grid[index+2*DX+1+DXY]
+  // Return the computed and normalized/thresholded value
+  return value;
+}
 
-  + grid[index-DXY] + grid[index-DXY+1]
-  + grid[index-DXY+DX] + grid[index-DXY+DX+1]
+/*********************************************
+**********************************************
+       EZD OUTPUT MASTER FUNCTION
+**********************************************
+*********************************************/
 
-  + grid[index+2*DXY] + grid[index+2*DXY+1]
-  + grid[index+2*DXY+DX] + grid[index+2*DXY+DX+1]
-  );
-//SECOND DIST, 24 POINTS; TOTAL 8.48 POINTS
-//THIRD DIST, 8 POINTS; TOTAL 2.31 POINTS
-      //long double upper = 8.0 + 24.0*0.2;
-      if(sum >= 0.5 && sum <= 12.7) {
-        out << int(100000.0*sum/20.0+0.5)/100000.0 << " " << flush;
-      } else if(sum > 12.7) {
-        out << "1 " << flush;
-      } else {
-        out << "0 " << flush;
+void write_BinnedEZD(const gridpt grid[], const char outfile[], int binFactor, bool blur = false) {
+  if (binFactor <= 0) {
+    std::cerr << "Error: Invalid binFactor. Must be greater than 0." << std::endl;
+    return;
+  }
+
+  std::cerr << "Processing EZD with bin factor " << binFactor
+            << (blur ? " and blurring enabled" : "")
+            << " for file: " << outfile << std::endl;
+
+  // Arrays for grid start, end, min/max physical dimensions, origin, and extent
+  int start[3] = {NUMBINS, NUMBINS, NUMBINS};
+  int end[3] = {0, 0, 0};
+  float min[3], max[3];
+  int origin[3], extent[3];
+
+  // Identify the boundaries of the occupied grid
+  for (unsigned int ind = 0; ind < NUMBINS; ind++) {
+    if (grid[ind]) {
+      const int coords[3] = {
+        int(ind % DX),
+        int((ind % DXY) / DX),
+        int(ind / DXY)
+      };
+
+      for (int axis = 0; axis < 3; axis++) {
+        if (coords[axis] < start[axis]) start[axis] = coords[axis];
+        if (coords[axis] > end[axis]) end[axis] = coords[axis];
       }
-      outcnt++;
-      if(outcnt % 7 == 0) { out << endl; }
-  }}}
+    }
+  }
 
-  out << endl << "END" << endl;
+  // Expand grid boundaries for binning factor
+  for (int axis = 0; axis < 3; axis++) {
+    start[axis] -= binFactor;
+    end[axis] += binFactor;
+  }
+
+  // Compute physical min/max values
+  min[0] = start[0] * GRID + XMIN;
+  min[1] = start[1] * GRID + YMIN;
+  min[2] = start[2] * GRID + ZMIN;
+
+  max[0] = end[0] * GRID + XMIN;
+  max[1] = end[1] * GRID + YMIN;
+  max[2] = end[2] * GRID + ZMIN;
+
+  // Compute ORIGIN and EXTENT
+  for (int axis = 0; axis < 3; axis++) {
+    origin[axis] = int((min[axis] / GRID - 1.0) / binFactor + 0.5);
+    extent[axis] = int((end[axis] - start[axis] + 1) / binFactor + 0.5);
+  }
+
+  // Open the output file
+  std::ofstream out(outfile);
+  if (!out.is_open()) {
+    std::cerr << "Error: Could not open file " << outfile << " for writing." << std::endl;
+    return;
+  }
+
+  // Write the EZD header
+  time_t t;
+  time(&t);
+  out << "EZD_MAP" << std::endl
+      << "! EZD file (c) Neil Voss, 2005" << std::endl
+      << "! Grid spacing: " << GRID << " Å, scaled by binning factor: " << binFactor << std::endl
+      << "! Dimensions (X, Y, Z): " << max[0] - min[0] << " x " << max[1] - min[1] << " x " << max[2] - min[2] << " Å" << std::endl
+      << "! Water resolution: " << WATER_RES << " Å" << std::endl
+      << "! Date: " << ctime(&t) << std::endl;
+
+  if (binFactor > 1) {
+    out << "! NOTE: This grid is binned by a factor of " << binFactor << "." << std::endl;
+  }
+
+  // Write CELL, ORIGIN, EXTENT, and GRID information
+  out << "CELL " << int(max[0] - min[0] + 1) << ".0 "
+      << int(max[1] - min[1] + 1) << ".0 "
+      << int(max[2] - min[2] + 1) << ".0 90.0 90.0 90.0" << std::endl;
+
+  out << "ORIGIN " << origin[0] << " " << origin[1] << " " << origin[2] << std::endl;
+  out << "EXTENT " << extent[0] << " " << extent[1] << " " << extent[2] << std::endl;
+  out << "GRID " << extent[0] << " " << extent[1] << " " << extent[2] << std::endl;
+  out << "SCALE 1.0" << std::endl;
+  out << "MAP" << std::endl;
+
+  // Write voxel data
+  int outcnt = 0;
+  for (int k = start[2]; k <= end[2]; k += binFactor) {
+    for (int j = start[1]; j <= end[1]; j += binFactor) {
+      for (int i = start[0]; i <= end[0]; i += binFactor) {
+        int voxelIndex = i + j * DX + k * DXY;
+        float value = 0.0f;
+        if (blur) {
+          value = computeBlurredValue(grid, voxelIndex);
+        } else if (grid[voxelIndex]) {
+          value = 1.0f;
+        } else {
+          value = 0.0f;
+        }
+
+        // Write the computed value to the file
+        out << value << " ";
+        outcnt++;
+
+        // Add a line break after every 7 values for readability
+        if (outcnt % 7 == 0) {
+          out << std::endl;
+        }
+      }
+    }
+  }
+
+  // Finalize the EZD file
+  out << std::endl << "END" << std::endl;
   out.close();
-  cerr << endl << "done [ wrote " << count << " lines ]"
-  << endl << endl;
-  return;
-};
+  std::cerr << "Done. Wrote file: " << outfile << std::endl;
+}
+
+void write_EZD(const gridpt grid[], const char outfile[]) {
+  write_BinnedEZD(grid, outfile, 1, false);
+}
+
+void write_HalfEZD(const gridpt grid[], const char outfile[]) {
+  write_BinnedEZD(grid, outfile, 2, false);
+}
+
+void write_ThirdEZD(const gridpt grid[], const char outfile[]) {
+  write_BinnedEZD(grid, outfile, 3, false);
+}
+
+void write_FifthEZD(const gridpt grid[], const char outfile[]) {
+  write_BinnedEZD(grid, outfile, 5, false);
+}
 
 //========================================================
 //========================================================
 void write_BlurEZD (const gridpt grid[], const char outfile[]) {
-  cerr << "Calculating SMOOTH EZD for file: " << outfile << endl;
-//starts
-  int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
-//ends
-  int ie=0,je=0,ke=0;
-//PARSE
-  const float pcat = NUMBINS/60.0;
-  float pcut = pcat;
-  cerr << "Finding Limits of the GRID..." << endl;
-  printBar();
-  for(unsigned int ind=0; ind<NUMBINS; ind++) {
-    if(float(ind) > pcut) {
-      cerr << "^" << flush;
-      pcut += pcat;
-    }
-    if(grid[ind]) {
-      const int i = int(ind % DX);
-      const int j = int((ind % DXY)/ DX);
-      const int k = int(ind / DXY);
-      if(i < is) { is = i; }
-      if(j < js) { js = j; }
-      if(k < ks) { ks = k; }
-      if(i > ie) { ie = i; }
-      if(j > je) { je = j; }
-      if(k > ke) { ke = k; }
-    }
-  }
-  cerr << endl;
-//extend
-  is-=3; js-=3; ks-=3; ie+=3; je+=3; ke+=3;
-//minmaxs
-  const float xmin = is * GRID + XMIN;
-  const float ymin = js * GRID + YMIN;
-  const float zmin = ks * GRID + ZMIN;
-  const float xmax = ie * GRID + XMIN;
-  const float ymax = je * GRID + YMIN;
-  const float zmax = ke * GRID + ZMIN;
-
-  std::ofstream out;
-  time_t t;
-  out.open(outfile);
-  out << "EZD_MAP" << endl;
-  out << "! EZD file (c) Neil Voss, 2005" << endl;
-  time(&t);
-  out << "! Grid: " << GRID << "\tGRIDVOL" << GRIDVOL << "\tWater_Res: " << WATER_RES
-        << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << endl;
-  out << "! Input File: " << XYZRFILE << endl;
-  out << "! Date: " << ctime(&t) << "! " << endl;
-//CELL: cell size based on GRID NOT on EXTENT, given GRID 100 and
-//Dens 0.1 CELL = 10.0 (or maybe not, might be vector pointing axes)
-  out << "CELL " << int(xmax-xmin+1) << ".0 " << int(ymax-ymin+1)
-        << ".0 " << int(zmax-zmin+1) << ".0 90.0 90.0 90.0" << endl;
-//ORIGIN (x,y,z) in voxels (mult by $gridDens to get Angstroms)
-//must cover min (x,y,z)
-  int OX = int(float(xmin)/GRID-1.0);
-  int OY = int(float(ymin)/GRID-1.0);
-  int OZ = int(float(zmin)/GRID-1.0);
-  out << "ORIGIN " << OX << " " << OY << " " << OZ << endl;
-//EXTENT maximum dimensions of actual cell (in voxels)
-//must cover max (x,y,z) //defines range(?)
-  int MX = ie-is+1; //int(float(xmax-xmin)/GRID+1.0);
-  int MY = je-js+1; //int(float(xmax-xmin)/GRID+1.0);
-  int MZ = ke-ks+1; //int(float(xmax-xmin)/GRID+1.0);
-  out << "EXTENT " << MX << " " << MY << " " << MZ << endl;
-//  out << "EXTENT " << DX << " " << DY << " " << DZ << endl; //big version
-  out << "GRID " << MX << " " << MY << " " << MZ << endl; //doesn't matter
-  out << "SCALE 1.0" << endl;
-  out << "MAP" << endl;
-  int outcnt = 0;
-  float count = 0;
-  const float cat = MZ/60.0;
-  float cut = cat;
-  const float fill = 21.1044; //8*INV_SQRT_3 + 12*INV_SQRT_2 + 6*1 + 2;
-
-  cerr << "Smoothing GRID and Writing to EZD File: " << outfile << endl;
-  cerr << "THIS MAY TAKE A LONG TIME" << endl;
-  printBar();
-
-  for(int k=ks; k<=ke; k++) {
-  count++;
-  if(count > cut) {
-    cerr << "^" << flush;
-    cut += cat;
-  }
-  for(int j=js; j<=je; j++) {
-  for(int i=is; i<=ie; i++) {
-      int index = i+j*DX+k*DXY;
-      float sum = 0.0;
-      int dist;
-      for(int di=-1; di<=1; di++) {
-      for(int dj=-1; dj<=1; dj++) {
-      for(int dk=-1; dk<=1; dk++) {
-        if(grid[index+di+dj*DX+dk*DXY]) {
-          dist = abs(di)+abs(dj)+abs(dk);
-          if(dist == 0) {
-            sum += 2.0;
-          } else if (dist == 1) {
-            sum += 1.0;
-          } else if (dist == 2) {
-            sum += INV_SQRT_2;
-          } else if (dist == 3) {
-            sum += INV_SQRT_3;
-          }
-        }
-      }}}
-      if(sum > 0.5 && sum < 21) {
-        out << int(10000.0*sum/fill+0.5)/10000.0 << " " << flush;
-      } else if(sum >= 21) {
-        out << "1 " << flush;
-      } else {
-        out << "0 " << flush;
-      }
-      outcnt++;
-      if(outcnt % 7 == 0) { out << endl; }
-  }}}
-
-  out << endl << "END" << endl;
-  out.close();
-  cerr << endl << "done [ wrote " << count << " lines ]" 
-	<< endl << endl;
-  return;
-};
-
-
-//========================================================
-//========================================================
-void write_ThirdEZD (const gridpt grid[], const char outfile[]) {
-  cerr << "Calculating THIRDED EZD for file: " << outfile << endl;
-//starts
-  int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
-//ends
-  int ie=0,je=0,ke=0;
-//PARSE
-  const float pcat = NUMBINS/60.0;
-  const float newgrid = GRID*3.0;
-  float pcut = pcat;
-  cerr << "Finding Limits of the GRID..." << endl;
-  printBar();
-  for(unsigned int ind=0; ind<NUMBINS; ind++) {
-    if(float(ind) > pcut) {
-      cerr << "^" << flush;
-      pcut += pcat;
-    }
-    if(grid[ind]) {
-      const int i = int(ind % DX);
-      const int j = int((ind % DXY)/ DX);
-      const int k = int(ind / DXY);
-      if(i < is) { is = i; }
-      if(j < js) { js = j; }
-      if(k < ks) { ks = k; }
-      if(i > ie) { ie = i; }
-      if(j > je) { je = j; }
-      if(k > ke) { ke = k; }
-    }
-  }
-  cerr << endl;
-//extend
-  is-=4; js-=4; ks-=4; ie+=4; je+=4; ke+=4;
-//minmaxs
-  const float xmin = is * GRID + XMIN;
-  const float ymin = js * GRID + YMIN;
-  const float zmin = ks * GRID + ZMIN;
-  const float xmax = ie * GRID + XMIN;
-  const float ymax = je * GRID + YMIN;
-  const float zmax = ke * GRID + ZMIN;
-
-  std::ofstream out;
-  time_t t;
-  out.open(outfile);
-  out << "EZD_MAP" << endl;
-  out << "! EZD file (c) Neil Voss, 2005" << endl;
-  time(&t);
-
-  out << "! Grid: " << GRID << "\tGRIDVOL" << GRIDVOL << "\tWater_Res: " << WATER_RES
-        << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << endl;
-  out << "! Input File: " << XYZRFILE << endl;
-  out << "! THIS GRID IS THIRDED; NEW GRID SIZE: " << newgrid << endl;
-  out << "! Date: " << ctime(&t) << "! " << endl;
-//CELL: cell size based on GRID NOT on EXTENT, given GRID 100 and
-//Dens 0.1 CELL = 10.0 (or maybe not, might be vector pointing axes)
-  out << "CELL " << int(xmax-xmin+1) << ".0 " << int(ymax-ymin+1)
-        << ".0 " << int(zmax-zmin+1) << ".0 90.0 90.0 90.0" << endl;
-//ORIGIN (x,y,z) in voxels (mult by $gridDens to get Angstroms)
-//must cover min (x,y,z)
-
-  int OX = int((float(xmin)/GRID-1.0)/3.0+0.5);
-  int OY = int((float(ymin)/GRID-1.0)/3.0+0.5);
-  int OZ = int((float(zmin)/GRID-1.0)/3.0+0.5);
-  out << "ORIGIN " << OX << " " << OY << " " << OZ << endl;
-//EXTENT maximum dimensions of actual cell (in voxels)
-//must cover max (x,y,z) //defines range(?)
-  int MX = int((ie-is+1)/3.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  int MY = int((je-js+1)/3.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  int MZ = int((ke-ks+1)/3.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  out << "EXTENT " << MX << " " << MY << " " << MZ << endl;
-//  out << "EXTENT " << DX << " " << DY << " " << DZ << endl; //big version
-  out << "GRID " << MX << " " << MY << " " << MZ << endl; //doesn't matter
-  out << "SCALE 1.0" << endl;
-  out << "MAP" << endl;
-  int outcnt = 0;
-  float count = 0;
-  const float cat = MZ/60.0;
-  float cut = cat;
-
-  cerr << "Thirding GRID and Writing to EZD File: " << outfile << endl;
-  cerr << "THIS MAY TAKE A LONG TIME" << endl;
-  printBar();
-
-  for(int k=ks; k<=ke; k+=3) {
-  count++;
-  if(count > cut) {
-    cerr << "^" << flush;
-    cut += cat;
-  }
-  for(int j=js; j<=je; j+=3) {
-  for(int i=is; i<=ie; i+=3) {
-      int index = i+j*DX+k*DXY;
-//INTERIOR:        3 vox * 3 vox    = 27 vox
-//OUTSIDE FACES:   9 vox * 6 faces  = 54 vox
-//OUTSIDE EDGES:   3 vox * 12 edges = 36 vox
-//OUTSIDE CORNERS: 8 vox
-      int interior = 0;
-      int face = 0;
-      int edge = 0;
-      int corner = 0;
-      for(int di=-2; di<=2; di++) {
-      for(int dj=-2; dj<=2; dj++) {
-      for(int dk=-2; dk<=2; dk++) {
-        int dist = di*di + dj*dj + dk*dk;
-        if(dist > 11) { //corner
-          if(grid[index + di + dj*DX + dk*DXY]) { corner++; }
-        } else if(dist > 7) { //edge
-          if(grid[index + di + dj*DX + dk*DXY]) { edge++; }
-        } else if(dist > 3) { //face
-          if(grid[index + di + dj*DX + dk*DXY]) { face++; }
-        } else { //interior
-          if(grid[index + di + dj*DX + dk*DXY]) { interior++; }
-        }
-      }}}
-      int total = corner + edge + face + interior;
-//OUTPUT RANGE FROM ZERO TO ONE
-      if(total == 0) {
-        out << "0 " << flush;
-      } else if(total >= 125) {
-        out << "1 " << flush;
-      } else {
-//INTERIOR  = 6000/27 = 222.2 => 0.538
-//FACE      = 2500/54 =  46.3 => 0.135
-//EDGE      = 1300/36 =  36.1 => 0.100
-//CORNER,   =  200/8  =  25.0 => 0.227
-        long int sum = interior*2222 + face*463 + 
-        	edge*361 + corner*250;
-        out << double(sum)/100000.0 << " " << flush;
-      }
-      
-      outcnt++;
-      if(outcnt % 7 == 0) { out << endl; }
-  }}}
-
-  out << endl << "END" << endl;
-  out.close();
-  cerr << endl << "done [ wrote " << count << " lines ]" 
-	<< endl << endl;
-  return;
-};
-
-//========================================================
-//========================================================
-void write_FifthEZD(const gridpt grid[], const char outfile[]) {
-  cerr << "Calculating FIFTHED EZD for file: " << outfile << endl;
-//starts
-  int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
-//ends
-  int ie=0,je=0,ke=0;
-//PARSE
-  const float pcat = NUMBINS/60.0;
-  const float newgrid = GRID*5.0;
-  float pcut = pcat;
-  cerr << "Finding Limits of the GRID..." << endl;
-  printBar();
-  for(unsigned int ind=0; ind<NUMBINS; ind++) {
-    if(float(ind) > pcut) {
-      cerr << "^" << flush;
-      pcut += pcat;
-    }
-    if(grid[ind]) {
-      const int i = int(ind % DX);
-      const int j = int((ind % DXY)/ DX);
-      const int k = int(ind / DXY);
-      if(i < is) { is = i; }
-      if(j < js) { js = j; }
-      if(k < ks) { ks = k; }
-      if(i > ie) { ie = i; }
-      if(j > je) { je = j; }
-      if(k > ke) { ke = k; }
-    }
-  }
-  cerr << endl;
-//extend
-  is-=6; js-=6; ks-=6; ie+=6; je+=6; ke+=6;
-//minmaxs
-  const float xmin = is * GRID + XMIN;
-  const float ymin = js * GRID + YMIN;
-  const float zmin = ks * GRID + ZMIN;
-  const float xmax = ie * GRID + XMIN;
-  const float ymax = je * GRID + YMIN;
-  const float zmax = ke * GRID + ZMIN;
-
-  std::ofstream out;
-  time_t t;
-  out.open(outfile);
-  out << "EZD_MAP" << endl;
-  out << "! EZD file (c) Neil Voss, 2005" << endl;
-  time(&t);
-
-  out << "! Grid: " << GRID << "\tGRIDVOL" << GRIDVOL << "\tWater_Res: " << WATER_RES
-        << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << endl;
-  out << "! Input File: " << XYZRFILE << endl;
-  out << "! THIS GRID IS FIFTHED; NEW GRID SIZE: " << newgrid << endl;
-  out << "! Date: " << ctime(&t) << "! " << endl;
-//CELL: cell size based on GRID NOT on EXTENT, given GRID 100 and
-//Dens 0.1 CELL = 10.0 (or maybe not, might be vector pointing axes)
-  out << "CELL " << int(xmax-xmin+1) << ".0 " << int(ymax-ymin+1)
-        << ".0 " << int(zmax-zmin+1) << ".0 90.0 90.0 90.0" << endl;
-//ORIGIN (x,y,z) in voxels (mult by $gridDens to get Angstroms)
-//must cover min (x,y,z)
-
-  int OX = int((float(xmin)/GRID-1.0)/5.0+0.5);
-  int OY = int((float(ymin)/GRID-1.0)/5.0+0.5);
-  int OZ = int((float(zmin)/GRID-1.0)/5.0+0.5);
-  out << "ORIGIN " << OX << " " << OY << " " << OZ << endl;
-//EXTENT maximum dimensions of actual cell (in voxels)
-//must cover max (x,y,z) //defines range(?)
-  int MX = int((ie-is+1)/5.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  int MY = int((je-js+1)/5.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  int MZ = int((ke-ks+1)/5.0+0.5); //int(float(xmax-xmin)/GRID+1.0);
-  out << "EXTENT " << MX << " " << MY << " " << MZ << endl;
-//  out << "EXTENT " << DX << " " << DY << " " << DZ << endl; //big version
-  out << "GRID " << MX << " " << MY << " " << MZ << endl; //doesn't matter
-  out << "SCALE 1.0" << endl;
-  out << "MAP" << endl;
-  int outcnt = 0;
-  float count = 0;
-  const float cat = MZ/60.0;
-  float cut = cat;
-
-  cerr << "Thirding GRID and Writing to EZD File: " << outfile << endl;
-  cerr << "THIS MAY TAKE A LONG TIME" << endl;
-  printBar();
-
-  for(int k=ks; k<=ke; k+=5) {
-  count++;
-  if(count > cut) {
-    cerr << "^" << flush;
-    cut += cat;
-  }
-  for(int j=js; j<=je; j+=5) {
-  for(int i=is; i<=ie; i+=5) {
-      int index = i+j*DX+k*DXY;
-//INTERIOR:        5 * 5 vox - 8 + 6      = 123 vox
-//OUTSIDE FACES:   25 v * 6 faces + 8 - 6 = 152 vox
-//OUTSIDE EDGES:   5 vox * 12 edges       = 60 vox
-//OUTSIDE CORNERS: 8 vox
-      int interior = 0;
-      int face = 0;
-      int edge = 0;
-      int corner = 0;
-      for(int di=-3; di<=3; di++) {
-      for(int dj=-3; dj<=3; dj++) {
-      for(int dk=-3; dk<=3; dk++) {
-          int dist = di*di + dj*dj + dk*dk;
-          if(dist > 26) { //corner
-            if(grid[index + di + dj*DX + dk*DXY]) { corner++; }
-          } else if(dist > 17) { //edge
-            if(grid[index + di + dj*DX + dk*DXY]) { edge++; }
-          } else if(dist > 9) { //face
-            if(grid[index + di + dj*DX + dk*DXY]) { face++; }
-          } else { //interior, not perfect
-            if(grid[index + di + dj*DX + dk*DXY]) { interior++; }
-          }
-      }}}
-      int total = corner + edge + face + interior;
-//OUTPUT RANGE FROM ZERO TO ONE
-      if(total == 0) {
-        out << "0 " << flush;
-      } else if(total >= 343) {
-        out << "1 " << flush;
-      } else {
-//INTERIOR  = 6000/123 = 48.8 => 0.538
-//FACE      = 3000/152 = 19.7 => 0.135
-//EDGE      =  900/60  = 15.0 => 0.100
-//CORNER,   =  100/8   = 12.5 => 0.227
-        long int sum = interior*488 + face*197 + 
-        	edge*150 + corner*125;
-        out << double(sum)/100000.0 << " " << flush;
-      }
-      
-      outcnt++;
-      if(outcnt % 7 == 0) { out << endl; }
-  }}}
-
-  out << endl << "END" << endl;
-  out.close();
-  cerr << endl << "done [ wrote " << count << " lines ]" 
-	<< endl << endl;
-  return;
+  write_BinnedEZD(grid, outfile, 1, true);
 };
