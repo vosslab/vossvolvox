@@ -16,9 +16,6 @@ OPENMP_FLAGS = -fopenmp
 # Default to base flags; OpenMP will be added if supported
 FLAGS = $(strip $(BASE_FLAGS) $(CPU_FLAGS))
 
-# Directory to store binaries
-BIN_DIR = ../bin
-
 # Setup target to configure flags based on OpenMP support
 setup:
 ifeq ($(shell $(CC) -dM -E - < /dev/null | grep -q __OPENMP; echo $$?),0)
@@ -28,11 +25,21 @@ else
 	@echo "OpenMP not supported; proceeding without -fopenmp."
 endif
 
+# Directory to store binaries
+BIN_DIR = ../bin
+
+# Ensure the bin directory exists before building anything
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+
 # Object files used in all programs
 OBJS = utils-main.o utils-output.o utils-mrc.o
 
+# Ensure the bin directory exists before building object files
+$(OBJS): $(BIN_DIR)
+
 # The default target, which builds all programs
-all: cav chan allchan allexc fsv sol tun vdw vol volnocav twovol frac cust
+all: $(BIN_DIR) cav chan allchan allexc fsv sol tun vdw vol volnocav twovol frac cust
 
 # Clean target to remove all compiled binaries and object files
 .PHONY: clean
@@ -43,8 +50,8 @@ clean:
 # Distclean target for additional cleanup, including binaries
 .PHONY: distclean
 distclean: clean
-	rm -fv $(BIN_DIR)/*.exe
-	@echo "All binaries in $(BIN_DIR)/ have been removed."
+	rm -fvr $(BIN_DIR)/
+	@echo "All binaries and $(BIN_DIR)/ have been removed."
 
 # No target to remind the user to specify a target
 .PHONY: none
