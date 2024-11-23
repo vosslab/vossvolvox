@@ -1050,34 +1050,76 @@ int fill_AccessGrid (const float x, const float y, const float z,
 };
 
 /*********************************************/
-void empty_ExcludeGrid (const int i, const int j, const int k,
-	const float probe, gridpt grid[]) {
-//provides indexes (i,j,k) of grid where ijk2pt(i,j,k) = gridpt
-  const float R = probe/GRID; //Aug 19: correction for oversize
-  const int r = int(R+1);
-  const float cutoff = R*R;
-  int nri,nrj,nrk,pri,prj,prk;
-//overflow checks (let's not go off the grid)
+/**
+ * Function: empty_ExcludeGrid
+ * Purpose:
+ *   This function marks grid points within a given radius (probe size)
+ *   of a specified grid location (i, j, k) as "excluded" by setting their
+ *   occupancy to 0 in the provided grid array.
+ *
+ * Inputs:
+ *   - `i, j, k` (int): The 3D grid indices representing the center of the exclusion sphere.
+ *   - `probe` (float): The radius of the exclusion sphere in physical units.
+ *   - `grid` (gridpt[]): The grid array (binary occupancy) to be updated.
+ *
+ * Outputs:
+ *   - Updates the `grid` array by setting grid points within the probe radius to 0.
+ *
+ * Key Details:
+ *   - The function calculates a spherical exclusion zone based on the `probe` size.
+ *   - Boundary checks are performed to prevent out-of-bounds access.
+ *   - Optimized to avoid unnecessary checks outside the exclusion radius.
+ *
+ * Notes:
+ *   - This function is highly time-critical and should not be parallelized,
+ *     as the calling function (`trun_ExcludeGrid`) handles parallelization.
+ *   - Uses the squared distance (`distsq`) for computational efficiency, avoiding square root operations.
+ *********************************************/
+void empty_ExcludeGrid(const int i, const int j, const int k, const float probe, gridpt grid[]) {
+  // Compute the scaled probe radius in grid units.
+  const float R = probe / GRID;   // Convert the probe size to grid units.
+  const int r = int(R + 1);       // Integer radius for limiting neighbor checks.
+  const float cutoff = R * R;     // Squared radius for distance comparisons.
+
+  // Variables for neighbor bounds within the grid.
+  int nri, nrj, nrk;  // Negative radius limits for x, y, z.
+  int pri, prj, prk;  // Positive radius limits for x, y, z.
+
+  // Boundary checks to prevent overflow or underflow (stay within grid limits).
+  // For negative bounds:
   if(i < r) { nri = -i; } else { nri = -r;}
   if(j < r) { nrj = -j; } else { nrj = -r;}
   if(k < r) { nrk = -k; } else { nrk = -r;}
   if(i + r >= DX) { pri = DX-i-1; } else { pri = r;}
   if(j + r >= DY) { prj = DY-j-1; } else { prj = r;}
   if(k + r >= DZ) { prk = DZ-k-1; } else { prk = r;}
-  float distsq;
-  int ind;
-  // do not parallelize done in previous step
-  for(int di=nri; di<=pri; di++) {
-  for(int dj=nrj; dj<=prj; dj++) {
-  for(int dk=nrk; dk<=prk; dk++) {
-     ind = ijk2pt(i+di,j+dj,k+dk);
-     if(grid[ind]) {
-       distsq = di*di + dj*dj + dk*dk;
-       if(distsq < cutoff) {
-         grid[ind] = 0;
-       }
-     }
-  }}}
+
+  // Iterate over the neighboring points within the calculated bounds.
+  // The loop covers a cubic region around (i, j, k), but checks for spherical distance.
+  float distsq; // Squared distance of the current point from the center.
+  int ind;      // Linear index of the grid point being evaluated.
+
+  for (int di = nri; di <= pri; di++) {         // Loop over the x-axis neighbors.
+    for (int dj = nrj; dj <= prj; dj++) {       // Loop over the y-axis neighbors.
+      for (int dk = nrk; dk <= prk; dk++) {     // Loop over the z-axis neighbors.
+
+        // Compute the linear index of the current neighbor.
+        ind = ijk2pt(i + di, j + dj, k + dk);
+
+        // Check if the grid point is occupied (non-zero).
+        if (grid[ind]) {
+          // Calculate the squared distance from the center (i, j, k).
+          distsq = di * di + dj * dj + dk * dk;
+
+          // If the point is within the spherical exclusion zone, mark it as empty.
+          if (distsq < cutoff) {
+            grid[ind] = 0; // Exclude the grid point.
+          }
+        }
+      }
+    }
+  }
+
   return;
 };
 
