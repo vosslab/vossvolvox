@@ -114,14 +114,10 @@ int fill_AccessGrid (const float x, const float y, const float z, const float r,
 void empty_ExcludeGrid (const int i, const int j, const int k, const float probe, gridpt grid[]);
 void fill_ExcludeGrid (const int i, const int j, const int k, const float probe, gridpt grid[]);
 
-//int ijk2pt(const int i, const int j, const int k);
-//void pt2ijk(const int pt, int &i, int &j, int &k);
-//void pt2xyz(const int pt, float &x, float &y, float &z);
-//int xyz2pt(const float x, const float y, const float z);
-int ijk2pt(int i, int j, int k);
-void pt2ijk(int pt, int &i, int &j, int &k);
-void pt2xyz(int pt, float &x, float &y, float &z);
-int xyz2pt(float x, float y, float z);
+int ijk2pt(const int i, const int j, const int k);
+void pt2ijk(const int pt, int &i, int &j, int &k);
+void pt2xyz(const int pt, float &x, float &y, float &z);
+int xyz2pt(const float x, const float y, const float z);
 
 bool isEdgePoint (const int i, const int j, const int k, gridpt grid[]);
 bool isEdgePoint_Fill (const int pt, const gridpt grid[]);
