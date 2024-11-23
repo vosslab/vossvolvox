@@ -1072,43 +1072,91 @@ void fill_ExcludeGrid (const int i, const int j, const int k,
 };
 
 /*********************************************/
-int ijk2pt(int i, int j, int k) {
-  int pt = int(i+j*DX+k*DXY);
-  if (pt > DXYZ) {
-    std::cerr << "ijk2pt off end :: " << i << ", " << j << ", " << k << std::endl;
-    return DXYZ-1;
+// Converts 3D grid indices `(i, j, k)` to a 1D linear index `pt`.
+//
+// Parameters:
+// - `i`: Index along the x-axis (const).
+// - `j`: Index along the y-axis (const).
+// - `k`: Index along the z-axis (const).
+//
+// Returns:
+// - A linear index `pt` corresponding to the 3D grid indices.
+//
+// Notes:
+// - This function assumes a row-major order for the grid storage.
+// - If the resulting `pt` exceeds the maximum valid index (`DXYZ`),
+//   it reports an error and clamps `pt` to the highest valid index.
+int ijk2pt(const int i, const int j, const int k) {
+  int pt = int(i + j * DX + k * DXY);
+  if (pt >= DXYZ) {  // Check for out-of-bounds access
+    std::cerr << "Error: ijk2pt index out of bounds :: " << i << ", " << j << ", " << k << std::endl;
+    return DXYZ - 1; // Clamp to the highest valid index
   }
   return pt;
 };
 
 /*********************************************/
-void pt2ijk(int pt, int &i, int &j, int &k) {
-  i = pt%DX;
-  j = (pt%DXY)/DX;
-  k = pt/DXY;
+// Converts a 1D linear index `pt` to 3D grid indices `(i, j, k)`.
+//
+// Parameters:
+// - `pt`: The 1D linear index (const).
+// - `i`: Reference to store the x-axis index.
+// - `j`: Reference to store the y-axis index.
+// - `k`: Reference to store the z-axis index.
+//
+// Notes:
+// - This function uses the grid dimensions (`DX`, `DXY`) to calculate
+//   the original 3D indices from the linear index.
+void pt2ijk(const int pt, int &i, int &j, int &k) {
+  i = pt % DX;           // Compute the x-axis index
+  j = (pt % DXY) / DX;   // Compute the y-axis index
+  k = pt / DXY;          // Compute the z-axis index
   return;
 };
 
 /*********************************************/
-void pt2xyz(int pt, float &x, float &y, float &z) {
-  int i,j,k;
-  i = pt%DX;
-  j = (pt%DXY)/DX;
-  k = pt/DXY;
-  x = float(i)*GRID + XMIN;
-  y = float(j)*GRID + YMIN;
-  z = float(k)*GRID + ZMIN;
+// Converts a 1D linear index `pt` to 3D physical coordinates `(x, y, z)`.
+//
+// Parameters:
+// - `pt`: The 1D linear index (const).
+// - `x`: Reference to store the x-coordinate in physical space.
+// - `y`: Reference to store the y-coordinate in physical space.
+// - `z`: Reference to store the z-coordinate in physical space.
+//
+// Notes:
+// - Physical coordinates are calculated using grid spacing (`GRID`)
+//   and origin offsets (`XMIN`, `YMIN`, `ZMIN`).
+void pt2xyz(const int pt, float &x, float &y, float &z) {
+  int i, j, k;            // Temporary variables for 3D grid indices
+  pt2ijk(pt, i, j, k);    // Convert `pt` to grid indices
+  x = float(i) * GRID + XMIN; // Compute x-coordinate in physical space
+  y = float(j) * GRID + YMIN; // Compute y-coordinate in physical space
+  z = float(k) * GRID + ZMIN; // Compute z-coordinate in physical space
   return;
 };
 
 /*********************************************/
-int xyz2pt(float x, float y, float z) {
-  int ip,jp,kp;
-  ip = int((x-XMIN)/GRID+0.5);
-  jp = int((y-YMIN)/GRID+0.5);
-  kp = int((z-ZMIN)/GRID+0.5);
-  return ip+jp*DX+kp*DXY;
+// Converts 3D physical coordinates `(x, y, z)` to a 1D linear index `pt`.
+//
+// Parameters:
+// - `x`: The x-coordinate in physical space (const).
+// - `y`: The y-coordinate in physical space (const).
+// - `z`: The z-coordinate in physical space (const).
+//
+// Returns:
+// - The corresponding 1D linear index `pt`.
+//
+// Notes:
+// - This function uses grid spacing (`GRID`) and origin offsets (`XMIN`,
+//   `YMIN`, `ZMIN`) to compute the grid indices from physical coordinates.
+// - Coordinates are rounded to the nearest grid point.
+int xyz2pt(const float x, const float y, const float z) {
+  int ip = int((x - XMIN) / GRID + 0.5); // Compute x-axis index
+  int jp = int((y - YMIN) / GRID + 0.5); // Compute y-axis index
+  int kp = int((z - ZMIN) / GRID + 0.5); // Compute z-axis index
+  return ijk2pt(ip, jp, kp); // Convert to linear index
 };
+
 
 /*********************************************/
 bool isEdgePoint (const int i, const int j, const int k, gridpt grid[]) {
@@ -1137,82 +1185,45 @@ bool isEdgePoint (const int i, const int j, const int k, gridpt grid[]) {
 };
 
 /*********************************************/
-// Function to determine if a grid point is an edge point based on its neighbors.
-// This function examines all 26 neighbors (3x3x3 cube excluding the center point).
-// Returns true if at least one neighbor is empty (edge point), false otherwise.
-bool isEdgePoint_Fill(const int pt, const gridpt grid[]) {
-  short int count = 0; // Counter for the number of neighbors checked.
-
-  // Iterate through all possible neighbors in a 3x3x3 cube.
-  for (int iindex = -1; iindex <= 1; iindex++) {       // Iterate along the i-axis (-1, 0, 1).
-    for (int jindex = -1; jindex <= 1; jindex++) {     // Iterate along the j-axis (-1, 0, 1).
-      for (int kindex = -1; kindex <= 1; kindex++) {   // Iterate along the k-axis (-1, 0, 1).
-
-        // Calculate the neighbor offset based on indices.
-        int di = iindex;
-        int dj = DX * jindex;
-        int dk = DXY * kindex;
-
-        count++; // Increment the neighbor count.
-
-        // Check if the current neighbor is empty.
-        if (!grid[pt + di + dj + dk]) {
-          return true; // Return true immediately if an empty neighbor is found.
-        }
-      }
+bool isEdgePoint_Fill (const int pt, const gridpt grid[]) {//look at neighbors
+  short int count=0;
+  for(int di=-1; di<=1; di++) {
+  for(int dj=-DX; dj<=DX; dj+=DX) {
+  for(int dk=-DXY; dk<=DXY; dk+=DXY) {
+    count++;
+    if(!grid[pt+di+dj+dk]) {
+      return 1;
     }
-  }
-
-  // Debugging: Check if all 26 neighbors were processed correctly.
-  if (count != 27) {
-    std::cerr << "EdgePoint count " << count << " != 27" << std::endl;
-  }
-
-  // If all neighbors are occupied, this is not an edge point.
-  return false;
+  }}}
+  //cerr << "!" << std::endl;
+  if(count != 27) { std::cerr << "EdgePoint count " << count << " != 27" << std::endl; }
+  return 0;
 };
 
 /*********************************************/
-// Function to determine if a grid point is an edge point using a "star" pattern.
-// This function examines 6 neighbors along the principal axes (i, j, k).
-// Returns true if at least one neighbor is empty (edge point), false otherwise.
-bool isEdgePoint_Star(const int pt, const gridpt grid[]) {
-  short int count = 0; // Counter for the number of neighbors checked.
-
-  // Check neighbors along the i-axis.
-  for (int iindex = -1; iindex <= 1; iindex += 2) { // Iterate over -1 and +1.
-    int di = iindex; // Offset along the i-axis.
-    count++; // Increment the neighbor count.
-    if (!grid[pt + di]) {
-      return true; // Return true if the neighbor is empty.
+bool isEdgePoint_Star (const int pt, const gridpt grid[]) {
+  //look at neighbors
+  short int count=0;
+  for(int di=-1; di<=1; di+=2) {
+    count++;
+    if(!grid[pt+di]) {
+      return 1;
     }
   }
-
-  // Check neighbors along the j-axis.
-  for (int jindex = -1; jindex <= 1; jindex += 2) { // Iterate over -1 and +1.
-    int dj = DX * jindex; // Offset along the j-axis.
-    count++; // Increment the neighbor count.
-    if (!grid[pt + dj]) {
-      return true; // Return true if the neighbor is empty.
+  for(int dj=-DX; dj<=DX; dj+=2*DX) {
+    count++;
+    if(!grid[pt+dj]) {
+      return 1;
     }
   }
-
-  // Check neighbors along the k-axis.
-  for (int kindex = -1; kindex <= 1; kindex += 2) { // Iterate over -1 and +1.
-    int dk = DXY * kindex; // Offset along the k-axis.
-    count++; // Increment the neighbor count.
-    if (!grid[pt + dk]) {
-      return true; // Return true if the neighbor is empty.
+  for(int dk=-DXY; dk<=DXY; dk+=2*DXY) {
+    count++;
+    if(!grid[pt+dk]) {
+      return 1;
     }
   }
-
-  // Debugging: Ensure all 6 neighbors were checked correctly.
-  if (count != 6) {
-    std::cerr << "EdgePoint count " << count << " != 6" << std::endl;
-  }
-
-  // If all neighbors are occupied, this is not an edge point.
-  return false;
+  if(count != 6) { std::cerr << "EdgePoint count " << count << " != 6" << std::endl; }
+  return 0;
 };
 
 //void expand_Point (const int pt, gridpt grid[]);
