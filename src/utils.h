@@ -113,17 +113,22 @@ int merge_Grids (gridpt grid1[], gridpt grid2[]); //Modifies grid1; returns fina
 int fill_AccessGrid (const float x, const float y, const float z, const float r, gridpt grid[]);
 void empty_ExcludeGrid (const int i, const int j, const int k, const float probe, gridpt grid[]);
 void fill_ExcludeGrid (const int i, const int j, const int k, const float probe, gridpt grid[]);
-bool isEdgePoint (const int i, const int j, const int k, gridpt grid[]);
+
+//int ijk2pt(const int i, const int j, const int k);
+//void pt2ijk(const int pt, int &i, int &j, int &k);
+//void pt2xyz(const int pt, float &x, float &y, float &z);
+//int xyz2pt(const float x, const float y, const float z);
 int ijk2pt(int i, int j, int k);
 void pt2ijk(int pt, int &i, int &j, int &k);
 void pt2xyz(int pt, float &x, float &y, float &z);
 int xyz2pt(float x, float y, float z);
+
+bool isEdgePoint (const int i, const int j, const int k, gridpt grid[]);
 bool isEdgePoint_Fill (const int pt, const gridpt grid[]);
 bool isEdgePoint_Star (const int pt, const gridpt grid[]);
 //void expand_Point (const int pt, gridpt grid[]);
 //void contract_Point (const int pt, gridpt grid[]);
-//void ijk2pdb (char line[], int i, int j, int k, int n);
-std::string ijk2pdb(int i, int j, int k, int n);
+
 bool isContainedPoint (const int pt, gridpt ingrid[], gridpt outgrid[], int minmax[]);
 bool isNearEdgePoint (const int pt, gridpt ingrid[], gridpt outgrid[]);
 
@@ -157,10 +162,12 @@ int bounding_box(gridpt grid[], gridpt bbox[]);
 int fill_cavities(gridpt grid[]);
 int makerbot_fill(gridpt ingrid[], gridpt outgrid[]);
 
-
 /*************************************************
 //output functions (in utils-output.cpp)
 **************************************************/
+//void ijk2pdb (char line[], int i, int j, int k, int n);
+std::string ijk2pdb(int i, int j, int k, int n);
+//output PDB functions (in utils-output.cpp)
 void write_PDB (const gridpt grid[], const char outfile[]);
 void write_SurfPDB (const gridpt grid[], const char outfile[]);
 //output EZD functions (in utils-output.cpp)
