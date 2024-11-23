@@ -430,51 +430,92 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
 //void contract (gridpt oldgrid[], gridpt newgrid[]);
 
 /*********************************************/
-void trun_ExcludeGrid (const float probe, gridpt ACCgrid[], gridpt EXCgrid[]) { //contract
-  //limit grid search
-  //XMIN=(minmax[3] - MAXVDW - PROBE - 2*GRID);
-  //XMAX=(minmax[3] + MAXVDW + PROBE + 2*GRID);
-  const int imin = 1;
-  const int jmin = DX;
-  const int kmin = DXY;
-  const int imax = DX;
-  const int jmax = DXY;
-  const int kmax = DXYZ;
+/*********************************************/
+/**
+ * Function: trun_ExcludeGrid
+ * Purpose:
+ *   Truncates the excluded grid (`EXCgrid`) from the accessible grid (`ACCgrid`)
+ *   based on a given probe size. It identifies regions that are accessible and
+ *   contracts them into excluded regions while respecting grid boundaries.
+ *
+ * Inputs:
+ *   - `probe` (float): The radius of the probe used to truncate the grid.
+ *   - `ACCgrid` (gridpt[]): The input accessible grid (binary occupancy).
+ *   - `EXCgrid` (gridpt[]): The output excluded grid (modified binary occupancy).
+ *     If NULL, the function allocates memory for this grid.
+ *
+ * Notes:
+ *   - The function assumes a 3D grid with linear indexing.
+ *   - Grid traversal is limited to specific bounds (`imin`, `imax`, etc.) for efficiency.
+ *   - This function is a significant time-limiting factor and is optimized to reduce unnecessary checks.
+ *
+ *********************************************/
+void trun_ExcludeGrid(const float probe, gridpt ACCgrid[], gridpt EXCgrid[]) { // contract
 
-  float count = 0;
-  const float cat = ((kmax-kmin)/DXY)/60.0;
-  float cut = cat;
+  // Define grid boundaries for limiting the search region.
+  // These constants define the start and end indices for each axis.
+  const int imin = 1;      // Minimum i index
+  const int jmin = DX;     // Minimum j index (step size = DX)
+  const int kmin = DXY;    // Minimum k index (step size = DXY)
+  const int imax = DX;     // Maximum i index
+  const int jmax = DXY;    // Maximum j index
+  const int kmax = DXYZ;   // Maximum k index
 
-  if (EXCgrid==NULL) {
+  // Progress tracking variables for displaying the progress bar.
+  float count = 0;                     // Counter for processed slices.
+  const float cat = ((kmax - kmin) / DXY) / 60.0; // Calculate progress increment.
+  float cut = cat;                     // Progress cutoff for printing.
+
+  // Allocate memory for `EXCgrid` if it is NULL.
+  if (EXCgrid == NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    EXCgrid = (gridpt*) malloc (NUMBINS);
-    if (EXCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
+    EXCgrid = (gridpt*) malloc(NUMBINS);
+    if (EXCgrid == NULL) {
+      std::cerr << "GRID IS NULL" << std::endl;
+      exit(1);
+    }
   }
-  copyGridFromTo(ACCgrid,EXCgrid);
 
+  // Copy the `ACCgrid` into `EXCgrid` as the starting point for modification.
+  copyGridFromTo(ACCgrid, EXCgrid);
+
+  // Inform the user about the operation being performed.
   std::cerr << "Truncating Excluded Grid from Accessible"
-	<< "Grid by Probe " << probe << "..." << std::endl;
-  printBar();
+            << " Grid by Probe " << probe << "..." << std::endl;
+  printBar(); // Print a progress bar to show the operation's progress.
 
-  for(int bigk=kmin; bigk<kmax; bigk+=DXY) {
-  count++;
-  if(count > cut) {
-    std::cerr << "^" << std::flush;
-    cut += cat;
-  }
-  #pragma omp parallel for
-  for(int bigj=jmin; bigj<jmax; bigj+=DX) {
-  for(int i=imin; i<imax; i++) {
-      if(!ACCgrid[i+bigj+bigk]) {
-        const int j = bigj/DX;
-        const int k = bigk/DXY;
-        const int pt = ijk2pt(i, j, k);
-        if (hasFilledNeighbor(pt, ACCgrid)) {
-          empty_ExcludeGrid(i,j,k, probe, EXCgrid);
+  // Loop over the k-dimension in large steps (DXY) to limit the search range.
+  for (int bigk = kmin; bigk < kmax; bigk += DXY) {
+    count++; // Increment the slice counter.
+    if (count > cut) {
+      std::cerr << "^" << std::flush; // Print progress marker.
+      cut += cat;                     // Update the next progress cutoff.
+    }
+
+    // Enable parallelization for processing the grid in the j-dimension.
+    #pragma omp parallel for
+    for (int bigj = jmin; bigj < jmax; bigj += DX) {
+      // Loop over the i-dimension with unit step size.
+      for (int i = imin; i < imax; i++) {
+        // Check if the current grid point is unoccupied in the accessible grid.
+        if (!ACCgrid[i + bigj + bigk]) {
+          // Convert `bigj` and `bigk` to smaller indices for the actual 3D grid.
+          const int j = bigj / DX;      // Convert bigj to small j index.
+          const int k = bigk / DXY;     // Convert bigk to small k index.
+          const int pt = ijk2pt(i, j, k); // Compute the linear index of the grid point.
+
+          // Check if the grid point has any filled neighbors in the accessible grid.
+          if (hasFilledNeighbor(pt, ACCgrid)) {
+            // Mark the grid point as excluded using the emptying function.
+            empty_ExcludeGrid(i, j, k, probe, EXCgrid);
+          }
         }
       }
-  }}}
-   std::cerr << std::endl << "done" << std::endl << std::endl;
+    }
+  }
+
+  // Finalize and inform the user of completion.
+  std::cerr << std::endl << "done" << std::endl << std::endl;
   return;
 }
 
