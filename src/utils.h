@@ -163,11 +163,14 @@ int makerbot_fill(gridpt ingrid[], gridpt outgrid[]);
 **************************************************/
 void write_PDB (const gridpt grid[], const char outfile[]);
 void write_SurfPDB (const gridpt grid[], const char outfile[]);
+//output EZD functions (in utils-output.cpp)
+float computeBlurredValue(const gridpt grid[], int voxelIndex);
+void write_BinnedEZD(const gridpt grid[], const char outfile[], int binFactor, bool blur);
 void write_EZD (const gridpt grid[], const char outfile[]);
-void write_BlurEZD (const gridpt grid[], const char outfile[]);
 void write_HalfEZD (const gridpt grid[], const char outfile[]);
 void write_ThirdEZD (const gridpt grid[], const char outfile[]);
 void write_FifthEZD (const gridpt grid[], const char outfile[]);
+void write_BlurEZD (const gridpt grid[], const char outfile[]);
 
 /*************************************************
 //output functions (in utils-mrc.cpp)
