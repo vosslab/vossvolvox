@@ -1,19 +1,172 @@
 /*
-** output.cpp
+** utils-output.cpp
 */
 #include "utils.h"
 #include <fstream>
+#include <sstream> // Required for std::ostringstream
+#include <iomanip> // Required for std::setw and std::setprecision
+
 
 const float INV_SQRT_2 = 0.7071;
 const float INV_SQRT_3 = 0.5774;
 
 /*********************************************
 **********************************************
-        OUTPUT FUNCTIONS
+       PDB OUTPUT FUNCTIONS
 **********************************************
 *********************************************/
 
-void write_EZD (gridpt grid[], char outfile[]) {
+
+//========================================================
+//========================================================
+// Function to convert grid indices (i, j, k) and atom number to a water HETATM line for PDB
+std::string ijk2pdb(int i, int j, int k, int n) {
+  // Calculate XYZ coordinates
+  float x = float(i) * GRID + XMIN;
+  float y = float(j) * GRID + YMIN;
+  float z = float(k) * GRID + ZMIN;
+
+  // Calculate temperature (distance for illustrative purposes)
+  float dist = distFromPt(x, y, z);
+
+  // Format the PDB HETATM line
+  std::ostringstream oss;
+  oss << "HETATM"                                  // Record name
+    << std::setw(5) << std::right << (n % 99999 + 1) // Atom serial number
+    << "  O   HOH  "                            // Atom and residue type
+    << std::setw(4) << std::right << ((n / 10) % 9999 + 1) // Residue serial number
+    << "    "                                   // Spacer
+    << std::fixed << std::setprecision(3)
+    << std::setw(8) << x                        // X coordinate
+    << std::setw(8) << y                        // Y coordinate
+    << std::setw(8) << z                        // Z coordinate
+    << "  1.00"                                 // Occupancy
+    << std::setw(6) << std::setprecision(2) << dist; // Temperature factor
+
+  return oss.str();
+}
+
+//========================================================
+//========================================================
+void write_PDB(const gridpt grid[], const char outfile[]) {
+  cerr << "Writing FULL PDB to file: " << outfile << endl;
+
+  // Open the output file
+  std::ofstream out(outfile);
+  if (!out.is_open()) {
+    cerr << "Error: Could not open file " << outfile << " for writing." << endl;
+    return;
+  }
+
+  // Write header information
+  time_t t;
+  time(&t);
+  out << "REMARK (c) Neil Voss, 2005" << endl;
+  out << "REMARK PDB file created from " << XYZRFILE << endl;
+  out << "REMARK Grid: " << GRID << "\tGRIDVOL: " << GRIDVOL
+      << "\tWater_Res: " << WATER_RES << "\tMaxProbe: " << MAXPROBE
+      << "\tCutoff: " << CUTOFF << endl;
+  out << "REMARK Date: " << ctime(&t) << flush;
+
+  // Progress tracking
+  float count = 0;
+  int anum = 0;
+  const float cat = DZ / 60.0;
+  float cut = cat;
+
+  cerr << "Writing the grid to [ " << outfile << " ]..." << endl;
+  printBar();
+
+  // Loop through the grid
+  int sk = -1;
+  for (int k = 0; k < DXYZ; k += DXY) {
+    sk++;
+    count++;
+    if (count > cut) {
+      cerr << "^" << flush;
+      cut += cat;
+    }
+
+    int sj = -1;
+    for (int j = 0; j < DXY; j += DX) {
+      sj++;
+      for (int i = 0; i < DX; i++) {
+        if (grid[i + j + k]) {  // Check if grid point is occupied
+          anum++;
+          // Use ijk2pdb to generate the PDB line
+          std::string line = ijk2pdb(i, sj, sk, anum);
+          out << line << endl;
+        }
+      }
+    }
+  }
+
+  // Finalize output
+  out << endl;
+  out.close();
+  cerr << endl << "Done. Wrote " << anum << " atoms." << endl << endl;
+};
+
+//========================================================
+//========================================================
+void write_SurfPDB(const gridpt grid[], const char outfile[]) {
+  std::cerr << "Writing SURFACE PDB to file: " << outfile << std::endl;
+  std::ofstream out(outfile);
+  time_t t;
+
+  // Write header
+  out << "REMARK (c) Neil Voss, 2005" << std::endl;
+  out << "REMARK PDB file created from " << XYZRFILE << std::endl;
+  out << "REMARK Grid: " << GRID << "\tGRIDVOL: " << GRIDVOL
+      << "\tWater_Res: " << WATER_RES
+      << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << std::endl;
+  time(&t);
+  out << "REMARK Date: " << ctime(&t) << std::flush;
+
+  // Progress tracking
+  int anum = 0, pnum = 0;
+  const float cat = DZ / 60.0;
+  float cut = cat;
+
+  std::cerr << "Writing the grid to [" << outfile << "]..." << std::endl;
+  printBar();
+
+  // Loop through the grid and write PDB entries for edge points
+  int sk = -1, sj = -1;
+  for (int k = 0; k < DXYZ; k += DXY) {
+    sk++;
+    if (++pnum > cut) {
+        std::cerr << "^" << std::flush;
+        cut += cat;
+    }
+    sj = -1;
+    for (int j = 0; j < DXY; j += DX) {
+      sj++;
+      for (int i = 0; i < DX; i++) {
+        int pt = i + j + k;
+        if (grid[pt] && isEdgePoint_Star(pt, grid)) {
+          anum++;
+          out << ijk2pdb(i, sj, sk, anum) << std::endl; // Use refactored function
+        }
+      }
+    }
+  }
+
+  out << std::endl;
+  out.close();
+
+  std::cerr << std::endl << "done! wrote " << anum << " of " << pnum << std::endl << std::endl;
+};
+
+/*********************************************
+**********************************************
+       EZD OUTPUT FUNCTIONS
+**********************************************
+*********************************************/
+
+//========================================================
+//========================================================
+void write_EZD (const gridpt grid[], const char outfile[]) {
   cerr << "Writing RIGID EZD to file:" << outfile << endl;
   //starts
   int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
@@ -114,7 +267,9 @@ void write_EZD (gridpt grid[], char outfile[]) {
   return;
 };
 
-void write_HalfEZD (gridpt grid[], char outfile[]) {
+//========================================================
+//========================================================
+void write_HalfEZD (const gridpt grid[], const char outfile[]) {
   cerr << "Calculating HALVED EZD for file: " << outfile << endl;
 //starts
   int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
@@ -208,26 +363,26 @@ void write_HalfEZD (gridpt grid[], char outfile[]) {
 //HARD CODE IT; 8 VOXELS --> 64 VOXELS
 //MAIN EIGHT; TOTAL 8 POINTS
       long double sum = grid[index] + grid[index+1]
-	+ grid[index+DX] + grid[index+DX+1]
-	+ grid[index+DXY] + grid[index+DXY+1]
-	+ grid[index+DX+DXY] + grid[index+DX+DXY+1];
+  + grid[index+DX] + grid[index+DX+1]
+  + grid[index+DXY] + grid[index+DXY+1]
+  + grid[index+DX+DXY] + grid[index+DX+DXY+1];
 //FIRST DIST, 24 VOXELS; TOTAL 12 POINTS
       sum += 0.2*(grid[index-1] + grid[index-1+DX]
-	+ grid[index-DX] + grid[index-DX+1]
-	+ grid[index+2] + grid[index+2+DX]
-	+ grid[index+2*DX] + grid[index+2*DX+1]
+  + grid[index-DX] + grid[index-DX+1]
+  + grid[index+2] + grid[index+2+DX]
+  + grid[index+2*DX] + grid[index+2*DX+1]
 
-	+ grid[index-1+DXY] + grid[index-1+DX+DXY]
-	+ grid[index-DX+DXY] + grid[index-DX+1+DXY]
-	+ grid[index+2+DXY] + grid[index+2+DX+DXY]
-	+ grid[index+2*DX+DXY] + grid[index+2*DX+1+DXY]
+  + grid[index-1+DXY] + grid[index-1+DX+DXY]
+  + grid[index-DX+DXY] + grid[index-DX+1+DXY]
+  + grid[index+2+DXY] + grid[index+2+DX+DXY]
+  + grid[index+2*DX+DXY] + grid[index+2*DX+1+DXY]
 
-	+ grid[index-DXY] + grid[index-DXY+1]
-	+ grid[index-DXY+DX] + grid[index-DXY+DX+1]
+  + grid[index-DXY] + grid[index-DXY+1]
+  + grid[index-DXY+DX] + grid[index-DXY+DX+1]
 
-	+ grid[index+2*DXY] + grid[index+2*DXY+1]
-	+ grid[index+2*DXY+DX] + grid[index+2*DXY+DX+1]
-	);
+  + grid[index+2*DXY] + grid[index+2*DXY+1]
+  + grid[index+2*DXY+DX] + grid[index+2*DXY+DX+1]
+  );
 //SECOND DIST, 24 POINTS; TOTAL 8.48 POINTS
 //THIRD DIST, 8 POINTS; TOTAL 2.31 POINTS
       //long double upper = 8.0 + 24.0*0.2;
@@ -244,13 +399,14 @@ void write_HalfEZD (gridpt grid[], char outfile[]) {
 
   out << endl << "END" << endl;
   out.close();
-  cerr << endl << "done [ wrote " << count << " lines ]" 
-	<< endl << endl;
+  cerr << endl << "done [ wrote " << count << " lines ]"
+  << endl << endl;
   return;
 };
 
-
-void write_BlurEZD (gridpt grid[], char outfile[]) {
+//========================================================
+//========================================================
+void write_BlurEZD (const gridpt grid[], const char outfile[]) {
   cerr << "Calculating SMOOTH EZD for file: " << outfile << endl;
 //starts
   int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
@@ -374,102 +530,10 @@ void write_BlurEZD (gridpt grid[], char outfile[]) {
   return;
 };
 
-void write_PDB (gridpt grid[], char outfile[]) {
-  cerr << "Writing FULL PDB to file:" << outfile << endl;
-  std::ofstream out;
-  time_t t;
-  out.open(outfile);
-  out << "REMARK (c) Neil Voss, 2005" << endl;
-  out << "REMARK PDB file created from " << XYZRFILE << endl;
-  out << "REMARK Grid: " << GRID << "\tGRIDVOL: " << GRIDVOL << "\tWater_Res: " << WATER_RES
-        << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << endl;
-  time(&t);
-  out << "REMARK Date: " << ctime(&t) << flush;
-  float count = 0;
-  int anum=0;
-  const float cat = DZ/60.0;
-  float cut = cat;
-  char line[128];
 
-  cerr << "Writing the grid to [ " << outfile << " ]..." << endl;
-  printBar();
-  int sk=-1, sj=-1;
-  for(int k=0; k<DXYZ; k+=DXY) {
-    sk++;
-    count++;
-    if(count > cut) {
-      cerr << "^" << flush;
-      cut += cat;
-    }
-    sj=-1;
-    for(int j=0; j<DXY; j+=DX) {
-      sj++;
-      for(int i=0; i<DX; i++) {
-        if(grid[i+j+k]) {
-          anum++;
-          ijk2pdb(line,i,sj,sk,anum);
-          out << line << endl;
-        }
-  } } }
-
-  out << endl;
-  out.close();
-  cerr << endl << "done wrote " << anum << " atoms" << endl << endl;
-  return;
-};
-
-
-void write_SurfPDB (gridpt grid[], char outfile[]) {
-  cerr << "Writing SURFACE PDB to file:" << outfile << endl;
-  std::ofstream out;
-  time_t t;
-  out.open(outfile);
-  out << "REMARK (c) Neil Voss, 2005" << endl;
-  out << "REMARK PDB file created from " << XYZRFILE << endl;
-  out << "REMARK Grid: " << GRID << "\tGRIDVOL: " << GRIDVOL 
-	<< "\tWater_Res: " << WATER_RES
-        << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << endl;
-  time(&t);
-  out << "REMARK Date: " << ctime(&t) << flush;
-  float count = 0;
-  int anum=0, pnum=0;
-  const float cat = DZ/60.0;
-  float cut = cat;
-  char line[128];
-
-  cerr << "Writing the grid to [" << outfile << "]..." << endl;
-  printBar();
-
-  int sk=-1, sj=-1;
-  for(int k=0; k<DXYZ; k+=DXY) {
-    sk++;
-    count++;
-    if(count > cut) {
-      cerr << "^" << flush;
-      cut += cat;
-    }
-    sj=-1;
-    for(int j=0; j<DXY; j+=DX) {
-      sj++;
-      for(int i=0; i<DX; i++) {
-        int pt = i+j+k;
-        if(grid[pt]) {
-          pnum++;
-          if(isEdgePoint_Star(pt,grid)) {
-            anum++;
-            ijk2pdb(line,i,sj,sk,anum);
-            out << line << endl;
-          }
-        }
-  } } }
-
-  out << endl;
-  out.close();
-  cerr << endl << "done wrote " << anum << " of " << pnum << endl << endl;
-  return;
-};
-
-void write_ThirdEZD (gridpt grid[], char outfile[]) {
+//========================================================
+//========================================================
+void write_ThirdEZD (const gridpt grid[], const char outfile[]) {
   cerr << "Calculating THIRDED EZD for file: " << outfile << endl;
 //starts
   int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
@@ -609,7 +673,9 @@ void write_ThirdEZD (gridpt grid[], char outfile[]) {
   return;
 };
 
-void write_FifthEZD (gridpt grid[], char outfile[]) {
+//========================================================
+//========================================================
+void write_FifthEZD(const gridpt grid[], const char outfile[]) {
   cerr << "Calculating FIFTHED EZD for file: " << outfile << endl;
 //starts
   int is=NUMBINS,js=NUMBINS,ks=NUMBINS;
