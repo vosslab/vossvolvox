@@ -292,9 +292,9 @@ void write_BinnedEZD(const gridpt grid[], const char outfile[], int binFactor, b
   time(&t);
   out << "EZD_MAP" << std::endl
       << "! EZD file (c) Neil Voss, 2005" << std::endl
-      << "! Grid spacing: " << GRID << " Å, scaled by binning factor: " << binFactor << std::endl
-      << "! Dimensions (X, Y, Z): " << max[0] - min[0] << " x " << max[1] - min[1] << " x " << max[2] - min[2] << " Å" << std::endl
-      << "! Water resolution: " << WATER_RES << " Å" << std::endl
+      << "! Grid spacing: " << GRID << " A, scaled by binning factor: " << binFactor << std::endl
+      << "! Dimensions (X, Y, Z): " << max[0] - min[0] << " x " << max[1] - min[1] << " x " << max[2] - min[2] << " A" << std::endl
+      << "! Water resolution: " << WATER_RES << " A" << std::endl
       << "! Date: " << ctime(&t) << std::endl;
 
   if (binFactor > 1) {
