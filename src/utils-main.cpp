@@ -1137,111 +1137,86 @@ bool isEdgePoint (const int i, const int j, const int k, gridpt grid[]) {
 };
 
 /*********************************************/
-bool isEdgePoint_Fill (const int pt, gridpt grid[]) {//look at neighbors
-  short int count=0;
-  for(int di=-1; di<=1; di++) {
-  for(int dj=-DX; dj<=DX; dj+=DX) {
-  for(int dk=-DXY; dk<=DXY; dk+=DXY) {
-    count++;
-    if(!grid[pt+di+dj+dk]) {
-      return 1;
+// Function to determine if a grid point is an edge point based on its neighbors.
+// This function examines all 26 neighbors (3x3x3 cube excluding the center point).
+// Returns true if at least one neighbor is empty (edge point), false otherwise.
+bool isEdgePoint_Fill(const int pt, const gridpt grid[]) {
+  short int count = 0; // Counter for the number of neighbors checked.
+
+  // Iterate through all possible neighbors in a 3x3x3 cube.
+  for (int iindex = -1; iindex <= 1; iindex++) {       // Iterate along the i-axis (-1, 0, 1).
+    for (int jindex = -1; jindex <= 1; jindex++) {     // Iterate along the j-axis (-1, 0, 1).
+      for (int kindex = -1; kindex <= 1; kindex++) {   // Iterate along the k-axis (-1, 0, 1).
+
+        // Calculate the neighbor offset based on indices.
+        int di = iindex;
+        int dj = DX * jindex;
+        int dk = DXY * kindex;
+
+        count++; // Increment the neighbor count.
+
+        // Check if the current neighbor is empty.
+        if (!grid[pt + di + dj + dk]) {
+          return true; // Return true immediately if an empty neighbor is found.
+        }
+      }
     }
-  }}}
-  //cerr << "!" << std::endl;
-  if(count != 27) { std::cerr << "EdgePoint count " << count << " != 27" << std::endl; }
-  return 0;
+  }
+
+  // Debugging: Check if all 26 neighbors were processed correctly.
+  if (count != 27) {
+    std::cerr << "EdgePoint count " << count << " != 27" << std::endl;
+  }
+
+  // If all neighbors are occupied, this is not an edge point.
+  return false;
 };
 
 /*********************************************/
-bool isEdgePoint_Star (const int pt, gridpt grid[]) {
-  //look at neighbors
-  short int count=0;
-  for(int di=-1; di<=1; di+=2) {
-    count++;
-    if(!grid[pt+di]) {
-      return 1;
+// Function to determine if a grid point is an edge point using a "star" pattern.
+// This function examines 6 neighbors along the principal axes (i, j, k).
+// Returns true if at least one neighbor is empty (edge point), false otherwise.
+bool isEdgePoint_Star(const int pt, const gridpt grid[]) {
+  short int count = 0; // Counter for the number of neighbors checked.
+
+  // Check neighbors along the i-axis.
+  for (int iindex = -1; iindex <= 1; iindex += 2) { // Iterate over -1 and +1.
+    int di = iindex; // Offset along the i-axis.
+    count++; // Increment the neighbor count.
+    if (!grid[pt + di]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  for(int dj=-DX; dj<=DX; dj+=2*DX) {
-    count++;
-    if(!grid[pt+dj]) {
-      return 1;
+
+  // Check neighbors along the j-axis.
+  for (int jindex = -1; jindex <= 1; jindex += 2) { // Iterate over -1 and +1.
+    int dj = DX * jindex; // Offset along the j-axis.
+    count++; // Increment the neighbor count.
+    if (!grid[pt + dj]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  for(int dk=-DXY; dk<=DXY; dk+=2*DXY) {
-    count++;
-    if(!grid[pt+dk]) {
-      return 1;
+
+  // Check neighbors along the k-axis.
+  for (int kindex = -1; kindex <= 1; kindex += 2) { // Iterate over -1 and +1.
+    int dk = DXY * kindex; // Offset along the k-axis.
+    count++; // Increment the neighbor count.
+    if (!grid[pt + dk]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  if(count != 6) { std::cerr << "EdgePoint count " << count << " != 6" << std::endl; }
-  return 0;
+
+  // Debugging: Ensure all 6 neighbors were checked correctly.
+  if (count != 6) {
+    std::cerr << "EdgePoint count " << count << " != 6" << std::endl;
+  }
+
+  // If all neighbors are occupied, this is not an edge point.
+  return false;
 };
 
 //void expand_Point (const int pt, gridpt grid[]);
 //void contract_Point (const int pt, gridpt grid[]);
-
-/*********************************************/
-void ijk2pdb (char line[], int i, int j, int k, int n) {
-  //char line[128];
-
-  //cerr << "[i = " << i << "] " << std::flush;
-  //cerr << "[j = " << j << "] " << std::flush;
-  //cerr << "[k = " << k << "] " << std::flush;
-  //cerr << "n = " << n << std::endl;
-
-  line[0] = '\0';
-
-  //LEAD IN
-  strcpy(line,"HETATM");
-
-  //ATOM NUMBER
-  char temp[128];
-  temp[0] = '\0';
-  sprintf(temp,"%d",n%99999+1);
-  padLeft(temp,5);
-  strcat(line,temp);
-
-  //ATOM & RESIDUE TYPES
-  strcat(line,"  O   HOH  ");
-
-  //RESIDUE NUMBER
-  sprintf(temp,"%d",(n/10)%9999+1);
-  padLeft(temp,4);
-  strcat(line,temp);
-
-  //GAP
-  strcat(line,"    ");
-
-  //XYZ COORDINATES 4.3
-  float x = float(i)*GRID + XMIN;
-  sprintf(temp,"%.3f",x);
-  padLeft(temp,8);
-  strcat(line,temp);
-  float y = float(j)*GRID + YMIN;
-  sprintf(temp,"%.3f",y);
-  padLeft(temp,8);
-  strcat(line,temp);
-  float z = float(k)*GRID + ZMIN;
-  sprintf(temp,"%.3f",z);
-  padLeft(temp,8);
-  strcat(line,temp);
-
-  //OCCUPANCY
-  sprintf(temp,"  1.00");
-  strcat(line,temp);
-
-  //TEMPERATURE
-  float dist = distFromPt(x,y,z);
-  sprintf(temp,"%.2f",dist);
-  padLeft(temp,6);
-  strcat(line,temp);
-
-  //PRINT OUT
-  //cerr << line << std::endl;
-
-  return;
-};
 
 /*********************************************/
 void limitToTunnelArea(const float radius, gridpt grid[]) {
