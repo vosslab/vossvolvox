@@ -139,7 +139,7 @@ void write_SurfPDB(const gridpt grid[], const char outfile[]) {
       sj++;
       for (int i = 0; i < DX; i++) {
         int pt = i + j + k;
-        if (grid[pt] && isEdgePoint_Star(pt, grid)) {
+        if (grid[pt] && hasEmptyNeighbor(pt, grid)) {
           anum++;
           out << ijk2pdb(i, sj, sk, anum) << std::endl; // Use refactored function
         }

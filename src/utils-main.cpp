@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <cassert> // Required header
 
 float XMIN, YMIN, ZMIN;
 float XMAX, YMAX, ZMAX;
@@ -429,9 +430,8 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
 //void contract (gridpt oldgrid[], gridpt newgrid[]);
 
 /*********************************************/
-void trun_ExcludeGrid (const float probe, gridpt ACCgrid[],
-	gridpt EXCgrid[]) { //contract
-//limit grid search
+void trun_ExcludeGrid (const float probe, gridpt ACCgrid[], gridpt EXCgrid[]) { //contract
+  //limit grid search
   //XMIN=(minmax[3] - MAXVDW - PROBE - 2*GRID);
   //XMAX=(minmax[3] + MAXVDW + PROBE + 2*GRID);
   const int imin = 1;
@@ -456,20 +456,21 @@ void trun_ExcludeGrid (const float probe, gridpt ACCgrid[],
 	<< "Grid by Probe " << probe << "..." << std::endl;
   printBar();
 
-  for(int k=kmin; k<kmax; k+=DXY) {
+  for(int bigk=kmin; bigk<kmax; bigk+=DXY) {
   count++;
   if(count > cut) {
     std::cerr << "^" << std::flush;
     cut += cat;
   }
   #pragma omp parallel for
-  for(int j=jmin; j<jmax; j+=DX) {
+  for(int bigj=jmin; bigj<jmax; bigj+=DX) {
   for(int i=imin; i<imax; i++) {
-      if(!ACCgrid[i+j+k]) {
-        const int k2 = k/DXY;
-        const int j2 = j/DX;
-        if(isEdgePoint(i,j,k,ACCgrid)) {
-          empty_ExcludeGrid(i,j2,k2,probe,EXCgrid);
+      if(!ACCgrid[i+bigj+bigk]) {
+        const int j = bigj/DX;
+        const int k = bigk/DXY;
+        const int pt = ijk2pt(i, j, k);
+        if (hasFilledNeighbor(pt, ACCgrid)) {
+          empty_ExcludeGrid(i,j,k, probe, EXCgrid);
         }
       }
   }}}
@@ -521,7 +522,7 @@ void grow_ExcludeGrid (const float probe, gridpt ACCgrid[],
       const int pt = i+j+k;
       if(ACCgrid[pt]) {
         //MUST USE COPYGRID BEFORE USING GROW_EXC
-        if(isEdgePoint_Star(pt,ACCgrid)) {
+        if(hasEmptyNeighbor(pt,ACCgrid)) {
           const int k2 = k/DXY;
           const int j2 = j/DX;
           //ONLY use of fill_ExcludeGrid()
@@ -1159,72 +1160,113 @@ int xyz2pt(const float x, const float y, const float z) {
 
 
 /*********************************************/
-bool isEdgePoint (const int i, const int j, const int k, gridpt grid[]) {
-  //look at neighbors
-  short int count=0;
-  for(int dk=k-DXY; dk<=k+DXY; dk+=2*DXY) {
-    count++;
-    if(grid[i+j+dk]) {
-      return 1;
+bool hasFilledNeighbor(const int pt, const gridpt grid[]) {
+  short int count = 0; // Counter for the number of neighbors checked.
+
+  // Check neighbors along the i-axis.
+  for (int index = -1; index <= 1; index += 2) { // Iterate over -1 and +1.
+    count++; // Increment the neighbor count.
+    if (grid[pt + index]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  for(int dj=j-DX; dj<=j+DX; dj+=2*DX) {
-    count++;
-    if(grid[i+dj+k]) {
-      return 1;
+
+  // Check neighbors along the j-axis.
+  for (int index = -1; index <= 1; index += 2) { // Iterate over -1 and +1.
+    count++; // Increment the neighbor count.
+    if (grid[pt + DX * index]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  for(int di=i-1; di<=i+1; di+=2) {
-    count++;
-    if(grid[di+j+k]) {
-      return 1;
+
+  // Check neighbors along the k-axis.
+  for (int index = -1; index <= 1; index += 2) { // Iterate over -1 and +1.
+    count++; // Increment the neighbor count.
+    if (grid[pt + DXY * index]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  if(count != 6) { std::cerr << "EdgePoint count " << count << " != 6" << std::endl; }
-  return 0;
+  if (count != 6) {
+    std::cerr << "Neighbor count " << count << " != 6" << std::endl;
+  }
+  return false;
 };
 
-/*********************************************/
-bool isEdgePoint_Fill (const int pt, const gridpt grid[]) {//look at neighbors
-  short int count=0;
-  for(int di=-1; di<=1; di++) {
-  for(int dj=-DX; dj<=DX; dj+=DX) {
-  for(int dk=-DXY; dk<=DXY; dk+=DXY) {
-    count++;
-    if(!grid[pt+di+dj+dk]) {
-      return 1;
-    }
-  }}}
-  //cerr << "!" << std::endl;
-  if(count != 27) { std::cerr << "EdgePoint count " << count << " != 27" << std::endl; }
-  return 0;
-};
 
 /*********************************************/
-bool isEdgePoint_Star (const int pt, const gridpt grid[]) {
-  //look at neighbors
-  short int count=0;
-  for(int di=-1; di<=1; di+=2) {
-    count++;
-    if(!grid[pt+di]) {
-      return 1;
+// Function to determine if a grid point is an edge point using a "star" pattern.
+// This function examines 6 neighbors along the principal axes (i, j, k).
+// Returns true if at least one neighbor is empty (edge point), false otherwise.
+bool hasEmptyNeighbor(const int pt, const gridpt grid[]) {
+  short int count = 0; // Counter for the number of neighbors checked.
+
+  // Check neighbors along the i-axis.
+  for (int index = -1; index <= 1; index += 2) { // Iterate over -1 and +1.
+    count++; // Increment the neighbor count.
+    if (!grid[pt + index]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  for(int dj=-DX; dj<=DX; dj+=2*DX) {
-    count++;
-    if(!grid[pt+dj]) {
-      return 1;
+
+  // Check neighbors along the j-axis.
+  for (int index = -1; index <= 1; index += 2) { // Iterate over -1 and +1.
+    count++; // Increment the neighbor count.
+    if (!grid[pt + DX * index]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  for(int dk=-DXY; dk<=DXY; dk+=2*DXY) {
-    count++;
-    if(!grid[pt+dk]) {
-      return 1;
+
+  // Check neighbors along the k-axis.
+  for (int index = -1; index <= 1; index += 2) { // Iterate over -1 and +1.
+    count++; // Increment the neighbor count.
+    if (!grid[pt + DXY * index]) {
+      return true; // Return true if the neighbor is empty.
     }
   }
-  if(count != 6) { std::cerr << "EdgePoint count " << count << " != 6" << std::endl; }
-  return 0;
-};
+
+  // Debugging: Ensure all 6 neighbors were checked correctly.
+  if (count != 6) {
+    std::cerr << "EdgePoint count " << count << " != 6" << std::endl;
+  }
+
+  // If all neighbors are occupied, this is not an edge point.
+  return false;
+}
+
+/*********************************************/
+// Function to determine if a grid point has any empty neighbors within a 3x3x3 cube.
+// This function examines all 26 neighbors (3x3x3 cube minus the center point).
+// Returns true if at least one neighbor is empty, false otherwise.
+bool hasEmptyNeighbor_Fill(const int pt, const gridpt grid[]) {
+  short int count = 0; // Counter for the number of neighbors checked.
+
+  // Iterate through neighbors along the i-axis.
+  for (int di = -1; di <= 1; di++) {
+    // Iterate through neighbors along the j-axis.
+    for (int dj = -1; dj <= 1; dj++) {
+      // Iterate through neighbors along the k-axis.
+      for (int dk = -1; dk <= 1; dk++) {
+        count++; // Increment the neighbor count.
+
+        // Compute the neighbor index.
+        int neighborPt = pt + di + dj * DX + dk * DXY;
+
+        // Check if the neighbor is empty.
+        if (!grid[neighborPt]) {
+          return true; // Return true if the neighbor is empty.
+        }
+      }
+    }
+  }
+
+  // Debugging: Ensure all 26 neighbors were checked correctly.
+  if (count != 27) {
+    std::cerr << "Neighbor count " << count << " != 27" << std::endl;
+  }
+
+  // If all neighbors are filled, this is not an edge point.
+  return false;
+}
 
 //void expand_Point (const int pt, gridpt grid[]);
 //void contract_Point (const int pt, gridpt grid[]);
