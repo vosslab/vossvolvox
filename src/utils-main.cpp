@@ -1102,19 +1102,9 @@ void empty_ExcludeGrid(const int i, const int j, const int k, const float probe,
   for (int di = nri; di <= pri; di++) {         // Loop over the x-axis neighbors.
     for (int dj = nrj; dj <= prj; dj++) {       // Loop over the y-axis neighbors.
       for (int dk = nrk; dk <= prk; dk++) {     // Loop over the z-axis neighbors.
-
-        // Compute the linear index of the current neighbor.
-        ind = ijk2pt(i + di, j + dj, k + dk);
-
-        // Check if the grid point is occupied (non-zero).
-        if (grid[ind]) {
-          // Calculate the squared distance from the center (i, j, k).
-          distsq = di * di + dj * dj + dk * dk;
-
-          // If the point is within the spherical exclusion zone, mark it as empty.
-          if (distsq < cutoff) {
-            grid[ind] = 0; // Exclude the grid point.
-          }
+        int ind = (i + di) + (j + dj) * DX + (k + dk) * DXY; // Inline ijk2pt
+        if (grid[ind] && (di * di + dj * dj + dk * dk < cutoff)) {
+          grid[ind] = 0;
         }
       }
     }
