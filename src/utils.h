@@ -86,8 +86,8 @@ void testLimits (gridpt grid[]);
 //grid util functions
 int countGrid (gridpt grid[]);
 void zeroGrid (gridpt grid[]);
-int copyGridFromTo (gridpt oldgrid[], gridpt newgrid[]);
-int copyGrid (gridpt oldgrid[], gridpt newgrid[]);
+int copyGridFromTo (const gridpt oldgrid[], gridpt newgrid[]);
+int copyGrid (const gridpt oldgrid[], gridpt newgrid[]);
 void inverseGrid (gridpt grid[]);
 
 //file based functions
@@ -98,8 +98,9 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe, char file[], grid
 //generate grids / grid changers
 //void expand (gridpt oldgrid[], gridpt newgrid[]);
 //void contract (gridpt oldgrid[], gridpt newgrid[]);
-void trun_ExcludeGrid (const float probe, gridpt ACCgrid[], gridpt EXCgrid[]); //contract
-void grow_ExcludeGrid (const float probe, gridpt ACCgrid[], gridpt EXCgrid[]); //expands
+void trun_ExcludeGrid (const float probe, const gridpt ACCgrid[], gridpt EXCgrid[]); //contract
+void trun_ExcludeGrid_fast (const float probe, const gridpt ACCgrid[], gridpt EXCgrid[]); //contract
+void grow_ExcludeGrid (const float probe, const gridpt ACCgrid[], gridpt EXCgrid[]); //expands
 float *get_Point (gridpt grid[]);
 int get_GridPoint (gridpt grid[]);
 int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y, const float z);
@@ -112,7 +113,9 @@ int merge_Grids (gridpt grid1[], gridpt grid2[]); //Modifies grid1; returns fina
 //point based function
 int fill_AccessGrid (const float x, const float y, const float z, const float r, gridpt grid[]);
 void empty_ExcludeGrid (const int i, const int j, const int k, const float probe, gridpt grid[]);
+void empty_ExcludeGrid_fast(const int pt, const std::vector<int> &offsets, gridpt grid[]);
 void fill_ExcludeGrid (const int i, const int j, const int k, const float probe, gridpt grid[]);
+//void generateOffsets(int radius);
 
 int ijk2pt(const int i, const int j, const int k);
 void pt2ijk(const int pt, int &i, int &j, int &k);
