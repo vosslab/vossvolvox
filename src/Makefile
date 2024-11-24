@@ -103,7 +103,7 @@ vdw: $(OBJS) vdw.cpp
 	@chmod +x $(BIN_DIR)/VDW.exe
 
 vol: $(OBJS) volume.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
+	$(CC) $(FLAGS) -std=c++14 -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
 	@chmod +x $(BIN_DIR)/Volume.exe
 
 volnocav: $(OBJS) volnocav.cpp
