@@ -218,12 +218,12 @@ void zeroGrid (gridpt grid[]) {
 };
 
 /*********************************************/
-int copyGridFromTo (gridpt oldgrid[], gridpt newgrid[]) {
-  return copyGrid(oldgrid,newgrid);
+int copyGridFromTo (const gridpt oldgrid[], gridpt newgrid[]) {
+  return copyGrid(oldgrid, newgrid);
 }
 
 /*********************************************/
-int copyGrid (gridpt oldgrid[], gridpt newgrid[]) {
+int copyGrid (const gridpt oldgrid[], gridpt newgrid[]) {
   //Zero Grid Not Required
   int voxels=0;
   if (newgrid==NULL) {
@@ -401,7 +401,8 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
   fill_AccessGrid_fromFile(numatoms,probe,file,ACCgrid);
 
 //TRUNCATE GRID
-  trun_ExcludeGrid(probe,ACCgrid,EXCgrid);
+  //trun_ExcludeGrid(probe, ACCgrid, EXCgrid);
+  trun_ExcludeGrid_fast(probe, ACCgrid, EXCgrid);
 
 //RELEASE ACCGRID
   free (ACCgrid);
@@ -450,7 +451,7 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
  *   - This function is a significant time-limiting factor and is optimized to reduce unnecessary checks.
  *
  *********************************************/
-void trun_ExcludeGrid(const float probe, gridpt ACCgrid[], gridpt EXCgrid[]) { // contract
+void trun_ExcludeGrid(const float probe, const gridpt ACCgrid[], gridpt EXCgrid[]) { // contract
 
   // Define grid boundaries for limiting the search region.
   // These constants define the start and end indices for each axis.
@@ -497,15 +498,14 @@ void trun_ExcludeGrid(const float probe, gridpt ACCgrid[], gridpt EXCgrid[]) { /
     for (int bigj = jmin; bigj < jmax; bigj += DX) {
       // Loop over the i-dimension with unit step size.
       for (int i = imin; i < imax; i++) {
+        const int pt = i + bigj + bigk;
         // Check if the current grid point is unoccupied in the accessible grid.
         if (!ACCgrid[i + bigj + bigk]) {
-          // Convert `bigj` and `bigk` to smaller indices for the actual 3D grid.
-          const int j = bigj / DX;      // Convert bigj to small j index.
-          const int k = bigk / DXY;     // Convert bigk to small k index.
-          const int pt = ijk2pt(i, j, k); // Compute the linear index of the grid point.
-
           // Check if the grid point has any filled neighbors in the accessible grid.
           if (hasFilledNeighbor(pt, ACCgrid)) {
+            // Convert `bigj` and `bigk` to smaller indices for the actual 3D grid.
+            const int j = bigj / DX;      // Convert bigj to small j index.
+            const int k = bigk / DXY;     // Convert bigk to small k index.
             // Mark the grid point as excluded using the emptying function.
             empty_ExcludeGrid(i, j, k, probe, EXCgrid);
           }
@@ -519,9 +519,79 @@ void trun_ExcludeGrid(const float probe, gridpt ACCgrid[], gridpt EXCgrid[]) { /
   return;
 }
 
+
+std::vector<int> computeOffsets(const int radius) {
+  std::vector<int> offsets;
+  const int radius_squared = radius*radius;
+  for (int di = -radius; di <= radius; di++) {
+    for (int dj = -radius; dj <= radius; dj++) {
+      for (int dk = -radius; dk <= radius; dk++) {
+        if (di * di + dj * dj + dk * dk <= radius_squared) {
+          offsets.push_back(di + dj * DX + dk * DXY);
+        }
+      }
+    }
+  }
+  return offsets;
+}
+
+void trun_ExcludeGrid_fast(const float probe, const gridpt ACCgrid[], gridpt EXCgrid[]) {
+  const int imin = 1, jmin = DX, kmin = DXY;
+  const int imax = DX, jmax = DXY, kmax = DXYZ;
+
+  float count = 0;
+  const float cat = ((kmax - kmin) / DXY) / 60.0;
+  float cut = cat;
+
+  // Allocate memory for EXCgrid if NULL
+  if (EXCgrid == NULL) {
+    std::cerr << "Allocating Grid..." << std::endl;
+    EXCgrid = (gridpt *)malloc(NUMBINS);
+    if (EXCgrid == NULL) {
+      std::cerr << "GRID IS NULL" << std::endl;
+      exit(1);
+    }
+  }
+
+  // Copy ACCgrid to EXCgrid
+  copyGridFromTo(ACCgrid, EXCgrid);
+
+  // Precompute offsets for the given probe radius
+  const int radius = static_cast<int>(probe / GRID + 1);
+  std::vector<int> offsets = computeOffsets(radius);
+
+  std::cerr << "Truncating Excluded Grid from Accessible Grid by Probe " << probe << "..." << std::endl;
+  printBar();
+
+  for (int bigk = kmin; bigk < kmax; bigk += DXY) {
+    count++;
+    if (count > cut) {
+      std::cerr << "^" << std::flush;
+      cut += cat;
+    }
+
+    #pragma omp parallel for
+    for (int bigj = jmin; bigj < jmax; bigj += DX) {
+      for (int i = imin; i < imax; i++) {
+        const int pt = i + bigj + bigk;
+
+        // Skip empty grid points
+        if (!ACCgrid[pt]) {
+          // If the point has filled neighbors, exclude it
+          if (hasFilledNeighbor(pt, ACCgrid)) {
+            empty_ExcludeGrid_fast(pt, offsets, EXCgrid);
+          }
+        }
+      }
+    }
+  }
+
+  std::cerr << std::endl << "done" << std::endl << std::endl;
+}
+
+
 /*********************************************/
-void grow_ExcludeGrid (const float probe, gridpt ACCgrid[],
-	gridpt EXCgrid[]) {
+void grow_ExcludeGrid (const float probe, const gridpt ACCgrid[], gridpt EXCgrid[]) {
 //expands
 //limit grid search
   //XMIN=(minmax[3] - MAXVDW - PROBE - 2*GRID);
@@ -1112,6 +1182,22 @@ void empty_ExcludeGrid(const int i, const int j, const int k, const float probe,
 
   return;
 };
+
+void empty_ExcludeGrid_fast(const int pt, const std::vector<int> &offsets, gridpt grid[]) {
+  // Iterate over precomputed offsets
+  for (const int offset : offsets) {
+    const int neighbor = pt + offset;
+
+    // Skip out-of-bounds neighbors
+    if (neighbor < 0 || neighbor >= NUMBINS) {
+      std:cerr << "Major Out of Bounds Error" << std::endl;
+      exit(1);
+    }
+
+    // Mark grid point as excluded if filled
+    grid[neighbor] = 0;
+  }
+}
 
 /*********************************************/
 void fill_ExcludeGrid (const int i, const int j, const int k,
