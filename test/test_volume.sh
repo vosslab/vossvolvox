@@ -36,10 +36,14 @@ echo "Converting ${PDB_NOIONS} to XYZR format..."
 ../xyzr/pdb_to_xyzr "${PDB_NOIONS}" > "${XYZR_FILE}"
 
 # Step E: Compile the Volume program (if needed)
-echo "Compiling Volume program..."
-pushd ../src > /dev/null  # Save current directory and switch to ../src
-make vol
-popd > /dev/null  # Return to the test directory
+if [ ! -x ../bin/Volume.exe ]; then
+  echo "Compiling Volume program..."
+  pushd ../src > /dev/null  # Save current directory and switch to ../src
+  make vol
+  popd > /dev/null  # Return to the test directory
+else
+  echo "Volume program is already compiled."
+fi
 
 # Step F: Run the Volume program
 echo "Running Volume.exe with probe radius 2.1 and grid spacing 0.9..."

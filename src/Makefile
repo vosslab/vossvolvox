@@ -59,6 +59,10 @@ none:
 	@echo "Please type make <target>, where <target> is one of the following:"
 	@echo "cav, chan, allchan, allexc, fsv, sol, tun, vdw, vol, volnocav, twovol, frac, or cust."
 
+# Declare vol and test as PHONY targets
+.PHONY: vol test
+
+
 # Compilation rules for individual object files
 utils-main.o: utils-main.cpp
 	$(CC) $(FLAGS) -c -o utils-main.o utils-main.cpp
@@ -105,6 +109,10 @@ vdw: $(OBJS) vdw.cpp
 vol: $(OBJS) volume.cpp
 	$(CC) $(FLAGS) -std=c++14 -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
 	@chmod +x $(BIN_DIR)/Volume.exe
+
+# Test target depends on the vol target
+test: vol
+	cd ../test && ./test_volume.sh
 
 volnocav: $(OBJS) volnocav.cpp
 	$(CC) $(FLAGS) -o $(BIN_DIR)/VolumeNoCav.exe $(OBJS) volnocav.cpp
