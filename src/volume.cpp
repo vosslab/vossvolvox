@@ -1,6 +1,5 @@
 #include <iostream>
 #include <string>
-#include <vector>
 #include <memory>
 #include <cstdlib> // For atof
 #include "utils.h"

@@ -5,6 +5,7 @@
 #define UTILS_H
 
 #include <iostream>   // For std::cerr, std::endl in printCitation and printCompileInfo
+#include <vector>
 
 // Function to print citation information (only prints once)
 inline void printCitation() {
