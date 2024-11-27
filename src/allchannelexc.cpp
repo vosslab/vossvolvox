@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
 
   while(argc > 1 && argv[1][0] == '-') {
     if(argv[1][1] == 'i') {
-      sprintf(file,&argv[2][0]);
+      snprintf(file, sizeof(file),&argv[2][0]);
     } else if(argv[1][1] == 'b') {
       BIGPROBE = atof(&argv[2][0]);
     } else if(argv[1][1] == 's') {
@@ -45,13 +45,13 @@ int main(int argc, char *argv[]) {
     } else if(argv[1][1] == 't') {
       TRIMPROBE = atof(&argv[2][0]);
     } else if(argv[1][1] == 'm') {
-      sprintf(mrcfile,&argv[2][0]);
+      snprintf(mrcfile, sizeof(mrcfile),&argv[2][0]);
     } else if(argv[1][1] == 'v') {
       minvol = atof(&argv[2][0]);
     } else if(argv[1][1] == 'p') {
       minperc = atof(&argv[2][0]);
     } else if(argv[1][1] == 'i') {
-      sprintf(file,&argv[2][0]);
+      snprintf(file, sizeof(file),&argv[2][0]);
     } else if(argv[1][1] == 'g') {
       GRID = atof(&argv[2][0]);
     } else if(argv[1][1] == 'h') {
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
   if (solventEXC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
   grow_ExcludeGrid(SMPROBE, solventACC, solventEXC);
   intersect_Grids(solventEXC, trimgrid); //modifies solventEXC
-  sprintf(mrcfile, "allsolvent.mrc");
+  snprintf(mrcfile, sizeof(mrcfile), "allsolvent.mrc");
   writeMRCFile(solventEXC, mrcfile);
   free (solventACC);
 
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
     long double surf = surface_area(channelEXC);
     cout << "\t" << surf << "\t" << flush;
     cout << "\t#" << file << endl;
-    sprintf(mrcfile, "channel-%03d.mrc", numchannels);
+    snprintf(mrcfile, sizeof(mrcfile), "channel-%03d.mrc", numchannels);
     writeSmallMRCFile(channelEXC, mrcfile);
     cerr << "---------------------------------------------" << endl;
   }

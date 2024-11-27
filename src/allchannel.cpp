@@ -36,7 +36,7 @@ void getDirname(char path[], char dir[]) {
   // If the path is too short or does not contain a '/', default to current directory
   // This handles cases where the path is not valid or does not contain a directory
   if (strlen(path) < 3 || strrchr(path, '/') == NULL) {
-    sprintf(dir, "./");  // Set directory to current directory
+    snprintf(dir, sizeof(dir), "./");  // Set directory to current directory
     return;
   }
 
@@ -100,7 +100,7 @@ void processArguments(int argc, char* argv[], char file[], double &BIGPROBE, dou
   // Process command-line arguments
   while (argc > 1 && argv[1][0] == '-') {
     if (argv[1][1] == 'i') {
-      sprintf(file, &argv[2][0]);
+      snprintf(file, sizeof(file), &argv[2][0]);
     } else if (argv[1][1] == 'b') {
       BIGPROBE = atof(&argv[2][0]);
     } else if (argv[1][1] == 's') {
@@ -110,7 +110,7 @@ void processArguments(int argc, char* argv[], char file[], double &BIGPROBE, dou
     } else if (argv[1][1] == 'p') {
       minperc = atof(&argv[2][0]);
     } else if (argv[1][1] == 'm') {
-      sprintf(mrcfile, &argv[2][0]);
+      snprintf(mrcfile, sizeof(mrcfile), &argv[2][0]);
     } else if (argv[1][1] == 'n') {
       numchan = int(atof(&argv[2][0]));
     } else if (argv[1][1] == 'v') {
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
   if (solventEXC==NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
   grow_ExcludeGrid(SMPROBE, solventACC, solventEXC);
   intersect_Grids(solventEXC, trimgrid); //modifies solventEXC
-  //sprintf(mrcfile, "allsolvent.mrc");
+  //snprintf(mrcfile, sizeof(mrcfile), "allsolvent.mrc");
   //writeMRCFile(solventEXC, mrcfile);
   free (solventEXC);
 
@@ -422,7 +422,7 @@ int main(int argc, char *argv[]) {
       getDirname(mrcfile, dirname);
     if (DEBUG > 0)
       std::cerr << "MRC: " << mrcfile << " -- DIR: " << dirname << endl;
-    sprintf(mrcfile, "%schannel-%03d.mrc", dirname, numchannels);
+    snprintf(mrcfile, sizeof(mrcfile), "%schannel-%03d.mrc", dirname, numchannels);
 
     printVolCout(chanvox);
     std::cerr << endl;

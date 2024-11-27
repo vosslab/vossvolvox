@@ -36,7 +36,7 @@ printCitation(); // Replaces CITATION;
 
   while(argc > 1 && argv[1][0] == '-') {
     if(argv[1][1] == 'i') {
-      sprintf(file,&argv[2][0]);
+      snprintf(file, sizeof(file),&argv[2][0]);
     } else if(argv[1][1] == 'g') {
       GRID = atof(&argv[2][0]);
     } else if(argv[1][1] == 'b') {
@@ -46,11 +46,11 @@ printCitation(); // Replaces CITATION;
     } else if(argv[1][1] == 't') {
       trim_rad = atof(&argv[2][0]);
     } else if(argv[1][1] == 'e') {
-      sprintf(ezdfile,&argv[2][0]);
+      snprintf(ezdfile, sizeof(ezdfile),&argv[2][0]);
     } else if(argv[1][1] == 'm') {
-      sprintf(mrcfile,&argv[2][0]);
+      snprintf(mrcfile, sizeof(mrcfile),&argv[2][0]);
     } else if(argv[1][1] == 'o') {
-      sprintf(pdbfile,&argv[2][0]);
+      snprintf(pdbfile, sizeof(pdbfile),&argv[2][0]);
     } else if(argv[1][1] == 'h') {
       cerr << "./Cavities.exe -i <file> -g <grid spacing> -b <big/shell radius> " << endl
         << "\t-s <small/probe radius> -t <trim_probe_rad>  " << endl

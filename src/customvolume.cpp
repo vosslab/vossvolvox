@@ -58,9 +58,9 @@ printCitation(); // Replaces CITATION;
 
   while(argc > 1 && argv[1][0] == '-') {
     if(argv[1][1] == 'r') {
-      sprintf(rnafile,&argv[2][0]);
+      snprintf(rnafile, sizeof(rnafile),&argv[2][0]);
     } else if(argv[1][1] == 'a') {
-      sprintf(aminofile,&argv[2][0]);
+      snprintf(aminofile, sizeof(aminofile),&argv[2][0]);
     } else if(argv[1][1] == 'p') {
       PROBE = atof(&argv[2][0]);
     } else if(argv[1][1] == 'g') {

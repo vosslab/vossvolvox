@@ -34,15 +34,15 @@ int main(int argc, char *argv[]) {
 
   while(argc > 1 && argv[1][0] == '-') {
     if(argv[1][1] == 'i') {
-      sprintf(file,&argv[2][0]);
+      snprintf(file, sizeof(file),&argv[2][0]);
     } else if(argv[1][1] == 'p') {
       PROBE = atof(&argv[2][0]);
     } else if(argv[1][1] == 'o') {
-      sprintf(pdbfile,&argv[2][0]);
+      snprintf(pdbfile, sizeof(pdbfile),&argv[2][0]);
     } else if(argv[1][1] == 'e') {
-      sprintf(ezdfile,&argv[2][0]);
+      snprintf(ezdfile, sizeof(ezdfile),&argv[2][0]);
     } else if(argv[1][1] == 'm') {
-      sprintf(mrcfile,&argv[2][0]);
+      snprintf(mrcfile, sizeof(mrcfile),&argv[2][0]);
     } else if(argv[1][1] == 'g') {
       GRID = atof(&argv[2][0]);
     } else if(argv[1][1] == 'h') {
