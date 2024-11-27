@@ -9,6 +9,7 @@
 #include <vector>                          // for vector
 #include "utils.h"                         // for gridpt, DEBUG, vector, real
 #include <cassert> // Required header
+#include <vector>
 
 float XMIN, YMIN, ZMIN;
 float XMAX, YMAX, ZMAX;
@@ -51,7 +52,7 @@ float getIdealGrid () {
   unsigned int maxvoxels = 1024*512*512;
   double third = 1/3.;
   idealgrid = pow((XMAX-XMIN)*(YMAX-YMIN)*(ZMAX-ZMIN)/maxvoxels, third);
-  
+
   double increment = 0.001;
   idealgrid = int(idealgrid/increment)*increment;
   while(maxgrid - mingrid > 2*increment) {
@@ -64,7 +65,7 @@ float getIdealGrid () {
 	if (voxels > maxvoxels) {
 		mingrid = idealgrid;
 		idealgrid += increment;
-	} else { 
+	} else {
 		maxgrid = idealgrid;
 		idealgrid -= increment;
 	}
@@ -81,7 +82,7 @@ float OLDgetIdealGrid () {
   float grid = GRID;
   float bng=-1.0, bpg=-1.0;
   int bnd=1, bpd=-1;
-  int counts=0;  
+  int counts=0;
 
   while(cont) {
     counts++;
@@ -94,7 +95,7 @@ float OLDgetIdealGrid () {
     numbins = dxyz + dxy + dx + 1;
 
     diff = MAXBINS - numbins;
-    //cerr << "grid = " << grid << "\tdiff = " << diff << 
+    //cerr << "grid = " << grid << "\tdiff = " << diff <<
 //	"\tnumbins = " << numbins << std::endl;
     if(diff < 0) {
       if(bng < 0 || diff > bnd) {
@@ -322,11 +323,11 @@ int read_NumAtoms (char file[]) {
 //INCREASE GRID SIZE TO ACCOMODATE SPHERES
 //ALSO ROUND GRID SIZE SO THE XMIN = INTEGER * GRID (FOR BETTER OUTPUT)
   float FACT = MAXVDW + MAXPROBE + 2*GRID;
-  for(int i=0;i<=2;i++) { 
-    minmax[i] -= FACT; 
+  for(int i=0;i<=2;i++) {
+    minmax[i] -= FACT;
     minmax[i] = int(minmax[i]/(4*GRID)-1)*4*GRID;
   }
-  for(int i=3;i<=5;i++) { 
+  for(int i=3;i<=5;i++) {
     minmax[i] += FACT;
     minmax[i] = int(minmax[i]/(4*GRID)+1)*4*GRID;
   }
@@ -679,7 +680,7 @@ int get_GridPoint (gridpt grid[]) {
   for(gp=0; gp<DXYZ; gp++) {
     if(grid[gp] == 1) {
 		if (DEBUG > 0)
-      	cerr << "grid point: " << gp << " of " << DXYZ 
+      	cerr << "grid point: " << gp << " of " << DXYZ
               << "; value: " << grid[gp] << std::endl;
       return gp;
     }
@@ -704,7 +705,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
   if (grid[gp] == 0) {
     std::cerr << "GetConnected: Point is NOT FILLED" << std::endl;
     int pt;
-    const int delta = int(3.0/GRID); 
+    const int delta = int(3.0/GRID);
     bool stop=0;
     int ip = int((x-XMIN)/GRID+0.5);
     int jp = int((y-YMIN)/GRID+0.5);
@@ -774,7 +775,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
       if (DEBUG > 0)
         std::cerr << " done" << std::endl;
     }
-  } else if(gp > 0 && gp < max) { 
+  } else if(gp > 0 && gp < max) {
     if (DEBUG > 0)
       std::cerr << "GetConnected: Point is NOT FILLED" << std::endl;
   } else {
@@ -801,7 +802,7 @@ int get_ConnectedRange (gridpt grid[], gridpt connect[], const float x, const fl
 
 //Oops selected point isn't open! Better get new one
   if(!grid[gp]) {
-    const int delta = int(1.50/GRID); 
+    const int delta = int(1.50/GRID);
     bool stop=0;
     int gd=gp;
     for(int id=-delta; !stop && id<=delta; id++) {
@@ -1021,14 +1022,14 @@ int intersect_Grids (gridpt grid1[], gridpt grid2[]) {
         voxels++;
       }
     }
-  } 
+  }
   //cerr << std::endl;
   if (DEBUG > 0) {
     std::cerr << "done [ " << changed << " vox changed ] " << std::flush;
     std::cerr << "[ " << voxels << " vox overlap :: " << std::flush;
     std::cerr << int(1000.0*voxels/(voxels+changed))/10.0 << "% ]" << std::flush;
     std::cerr << std::endl << std::endl;
-  } 
+  }
   return voxels;
 };
 
@@ -1067,14 +1068,14 @@ int merge_Grids (gridpt grid1[], gridpt grid2[]) {
         voxels++;
       }
     }
-  } 
+  }
   //cerr << std::endl;
   if (DEBUG > 0) {
     std::cerr << "done [ " << changed << " vox changed ] " << std::flush;
     std::cerr << "[ " << voxels << " vox overlap :: " << std::flush;
     std::cerr << int(1000.0*voxels/(voxels+changed))/10.0 << "% ]" << std::flush;
     std::cerr << std::endl << std::endl;
-  } 
+  }
   return voxels;
 };
 
@@ -1531,7 +1532,7 @@ float crossSection (const gridpt grid[])
 //  return int(i+j*DX+k*DXY);
 
   struct real r;
-  int pt; 
+  int pt;
   float count;
   //double mult = GRID*GRID*0.5*0.5*2.0/3.0;
   double mult = GRID*GRID/6.0;
@@ -1744,7 +1745,7 @@ int countEdgePoints (gridpt grid[]) {
 float surface_area (gridpt grid[]) {
   //Initialize Variables
   float surf=0.0;
-  const float wt[] = { 0.0, 0.894, 1.3409, 1.5879, 4.0, 2.6667, 
+  const float wt[] = { 0.0, 0.894, 1.3409, 1.5879, 4.0, 2.6667,
 		      3.3333, 1.79, 2.68, 4.08, 0.0}; //weighting factors
 /*
   wt[0]=0.0;   wt[1]=0.894; wt[2]=1.3409; wt[3]=1.5879;
@@ -1825,7 +1826,7 @@ int classifyEdgePoint (const int pt, gridpt grid[]) {
   if(pt < DXY) {
     std::cerr << "pt < DXY " << pt << " < " << DXY << std::endl;
   }
-  //if(pt + DXY > NUMBINS) { 
+  //if(pt + DXY > NUMBINS) {
   //cerr << "pt > NUMBINS " << pt << " > " << NUMBINS << std::endl;
   //}
   if(nb == 0 || nb == 1) {
@@ -1985,19 +1986,19 @@ void determine_MinMax(gridpt grid[], int minmax[]) {
 
 /*********************************************/
 int makerbot_fill(gridpt ingrid[], gridpt outgrid[]) {
-  /* 
-  ** Since you cannot see inside a 3D print, 
+  /*
+  ** Since you cannot see inside a 3D print,
   ** points that are invisible in ingrid are
   ** converted to outgrid points
-  ** This way the printer does not have switch 
+  ** This way the printer does not have switch
   ** colors on the invisible parts of the model
-  
-  ** in grid and out grid should not intersect 
+
+  ** in grid and out grid should not intersect
   ** changes both in grid and out grid
   ** in grid points are converted to out grid points
   */
 
-  /* 
+  /*
   int ijk2pt(int i, int j, int k);
   void pt2ijk(int pt, int &i, int &j, int &k);
   */
@@ -2036,7 +2037,7 @@ int makerbot_fill(gridpt ingrid[], gridpt outgrid[]) {
 /*********************************************/
 bool isContainedPoint (const int pt, gridpt ingrid[], gridpt outgrid[], int minmax[]) {
 
-  /* 
+  /*
   int ijk2pt(int i, int j, int k);
   void pt2ijk(int pt, int &i, int &j, int &k);
   */
@@ -2102,7 +2103,7 @@ bool isContainedPoint (const int pt, gridpt ingrid[], gridpt outgrid[], int minm
 
 // Z axis
   filled = 0;
-  for(index=1; index<kpt-zmin && filled==0; index++) {  
+  for(index=1; index<kpt-zmin && filled==0; index++) {
     newpt = ijk2pt(ipt, jpt, kpt - index);
     checked++;
     if (outgrid[newpt] == 1) {
@@ -2181,13 +2182,13 @@ int bounding_box(gridpt grid[], gridpt bbox[]) {
   zmax = minmax[5];
 
 //Grow by one
-/*  
+/*
   xmin-=1;
   ymin-=DX;
   zmin-=DXY;
   xmax+=1;
   ymax+=DX;
-  zmax+=DXY; 
+  zmax+=DXY;
 */
 
 //PART II: FILL BOX
