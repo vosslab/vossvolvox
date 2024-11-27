@@ -37,7 +37,7 @@ void getDirname(char path[], char dir[]) {
   // If the path is too short or does not contain a '/', default to current directory
   // This handles cases where the path is not valid or does not contain a directory
   if (strlen(path) < 3 || strrchr(path, '/') == NULL) {
-    snprintf(dir, sizeof(dir), "./");  // Set directory to current directory
+    snprintf(dir, 256, "./");
     return;
   }
 
@@ -101,7 +101,7 @@ void processArguments(int argc, char* argv[], char file[], double &BIGPROBE, dou
   // Process command-line arguments
   while (argc > 1 && argv[1][0] == '-') {
     if (argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);
+      snprintf(file, 256, "%s", &argv[2][0]);
     } else if (argv[1][1] == 'b') {
       BIGPROBE = atof(&argv[2][0]);
     } else if (argv[1][1] == 's') {
@@ -111,7 +111,7 @@ void processArguments(int argc, char* argv[], char file[], double &BIGPROBE, dou
     } else if (argv[1][1] == 'p') {
       minperc = atof(&argv[2][0]);
     } else if (argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
+      snprintf(mrcfile, 256, "%s", &argv[2][0]);
     } else if (argv[1][1] == 'n') {
       numchan = int(atof(&argv[2][0]));
     } else if (argv[1][1] == 'v') {
