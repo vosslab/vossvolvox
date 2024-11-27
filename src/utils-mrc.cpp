@@ -79,13 +79,13 @@ extern float GRID;
 
 
 /*********************************************/
-int byteWrite( FILE * fp, void * data, int number_of_elements, int element_size ) {
-	int count = fwrite(data, element_size, number_of_elements, fp);
-	return count;
+int byteWrite(FILE* fp, const void* data, int number_of_elements, int element_size) {
+    int count = fwrite(data, element_size, number_of_elements, fp);
+    return count;
 }
 
 /*********************************************/
-int byteSwapWriteGrid( FILE * fp, gridpt * data, int number_of_elements, int element_size ) {
+int byteSwapWriteGrid( FILE * fp, const gridpt * data, int number_of_elements, int element_size ) {
 	int count = fwrite(data, element_size, number_of_elements, fp);
 	return count;
 	
@@ -139,7 +139,7 @@ int writeMRCHeader( FILE * fp, MRCHeaderSt header ) {
 }
 
 /*********************************************/
-int writeMRCFile( gridpt data[], char filename[] ) {
+int writeMRCFile(const gridpt data[], const char filename[] ) {
 	int volume = countGrid(data);
 	if (volume == 0) {
 		cerr << "volume is empty not writing mrc file" << endl;
@@ -252,7 +252,7 @@ int ijk2pt2(const int i, const int j, const int k, const int xdim, const int ydi
 
 
 /*********************************************/
-int writeSmallMRCFile( gridpt data[], char filename[]) {
+int writeSmallMRCFile(const gridpt data[], const char filename[]) {
 	int volume = countGrid(data);
 	if (volume == 0) {
 		cerr << "volume is empty not writing mrc file" << endl;

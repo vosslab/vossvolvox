@@ -184,7 +184,7 @@ void testLimits (gridpt grid[]) {
 *********************************************/
 
 /*********************************************/
-int countGrid (gridpt grid[]) {
+int countGrid (const gridpt grid[]) {
   int voxels=0;
 
   if (DEBUG > 0)
@@ -1949,7 +1949,7 @@ int fill_cavities(gridpt grid[]) {
 };
 
 /*********************************************/
-void determine_MinMax(gridpt grid[], int minmax[]) {
+void determine_MinMax(const gridpt grid[], int minmax[]) {
   //minmax MUST be an array of length 6
   if (DEBUG > 0)
     std::cerr << "Determining Minima and Maxima..." << std::flush;

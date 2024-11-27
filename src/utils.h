@@ -87,7 +87,7 @@ void assignLimits ();
 void testLimits (gridpt grid[]);
 
 //grid util functions
-int countGrid (gridpt grid[]);
+int countGrid (const gridpt grid[]);
 void zeroGrid (gridpt grid[]);
 int copyGridFromTo (const gridpt oldgrid[], gridpt newgrid[]);
 int copyGrid (const gridpt oldgrid[], gridpt newgrid[]);
@@ -158,7 +158,7 @@ int classifyEdgePoint (const int pt, gridpt grid[]);
 //other ideas
 //int convex_hull(gridpt grid[], gridpt hull[]);
 //int convex_hull(int numatoms, char file[], gridpt hull[]);
-void determine_MinMax(gridpt grid[], int minmax[]);
+void determine_MinMax(const gridpt grid[], int minmax[]);
 int bounding_box(gridpt grid[], gridpt bbox[]);
 //int bounding_box(int numatoms, char file[], gridpt bbox[]);
 int fill_cavities(gridpt grid[]);
@@ -184,7 +184,7 @@ void write_BlurEZD (const gridpt grid[], const char outfile[]);
 /*************************************************
 //output functions (in utils-mrc.cpp)
 **************************************************/
-int writeMRCFile( gridpt data[], char filename[] );
-int writeSmallMRCFile( gridpt data[], char filename[] );
+int writeMRCFile(const gridpt data[], const char filename[] );
+int writeSmallMRCFile(const gridpt data[], const char filename[] );
 
 #endif // UTILS_H
