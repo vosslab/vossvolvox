@@ -1,5 +1,11 @@
-#include "utils.h"
-#include <stdint.h>
+/*
+** utils-mrc.cpp
+*/
+#include <stdint.h>                   // for int16_t, int32_t, int8_t, uint16_t
+#include <stdio.h>                    // for FILE, NULL
+#include <stdlib.h>                   // for free, malloc
+#include <iostream>                   // for char_traits, cerr, basic_ios
+#include "utils.h"                    // for cerr, endl, DEBUG, gridpt, coun...
 
 #define MRC_MODE_BYTE            0
 #define MRC_MODE_SHORT           1

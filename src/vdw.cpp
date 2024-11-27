@@ -1,5 +1,7 @@
-#include <iostream>
-#include "utils.h"
+#include <iostream>  // for cerr, cout, endl
+#include <cstdlib>   // for malloc, free, exit, atof
+#include <cstdio>    // for snprintf (replacement for sprintf)
+#include "utils.h"   // for custom utility functions like assignLimits, printCompileInfo, etc.
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -32,13 +34,13 @@ printCitation(); // Replaces CITATION;
 
   while(argc > 1 && argv[1][0] == '-') {
     if(argv[1][1] == 'i') {
-      sprintf(file,&argv[2][0]);
+      snprintf(file, sizeof(file), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'o') {
-      sprintf(pdbfile,&argv[2][0]);
+      snprintf(pdbfile, sizeof(pdbfile), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'e') {
-      sprintf(ezdfile,&argv[2][0]);
+      snprintf(ezdfile, sizeof(ezdfile), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'm') {
-      sprintf(mrcfile,&argv[2][0]);
+      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'g') {
       GRID = atof(&argv[2][0]);
     } else if(argv[1][1] == 'h') {

@@ -1,5 +1,6 @@
-#include <iostream>
-#include "utils.h"
+#include <stdlib.h>                   // for free, malloc, NULL
+#include <iostream>                   // for char_traits, cerr
+#include "utils.h"                    // for endl, cerr, gridpt, get_Exclude...
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;

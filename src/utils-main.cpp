@@ -1,11 +1,13 @@
 /*
 ** utils-main.cpp
 */
-#include "utils.h"
-#include <cmath>
-#include <cstring>
-#include <iostream>
-#include <fstream>
+#include <stdlib.h>                        // for malloc, free
+#include <cmath>                           // for ceil, pow, sqrt
+#include <cstring>                         // for NULL
+#include <fstream>                         // for char_traits, basic_ifstream
+#include <iostream>                        // for cerr, cout
+#include <vector>                          // for vector
+#include "utils.h"                         // for gridpt, DEBUG, vector, real
 #include <cassert> // Required header
 
 float XMIN, YMIN, ZMIN;

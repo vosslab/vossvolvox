@@ -4,7 +4,10 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <iostream>   // For std::cerr, std::endl in printCitation and printCompileInfo
+#include <fstream>                    // for ifstream, ofstream
+#include <iostream>                   // for char_traits, cerr, cout
+#include <string>                     // for string
+#include <vector>                     // for vector
 
 // Function to print citation information (only prints once)
 inline void printCitation() {
