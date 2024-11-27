@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include <cstdlib> // For atof
+#include <cstdio>                   // for snprintf
 #include "utils.h"
 
 // Globals

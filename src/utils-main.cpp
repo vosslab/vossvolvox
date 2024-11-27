@@ -1,13 +1,13 @@
 /*
 ** utils-main.cpp
 */
-#include <stdlib.h>                        // for malloc, free
-#include <cmath>                           // for ceil, pow, sqrt
-#include <cstring>                         // for NULL
-#include <fstream>                         // for char_traits, basic_ifstream
-#include <iostream>                        // for cerr, cout
-#include <vector>                          // for vector
-#include "utils.h"                         // for gridpt, DEBUG, vector, real
+#include <cstdio>     // for sscanf
+#include <cstdlib>    // for exit, malloc, free
+#include <cstring>    // for NULL, strcpy, strlen
+#include <cmath>      // for ceil, pow, sqrt
+#include <fstream>    // for basic_ifstream, char_traits
+#include <iostream>   // for cerr, cout
+#include "utils.h"    // for gridpt, DEBUG, vector, real
 #include <cassert> // Required header
 #include <vector>
 

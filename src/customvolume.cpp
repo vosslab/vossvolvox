@@ -1,5 +1,6 @@
 #include <stdlib.h>                   // for free, malloc, NULL
 #include <iostream>                   // for char_traits, cerr
+#include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, cerr, gridpt, get_Exclude...
 
 extern float XMIN, YMIN, ZMIN;
@@ -117,8 +118,10 @@ printCitation(); // Replaces CITATION;
   trimYAxis(AminoGrid);
   trimYAxis(RNAgrid);
 
-  writeMRCFile(RNAgrid, "rna.mrc");
-  writeMRCFile(AminoGrid, "amino.mrc");
+  const char* rnafilename = "rna.mrc";
+  writeMRCFile(RNAgrid, rnafilename);
+  const char* aminofilename = "amino.mrc";
+  writeMRCFile(AminoGrid, aminofilename);
 
 //RELEASE TEMPGRID
   free (AminoGrid);

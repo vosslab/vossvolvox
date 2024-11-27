@@ -1,5 +1,6 @@
 #include <stdlib.h>                   // for free, malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
+#include <cstdio>                   // for snprintf
 #include "utils.h"                    // for get_Connected, endl, gridpt, cerr
 
 extern float XMIN, YMIN, ZMIN;

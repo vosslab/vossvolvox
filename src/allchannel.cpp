@@ -1,6 +1,7 @@
 #include <stdlib.h>                   // for free, malloc
 #include <string.h>                   // for NULL, strrchr
 #include <iostream>                   // for char_traits, cerr
+#include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, countGrid, gridpt, DEBUG
 
 extern float XMIN, YMIN, ZMIN;

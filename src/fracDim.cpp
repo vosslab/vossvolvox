@@ -1,6 +1,7 @@
 #include <math.h>                     // for log, fabs, sqrt, pow
 #include <stdlib.h>                   // for free, malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
+#include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, cerr, assignLimits, count...
 
 extern float XMIN, YMIN, ZMIN;
