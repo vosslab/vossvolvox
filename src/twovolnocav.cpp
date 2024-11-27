@@ -47,13 +47,13 @@ printCitation(); // Replaces CITATION;
     } else if(argv[1][1] == 'p' && argv[1][2] == '2') {
       PROBE2 = atof(&argv[2][0]);      
     } else if(argv[1][1] == 'i'  && argv[1][2] == '1') {
-      snprintf(file1, sizeof(file1),&argv[2][0]);
+      snprintf(file1, sizeof(file1), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'i' && argv[1][2] == '2') {
-      snprintf(file2, sizeof(file2),&argv[2][0]);
+      snprintf(file2, sizeof(file2), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'm' && argv[1][2] == '1') {
-      snprintf(mrcfile1, sizeof(mrcfile1),&argv[2][0]);
+      snprintf(mrcfile1, sizeof(mrcfile1), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'm' && argv[1][2] == '2') {
-      snprintf(mrcfile2, sizeof(mrcfile2),&argv[2][0]);
+      snprintf(mrcfile2, sizeof(mrcfile2), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'm' && argv[1][2] == 'e') {
       merge = atoi(&argv[2][0]);
     } else if(argv[1][1] == 'f' && argv[1][2] == 'i') {

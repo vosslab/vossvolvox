@@ -100,7 +100,7 @@ void processArguments(int argc, char* argv[], char file[], double &BIGPROBE, dou
   // Process command-line arguments
   while (argc > 1 && argv[1][0] == '-') {
     if (argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), &argv[2][0]);
+      snprintf(file, sizeof(file), "%s", &argv[2][0]);
     } else if (argv[1][1] == 'b') {
       BIGPROBE = atof(&argv[2][0]);
     } else if (argv[1][1] == 's') {
@@ -110,7 +110,7 @@ void processArguments(int argc, char* argv[], char file[], double &BIGPROBE, dou
     } else if (argv[1][1] == 'p') {
       minperc = atof(&argv[2][0]);
     } else if (argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile), &argv[2][0]);
+      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
     } else if (argv[1][1] == 'n') {
       numchan = int(atof(&argv[2][0]));
     } else if (argv[1][1] == 'v') {

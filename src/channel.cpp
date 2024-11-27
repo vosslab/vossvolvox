@@ -37,7 +37,7 @@ printCitation(); // Replaces CITATION;
 
   while(argc > 1 && argv[1][0] == '-') {
     if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file),&argv[2][0]);
+      snprintf(file, sizeof(file), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'b') {
       BIGPROBE = atof(&argv[2][0]);
     } else if(argv[1][1] == 's') {
@@ -51,13 +51,13 @@ printCitation(); // Replaces CITATION;
     } else if(argv[1][1] == 'z') {
       z = atof(&argv[2][0]);
     } else if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file),&argv[2][0]);
+      snprintf(file, sizeof(file), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'o') {
-      snprintf(pdbfile, sizeof(pdbfile),&argv[2][0]);
+      snprintf(pdbfile, sizeof(pdbfile), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'e') {
-      snprintf(ezdfile, sizeof(ezdfile),&argv[2][0]);
+      snprintf(ezdfile, sizeof(ezdfile), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile),&argv[2][0]);
+      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
     } else if(argv[1][1] == 'g') {
       GRID = atof(&argv[2][0]);
     } else if(argv[1][1] == 'h') {

@@ -44,8 +44,8 @@ int main(int argc, char* argv[]) {
 
   // Debugging information
   std::cerr << "Initializing Calculation:\n"
-            << "Probe Radius:       " << probe << " Å\n"
-            << "Grid Spacing:       " << GRID << " Å\n"
+            << "Probe Radius:       " << probe << " A\n"
+            << "Grid Spacing:       " << GRID << " A\n"
             << "Input File:         " << inputFile << "\n";
 
   // Read atoms and set grid limits
@@ -85,10 +85,10 @@ void parseArguments(int argc, char* argv[], std::string& inputFile, std::string&
                 << "  -i <file>       Input file containing atomic coordinates in XYZR format.\n"
                 << "                  This file should specify the atom positions and radii in a simple\n"
                 << "                  tab-delimited format with columns: x, y, z, radius.\n\n"
-                << "  -p <probe_rad>  Probe radius in Ångströms. Default is 10.0 Å. This value determines\n"
+                << "  -p <probe_rad>  Probe radius in Angstroms. Default is 10.0 A. This value determines\n"
                 << "                  the size of the probe used to calculate the excluded volume and\n"
                 << "                  accessible surface area.\n\n"
-                << "  -g <gridspacing> Grid spacing in Ångströms. Determines the resolution of the grid.\n"
+                << "  -g <gridspacing> Grid spacing in Angstroms. Determines the resolution of the grid.\n"
                 << "                  Smaller values yield higher resolution but require more memory\n"
                 << "                  and computation time. Default is set in the program's configuration.\n\n"
                 << "  -o <PDB outfile> Output PDB file for surface points. If specified, writes a PDB\n"
@@ -131,10 +131,10 @@ void processGrid(double probe, const std::string& ezdFile, const std::string& pd
   long double surf = surface_area(EXCgrid.get());
 
   std::cerr << "\nSummary of Results:\n"
-            << "Probe Radius:       " << probe << " Å\n"
-            << "Grid Spacing:       " << GRID << " Å\n"
+            << "Probe Radius:       " << probe << " A\n"
+            << "Grid Spacing:       " << GRID << " A\n"
             << "Total Voxels:       " << voxels << "\n"
-            << "Surface Area:       " << surf << " Å²\n"
+            << "Surface Area:       " << surf << " A^2\n"
             << "Number of Atoms:    " << numatoms << "\n"
             << "Input File:         " << inputFile << "\n";
 
