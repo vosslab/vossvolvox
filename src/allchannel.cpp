@@ -1,8 +1,8 @@
-#include <cstdlib>                   // for std::free, std::malloc
-#include <cstring>                   // for NULL, strrchr
-#include <iostream>                   // for char_traits, cerr
-#include <cstdio>                   // for snprintf
-#include "utils.h"                    // for endl, countGrid, gridpt, DEBUG
+#include <cstdlib>   // For std::free, std::malloc, std::exit, std::atof
+#include <cstring>   // For std::strlen, std::strcpy, std::strrchr
+#include <iostream>  // For std::cerr
+#include <cstdio>    // For std::snprintf
+#include "utils.h"   // For custom utility functions
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
