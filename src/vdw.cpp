@@ -1,5 +1,5 @@
 #include <iostream>  // for cerr, cout, endl
-#include <cstdlib>   // for malloc, free, exit, atof
+#include <cstdlib>   // for std::malloc, std::free, exit, atof
 #include <cstdio>    // for snprintf (replacement for sprintf)
 #include "utils.h"   // for custom utility functions like assignLimits, printCompileInfo, etc.
 
@@ -76,7 +76,7 @@ printCitation(); // Replaces CITATION;
 // ****************************************************
 //READ FILE INTO SASGRID
   gridpt *EXCgrid;
-  EXCgrid = (gridpt*) malloc (NUMBINS);
+  EXCgrid = (gridpt*) std::malloc (NUMBINS);
   if (EXCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
   zeroGrid(EXCgrid);
   int voxels;
@@ -99,7 +99,7 @@ printCitation(); // Replaces CITATION;
   }
 
 //RELEASE TEMPGRID
-  free (EXCgrid);
+  std::free (EXCgrid);
 
   cout << PROBE << "\t" << GRID << "\t" << flush;
   printVolCout(voxels);

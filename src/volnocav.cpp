@@ -1,4 +1,4 @@
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
 #include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, cerr, countGrid, gridpt
@@ -84,7 +84,7 @@ printCitation(); // Replaces CITATION;
 
 
   gridpt *shellACC=NULL;
-  shellACC = (gridpt*) malloc (NUMBINS);
+  shellACC = (gridpt*) std::malloc (NUMBINS);
   fill_AccessGrid_fromFile(numatoms,PROBE,file,shellACC);
   int voxels1 = countGrid(shellACC);
   fill_cavities(shellACC);
@@ -92,10 +92,10 @@ printCitation(); // Replaces CITATION;
   cerr << "Fill Cavities: " << voxels2 - voxels1 << " voxels filled" << endl;
 
   gridpt *EXCgrid=NULL;
-  EXCgrid = (gridpt*) malloc (NUMBINS);
+  EXCgrid = (gridpt*) std::malloc (NUMBINS);
   trun_ExcludeGrid(PROBE,shellACC,EXCgrid);
 
-  free (shellACC);
+  std::free (shellACC);
   int voxels = countGrid(EXCgrid);
 
 
@@ -114,7 +114,7 @@ printCitation(); // Replaces CITATION;
   }
 
 //RELEASE TEMPGRID
-  free (EXCgrid);
+  std::free (EXCgrid);
 
   cout << PROBE << "\t" << GRID << "\t" << flush;
   printVolCout(voxels);

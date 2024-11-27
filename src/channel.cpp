@@ -1,4 +1,4 @@
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
 #include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, cerr, gridpt, copyGrid
@@ -94,7 +94,7 @@ printCitation(); // Replaces CITATION;
 // STARTING LARGE PROBE
 // ****************************************************
   gridpt *biggrid;
-  biggrid = (gridpt*) malloc (NUMBINS);
+  biggrid = (gridpt*) std::malloc (NUMBINS);
   if (biggrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
   zeroGrid(biggrid);
   int bigvox;
@@ -109,11 +109,11 @@ printCitation(); // Replaces CITATION;
 // TRIM LARGE PROBE SURFACE
 // ****************************************************
   gridpt *trimgrid;
-  trimgrid = (gridpt*) malloc (NUMBINS);
+  trimgrid = (gridpt*) std::malloc (NUMBINS);
   if (trimgrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
   copyGrid(biggrid,trimgrid);
   trun_ExcludeGrid(TRIMPROBE,biggrid,trimgrid);
-  free (biggrid);
+  std::free (biggrid);
 
   cout << "bg_prb\tsm_prb\tgrid\texcvol\tsurf\taccvol\tfile" << endl;
 
@@ -121,7 +121,7 @@ printCitation(); // Replaces CITATION;
 // STARTING SMALL PROBE
 // ****************************************************
     gridpt *smgrid;
-    smgrid = (gridpt*) malloc (NUMBINS);
+    smgrid = (gridpt*) std::malloc (NUMBINS);
     if (smgrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
     zeroGrid(smgrid);
     int smvox;
@@ -131,40 +131,40 @@ printCitation(); // Replaces CITATION;
 // GETTING ACCESSIBLE CHANNELS
 // ****************************************************
     gridpt *solventACC;
-    solventACC = (gridpt*) malloc (NUMBINS);
+    solventACC = (gridpt*) std::malloc (NUMBINS);
     if (solventACC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
     copyGrid(trimgrid,solventACC); //copy trimgrid into solventACC
     subt_Grids(solventACC,smgrid); //modify solventACC
-    free (smgrid);
+    std::free (smgrid);
 
 
 // ***************************************************
 // SELECT PARTICULAR CHANNEL
 // ***************************************************
     gridpt *channelACC;
-    channelACC = (gridpt*) malloc (NUMBINS);
+    channelACC = (gridpt*) std::malloc (NUMBINS);
     if (channelACC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
     zeroGrid(channelACC);
 
 //main channel
     get_Connected(solventACC,channelACC, x, y, z);
-    free (solventACC);
+    std::free (solventACC);
 
 // ***************************************************
 // GETTING CONTACT CHANNEL
 // ***************************************************
     gridpt *channelEXC;
-    channelEXC = (gridpt*) malloc (NUMBINS);
+    channelEXC = (gridpt*) std::malloc (NUMBINS);
     if (channelEXC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
     int channelACCvol = copyGrid(channelACC,channelEXC);
     cerr << "Accessible Channel Volume  ";
     printVol(channelACCvol);
     grow_ExcludeGrid(SMPROBE,channelACC,channelEXC);
-    free (channelACC);
+    std::free (channelACC);
 
 //limit growth to inside trimgrid
     intersect_Grids(channelEXC,trimgrid); //modifies channelEXC
-    //free (trimgrid);
+    //std::free (trimgrid);
 
 // ***************************************************
 // OUTPUT RESULTS
@@ -187,10 +187,10 @@ printCitation(); // Replaces CITATION;
     }
 
 //RELEASE TEMPGRID
-    free (channelEXC);
+    std::free (channelEXC);
     cerr << endl;
 
-  free (trimgrid);
+  std::free (trimgrid);
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;
 };

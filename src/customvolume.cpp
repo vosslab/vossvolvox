@@ -1,4 +1,4 @@
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr
 #include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, cerr, gridpt, get_Exclude...
@@ -100,14 +100,14 @@ printCitation(); // Replaces CITATION;
 // ****************************************************
 //READ FILE INTO RNAgrid
   gridpt *RNAgrid;
-  RNAgrid = (gridpt*) malloc (NUMBINS);
+  RNAgrid = (gridpt*) std::malloc (NUMBINS);
   if (RNAgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
   zeroGrid(RNAgrid);
   int rnavoxels = get_ExcludeGrid_fromFile(rnanumatoms,PROBE,rnafile,RNAgrid);
 
 //READ FILE INTO AminoGrid
   gridpt *AminoGrid;
-  AminoGrid = (gridpt*) malloc (NUMBINS);
+  AminoGrid = (gridpt*) std::malloc (NUMBINS);
   if (AminoGrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
   zeroGrid(AminoGrid);
   int aminovoxels = get_ExcludeGrid_fromFile(aminonumatoms,PROBE,aminofile,AminoGrid);
@@ -124,8 +124,8 @@ printCitation(); // Replaces CITATION;
   writeMRCFile(AminoGrid, aminofilename);
 
 //RELEASE TEMPGRID
-  free (AminoGrid);
-  free (RNAgrid);
+  std::free (AminoGrid);
+  std::free (RNAgrid);
 
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;

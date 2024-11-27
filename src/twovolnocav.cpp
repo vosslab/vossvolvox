@@ -1,4 +1,4 @@
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr
 #include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, cerr, gridpt, countGrid
@@ -115,47 +115,47 @@ printCitation(); // Replaces CITATION;
 // STARTING FILE 1 READ-IN
 // ****************************************************
 
-  shellACC = (gridpt*) malloc (NUMBINS);
+  shellACC = (gridpt*) std::malloc (NUMBINS);
   fill_AccessGrid_fromFile(numatoms1,PROBE1,file1,shellACC);
   if(merge == 1) {
-    shellACC2 = (gridpt*) malloc (NUMBINS);
+    shellACC2 = (gridpt*) std::malloc (NUMBINS);
     fill_AccessGrid_fromFile(numatoms2,minPROBE,file2,shellACC2);
     cerr << "Merge Volumes 1->2" << endl;
     merge_Grids(shellACC, shellACC2);
-    free (shellACC2);
+    std::free (shellACC2);
   }
   voxels1 = countGrid(shellACC);
   fill_cavities(shellACC);
   voxels2 = countGrid(shellACC);
   cerr << "Fill Cavities: " << voxels2 - voxels1 << " voxels filled" << endl;
 
-  EXCgrid1 = (gridpt*) malloc (NUMBINS);
+  EXCgrid1 = (gridpt*) std::malloc (NUMBINS);
   trun_ExcludeGrid(PROBE1,shellACC,EXCgrid1);
 
-  free (shellACC);
+  std::free (shellACC);
   
 // ****************************************************
 // STARTING FILE 2 READ-IN
 // ****************************************************
 
-  shellACC = (gridpt*) malloc (NUMBINS);
+  shellACC = (gridpt*) std::malloc (NUMBINS);
   fill_AccessGrid_fromFile(numatoms2,PROBE2,file2,shellACC);
   if(merge == 2) {
-    shellACC2 = (gridpt*) malloc (NUMBINS);
+    shellACC2 = (gridpt*) std::malloc (NUMBINS);
     fill_AccessGrid_fromFile(numatoms2,minPROBE,file1,shellACC2);
     cerr << "Merge Volumes 2->1" << endl;
     merge_Grids(shellACC, shellACC2);
-    free (shellACC2);
+    std::free (shellACC2);
   }  
   voxels1 = countGrid(shellACC);
   fill_cavities(shellACC);
   voxels2 = countGrid(shellACC);
   cerr << "Fill Cavities: " << voxels2 - voxels1 << " voxels filled" << endl;
 
-  EXCgrid2 = (gridpt*) malloc (NUMBINS);
+  EXCgrid2 = (gridpt*) std::malloc (NUMBINS);
   trun_ExcludeGrid(PROBE2,shellACC,EXCgrid2);
 
-  free (shellACC);
+  std::free (shellACC);
   
 // ****************************************************
 // SUBTRACT AND SAVE
@@ -193,14 +193,14 @@ printCitation(); // Replaces CITATION;
   }
 
 //RELEASE TEMPGRID
-  free (EXCgrid1);
+  std::free (EXCgrid1);
 
   if(mrcfile2[0] != '\0') {
     writeMRCFile(EXCgrid2, mrcfile2);
   }
 
 //RELEASE TEMPGRID
-  free (EXCgrid2);
+  std::free (EXCgrid2);
 
   //cout << PROBE1 << "\t" << PROBE2 << "\t" << GRID << "\t" << endl;
 

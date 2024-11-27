@@ -4,7 +4,7 @@
 #include <cstdio>      // for fclose, fopen, fwrite
 #include <ctime>       // for time
 #include <cstdint>     // for int16_t, int32_t, int8_t, uint16_t
-#include <cstdlib>     // for free, malloc
+#include <cstdlib>     // for std::free, std::malloc
 #include <iostream>    // for cerr, endl
 #include "utils.h"     // for cerr, endl, DEBUG, gridpt, countGrid
 
@@ -299,7 +299,7 @@ int writeSmallMRCFile( gridpt data[], char filename[]) {
 	gridpt *smdata;
 	if (DEBUG > 0)
 		cerr << NUMBINS << " --> " << numbins << endl;
-	smdata = (gridpt*) malloc (numbins);
+	smdata = (gridpt*) std::malloc (numbins);
 	#pragma omp parallel for
 	for(unsigned int pt=0; pt<numbins; pt++) {
 		smdata[pt] = 0;
@@ -383,7 +383,7 @@ int writeSmallMRCFile( gridpt data[], char filename[]) {
 
 
 	int count = byteWrite( fp, smdata, numbins, 1 );
-	free (smdata);
+	std::free (smdata);
 	if ( count != 17 ) return -1;
 	
 	fclose(fp);

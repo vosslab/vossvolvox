@@ -1,5 +1,5 @@
-#include <math.h>                     // for log, fabs, sqrt, pow
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cmath>                     // for log, fabs, sqrt, pow
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
 #include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, cerr, assignLimits, count...
@@ -99,7 +99,7 @@ printCitation(); // Replaces CITATION;
 		// ****************************************************
 		//READ FILE INTO SASGRID
 		gridpt *EXCgrid;
-		EXCgrid = (gridpt*) malloc (NUMBINS);
+		EXCgrid = (gridpt*) std::malloc (NUMBINS);
 		if (EXCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
 		zeroGrid(EXCgrid);
 		int voxels;
@@ -114,7 +114,7 @@ printCitation(); // Replaces CITATION;
 //1.5	2.75922	-0.999936	2.01569	-0.999939 // weighted
 
 		//RELEASE TEMPGRID
-		free (EXCgrid);
+		std::free (EXCgrid);
 
 		//cout << GRID << "\t" << voxels << "\t" << edgeVoxels << endl;
 		double x = -1.0*log(GRID);

@@ -1,4 +1,4 @@
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
 #include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, cerr, gridpt, zeroGrid
@@ -86,7 +86,7 @@ printCitation(); // Replaces CITATION;
 
 //GET SHELL
   gridpt *shell;
-  shell = (gridpt*) malloc (NUMBINS);
+  shell = (gridpt*) std::malloc (NUMBINS);
   if (shell==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
   zeroGrid(shell);
   int shellvol = get_ExcludeGrid_fromFile(numatoms,BIGPROBE,file,shell);
@@ -94,7 +94,7 @@ printCitation(); // Replaces CITATION;
 //INIT NEW smShellACC GRID
   cerr << "Trimming Radius: " << TRIMPROBE << endl;
   gridpt *smShell;
-  smShell = (gridpt*) malloc (NUMBINS);
+  smShell = (gridpt*) std::malloc (NUMBINS);
   if (smShell==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
 
 //COPY AND TRUNCATE (IF NECESSARY)
@@ -102,7 +102,7 @@ printCitation(); // Replaces CITATION;
   if(TRIMPROBE > 0) {
     trun_ExcludeGrid(TRIMPROBE,shell,smShell);
   }
-  free (shell);
+  std::free (shell);
 
 // ****************************************************
 // STARTING LOOP OVER PROBE SIZE
@@ -113,29 +113,29 @@ printCitation(); // Replaces CITATION;
   for (double SMPROBE=0.0; SMPROBE<BIGPROBE; SMPROBE+=PROBESTEP) {
 	//COPY SMSHELL INTO CHANACC
 	  gridpt *solventACC;
-	  solventACC = (gridpt*) malloc (NUMBINS);
+	  solventACC = (gridpt*) std::malloc (NUMBINS);
 	  if (solventACC==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
 	  int smshellvol = copyGrid(smShell,solventACC);
 
 	//SUBTRACT PROBE_ACC FROM SHELL TO GET ACC CHANNELS
 	  gridpt *probeACC;
-	  probeACC = (gridpt*) malloc (NUMBINS);
+	  probeACC = (gridpt*) std::malloc (NUMBINS);
 	  if (probeACC==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
 	  zeroGrid(probeACC);
 	  fill_AccessGrid_fromFile(numatoms, SMPROBE, file, probeACC);
 	  subt_Grids(solventACC, probeACC);
-	  free (probeACC);
+	  std::free (probeACC);
 
 	//INIT NEW solventEXC GRID
 	  gridpt *solventEXC;
-	  solventEXC = (gridpt*) malloc (NUMBINS);
+	  solventEXC = (gridpt*) std::malloc (NUMBINS);
 	  if (solventEXC==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
 
 	//GROW EXCLUDED SURFACE FROM ACCESSIBLE
 	  //copyGrid(solventACC,solventEXC);
 	  zeroGrid(solventEXC);
 	  grow_ExcludeGrid(SMPROBE, solventACC, solventEXC);
-	  free (solventACC);
+	  std::free (solventACC);
 
 	//INTERSECT
 	  intersect_Grids(solventEXC, smShell); //modifies solventEXC
@@ -159,10 +159,10 @@ printCitation(); // Replaces CITATION;
 		writeMRCFile(solventEXC, mrcfile);
 	  }
 	*/
-	  free (solventEXC);
+	  std::free (solventEXC);
 
   }
-  free (smShell);
+  std::free (smShell);
 
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;

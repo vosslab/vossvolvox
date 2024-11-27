@@ -1,4 +1,4 @@
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
 #include "utils.h"                    // for endl, cerr, cout, assignLimits
 #include <cstdio>                   // for snprintf
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 //READ FILE INTO SASGRID
   gridpt *EXCgrid;
-  EXCgrid = (gridpt*) malloc (NUMBINS);
+  EXCgrid = (gridpt*) std::malloc (NUMBINS);
   if (EXCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
   zeroGrid(EXCgrid);
   int voxels;
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
   }
 
 //RELEASE TEMPGRID
-  free (EXCgrid);
+  std::free (EXCgrid);
 
   cout << PROBE << "\t" << GRID << "\t" << flush;
   printVolCout(voxels);

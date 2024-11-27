@@ -1,4 +1,4 @@
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
 #include <cstdio>                   // for snprintf
 #include "utils.h"                    // for get_Connected, endl, gridpt, cerr
@@ -88,24 +88,24 @@ printCitation(); // Replaces CITATION;
 
 //Compute Shell
   gridpt *shellACC=NULL;
-  shellACC = (gridpt*) malloc (NUMBINS);
+  shellACC = (gridpt*) std::malloc (NUMBINS);
   fill_AccessGrid_fromFile(numatoms,shell_rad,file,shellACC);
   fill_cavities(shellACC);
 
   gridpt *shellEXC=NULL;
-  shellEXC = (gridpt*) malloc (NUMBINS);
+  shellEXC = (gridpt*) std::malloc (NUMBINS);
   trun_ExcludeGrid(shell_rad,shellACC,shellEXC);
-  free (shellACC);
+  std::free (shellACC);
 
 //Trim Shell
   if(trim_prb > 0.0) {
     gridpt *trimEXC;
-    trimEXC = (gridpt*) malloc (NUMBINS);
+    trimEXC = (gridpt*) std::malloc (NUMBINS);
     copyGrid(shellEXC,trimEXC);
     trun_ExcludeGrid(trim_prb,shellEXC,trimEXC);  // TRIMMING PART
     zeroGrid(shellEXC);
     copyGrid(trimEXC,shellEXC);
-    free (trimEXC);
+    std::free (trimEXC);
   }
 
 //Get Shell Volume
@@ -114,25 +114,25 @@ printCitation(); // Replaces CITATION;
 
 //Get Access Volume for "probe"
   gridpt *access;
-  access = (gridpt*) malloc (NUMBINS);
+  access = (gridpt*) std::malloc (NUMBINS);
   fill_AccessGrid_fromFile(numatoms,tunnel_prb,file,access);
 
 //Get Channels for "probe"
   gridpt *chanACC;
-  chanACC = (gridpt*) malloc (NUMBINS);
+  chanACC = (gridpt*) std::malloc (NUMBINS);
   copyGrid(shellEXC,chanACC);
   subt_Grids(chanACC,access);
-  free (access);
+  std::free (access);
   intersect_Grids(chanACC,shellEXC); //modifies chanACC
   int chanACC_voxels = countGrid(chanACC);
   printVol(chanACC_voxels); cerr << endl;
 
 //Extract Tunnel
   gridpt *tunnACC;
-  tunnACC = (gridpt*) malloc (NUMBINS);
+  tunnACC = (gridpt*) std::malloc (NUMBINS);
   defineTunnel(tunnACC, chanACC);
   //writeMRCFile(chanACC, mrcfile);
-  free (chanACC);
+  std::free (chanACC);
   int tunnACC_voxels = countGrid(tunnACC);
   cerr << "ACCESSIBLE TUNNEL VOLUME: ";
   printVol(tunnACC_voxels); cerr << endl << endl;
@@ -140,21 +140,21 @@ printCitation(); // Replaces CITATION;
   float surfACC = 0;
   if (tunnACC_voxels*GRIDVOL > 2000000) {
     cerr << "ERROR: Accessible volume of tunnel is too large to be valid" << endl;
-    free (shellEXC);
+    std::free (shellEXC);
     //writeMRCFile(chanACC, mrcfile);
-    free (tunnACC);
+    std::free (tunnACC);
     return 0;
   }
 
 //Grow Tunnel
   gridpt *tunnEXC;
-  tunnEXC = (gridpt*) malloc (NUMBINS);
+  tunnEXC = (gridpt*) std::malloc (NUMBINS);
   grow_ExcludeGrid(tunnel_prb,tunnACC,tunnEXC);
-  free (tunnACC);
+  std::free (tunnACC);
 
 //Intersect Grown Tunnel with Shell
   intersect_Grids(tunnEXC,shellEXC); //modifies tunnEXC
-  free (shellEXC);
+  std::free (shellEXC);
 
 //Get EXC Props
   int tunnEXC_voxels = countGrid(tunnEXC);
@@ -164,7 +164,7 @@ printCitation(); // Replaces CITATION;
   //solvent volume at 1.4A probe 2465252*0.6^3 = 532,494 A^3
   if (tunnEXC_voxels*GRIDVOL > 1800000) {
     cerr << "ERROR: Excluded volume of tunnel is too large to be valid" << endl;
-    free (tunnEXC);
+    std::free (tunnEXC);
     return 0;
   }
   float surfEXC = surface_area(tunnEXC);
@@ -181,7 +181,7 @@ printCitation(); // Replaces CITATION;
     writeSmallMRCFile(tunnEXC, mrcfile);
   }
 
-  free (tunnEXC);
+  std::free (tunnEXC);
 
   printTun(trim_prb,surfEXC,tunnEXC_voxels,0,
 	surfACC,tunnACC_voxels,chanACC_voxels,file);

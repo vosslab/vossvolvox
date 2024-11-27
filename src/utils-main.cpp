@@ -2,8 +2,8 @@
 ** utils-main.cpp
 */
 #include <cstdio>     // for sscanf
-#include <cstdlib>    // for exit, malloc, free
-#include <cstring>    // for NULL, strcpy, strlen
+#include <cstdlib>    // for exit, std::malloc, std::free
+#include <cstring>    // for NULL, std::strcpy, strlen
 #include <cmath>      // for ceil, pow, sqrt
 #include <fstream>    // for basic_ifstream, char_traits
 #include <iostream>   // for cerr, cout
@@ -204,7 +204,7 @@ int countGrid (gridpt grid[]) {
 void zeroGrid (gridpt grid[]) {
   if (grid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    grid = (gridpt*) malloc (NUMBINS);
+    grid = (gridpt*) std::malloc (NUMBINS);
     if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
 
@@ -231,7 +231,7 @@ int copyGrid (const gridpt oldgrid[], gridpt newgrid[]) {
   int voxels=0;
   if (newgrid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    newgrid = (gridpt*) malloc (NUMBINS);
+    newgrid = (gridpt*) std::malloc (NUMBINS);
     if (newgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
 
@@ -257,7 +257,7 @@ int copyGrid (const gridpt oldgrid[], gridpt newgrid[]) {
 void inverseGrid (gridpt grid[]) {
   if (grid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    grid = (gridpt*) malloc (NUMBINS);
+    grid = (gridpt*) std::malloc (NUMBINS);
     if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
   if (DEBUG > 0)
@@ -291,7 +291,7 @@ int read_NumAtoms (char file[]) {
   float minmax[6];
   minmax[0] = 100;  minmax[1] = 100;  minmax[2] = 100;
   minmax[3] = -100;  minmax[4] = -100;  minmax[5] = -100;
-  strcpy(XYZRFILE,file);
+  std::strcpy(XYZRFILE,file);
 
   std::cerr << "Reading file for Min/Max: " << file << std::endl;
   infile.open(file);
@@ -349,14 +349,14 @@ int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
 
   if (grid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    grid = (gridpt*) malloc (NUMBINS);
+    grid = (gridpt*) std::malloc (NUMBINS);
     if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
   zeroGrid(grid);
 
   ifstream infile;
   char line[256];
-  if(!XYZRFILE[0]) { strcpy(XYZRFILE,file); }
+  if(!XYZRFILE[0]) { std::strcpy(XYZRFILE,file); }
 
   float count = 0;
   const float cat = float(numatoms)/60.0;
@@ -399,7 +399,7 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
 //READ FILE INTO ACCGRID
   gridpt *ACCgrid;
   std::cerr << "Allocating Grid..." << std::endl;
-  ACCgrid = (gridpt*) malloc (NUMBINS);
+  ACCgrid = (gridpt*) std::malloc (NUMBINS);
   if (ACCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   fill_AccessGrid_fromFile(numatoms,probe,file,ACCgrid);
 
@@ -408,7 +408,7 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
   trun_ExcludeGrid_fast(probe, ACCgrid, EXCgrid);
 
 //RELEASE ACCGRID
-  free (ACCgrid);
+  std::free (ACCgrid);
 
 //OUTPUT INFO
   int voxels = countGrid(EXCgrid);
@@ -473,7 +473,7 @@ void trun_ExcludeGrid(const float probe, const gridpt ACCgrid[], gridpt EXCgrid[
   // Allocate memory for `EXCgrid` if it is NULL.
   if (EXCgrid == NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    EXCgrid = (gridpt*) malloc(NUMBINS);
+    EXCgrid = (gridpt*) std::malloc(NUMBINS);
     if (EXCgrid == NULL) {
       std::cerr << "GRID IS NULL" << std::endl;
       exit(1);
@@ -549,7 +549,7 @@ void trun_ExcludeGrid_fast(const float probe, const gridpt ACCgrid[], gridpt EXC
   // Allocate memory for EXCgrid if NULL
   if (EXCgrid == NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    EXCgrid = (gridpt *)malloc(NUMBINS);
+    EXCgrid = (gridpt *)std::malloc(NUMBINS);
     if (EXCgrid == NULL) {
       std::cerr << "GRID IS NULL" << std::endl;
       exit(1);
@@ -608,7 +608,7 @@ void grow_ExcludeGrid (const float probe, const gridpt ACCgrid[], gridpt EXCgrid
 
   if (EXCgrid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    EXCgrid = (gridpt*) malloc (NUMBINS);
+    EXCgrid = (gridpt*) std::malloc (NUMBINS);
     if (EXCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
   copyGrid(ACCgrid,EXCgrid);
@@ -652,7 +652,7 @@ void grow_ExcludeGrid (const float probe, const gridpt ACCgrid[], gridpt EXCgrid
 float *get_Point (gridpt grid[]) {
   int gp;
   int i,j,k;
-  float *xyz = (float*) malloc ( sizeof(float)*3 );
+  float *xyz = (float*) std::malloc ( sizeof(float)*3 );
   for(k=0; k<DZ; k++) {
     for(j=0; j<DY; j++) {
       for(i=0; i<DX; i++) {
@@ -697,7 +697,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
 
   if (connect==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    connect = (gridpt*) malloc (NUMBINS);
+    connect = (gridpt*) std::malloc (NUMBINS);
     if (connect==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
     zeroGrid(connect);
   }
@@ -795,7 +795,7 @@ int get_ConnectedRange (gridpt grid[], gridpt connect[], const float x, const fl
   kp = int((z-ZMIN)/GRID+0.5);
   if (connect==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    connect = (gridpt*) malloc (NUMBINS);
+    connect = (gridpt*) std::malloc (NUMBINS);
     if (connect==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
     zeroGrid(connect);
   }
@@ -884,7 +884,7 @@ int get_Connected_Point (gridpt grid[], gridpt connect[], const int gp) {
     std::cerr << "Initialize Get Connected Point..." << std::endl;
   if (connect==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
-    connect = (gridpt*) malloc (NUMBINS);
+    connect = (gridpt*) std::malloc (NUMBINS);
     if (connect==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
     zeroGrid(connect);
   }
@@ -1892,7 +1892,7 @@ int classifyEdgePoint (const int pt, gridpt grid[]) {
 int fill_cavities(gridpt grid[]) {
 
   gridpt *cavACC=NULL;
-  cavACC = (gridpt*) malloc (NUMBINS);
+  cavACC = (gridpt*) std::malloc (NUMBINS);
   bounding_box(grid,cavACC);
 
 //Create inverse access map
@@ -1914,7 +1914,7 @@ int fill_cavities(gridpt grid[]) {
 
 //Pull channels out of inverse access map
   gridpt *chanACC=NULL;
-  chanACC = (gridpt*) malloc (NUMBINS);
+  chanACC = (gridpt*) std::malloc (NUMBINS);
   zeroGrid(chanACC);
   get_Connected_Point(cavACC,chanACC,firstpt); //modifies chanACC
   get_Connected_Point(cavACC,chanACC,lastpt); //modifies chanACC
@@ -1922,7 +1922,7 @@ int fill_cavities(gridpt grid[]) {
 
 //Subtract channels from access map leaving cavities
   subt_Grids(cavACC,chanACC); //modifies cavACC
-  free (chanACC);
+  std::free (chanACC);
   int cavACC_voxels = countGrid(cavACC);
 
 
@@ -1933,7 +1933,7 @@ int fill_cavities(gridpt grid[]) {
     if(cavACC[pt]) { grid[pt]=1; }
   }
   int grid_after = countGrid(grid);
-  free (cavACC);
+  std::free (cavACC);
 
   std::cerr << std::endl << "CAVITY VOLUME: ";
   printVol(cavACC_voxels);

@@ -1,4 +1,4 @@
-#include <stdlib.h>                   // for free, malloc, NULL
+#include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
 #include <cstdio>                   // for snprintf
 #include "utils.h"                    // for endl, gridpt, cerr, countGrid
@@ -85,12 +85,12 @@ printCitation(); // Replaces CITATION;
 // ****************************************************
 
   gridpt *shellACC=NULL;
-  shellACC = (gridpt*) malloc (NUMBINS);
+  shellACC = (gridpt*) std::malloc (NUMBINS);
   fill_AccessGrid_fromFile(numatoms,shell_rad,file,shellACC);
   fill_cavities(shellACC);
 
   gridpt *shellEXC=NULL;
-  shellEXC = (gridpt*) malloc (NUMBINS);
+  shellEXC = (gridpt*) std::malloc (NUMBINS);
   trun_ExcludeGrid(shell_rad,shellACC,shellEXC);
 
 // ****************************************************
@@ -103,8 +103,8 @@ printCitation(); // Replaces CITATION;
 // CLEAN UP AND QUIT
 // ****************************************************
 
-  free (shellACC);
-  free (shellEXC);
+  std::free (shellACC);
+  std::free (shellEXC);
 
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;
@@ -120,15 +120,15 @@ Accessible Process
 
 //Create access map
   gridpt *access=NULL;
-  access = (gridpt*) malloc (NUMBINS);
+  access = (gridpt*) std::malloc (NUMBINS);
   fill_AccessGrid_fromFile(natoms,probe,file,access);
 
 //Create inverse access map
   gridpt *cavACC=NULL;
-  cavACC = (gridpt*) malloc (NUMBINS);
+  cavACC = (gridpt*) std::malloc (NUMBINS);
   copyGrid(shellACC,cavACC);
   subt_Grids(cavACC,access); //modifies cavACC
-  free (access);
+  std::free (access);
   int achanACC_voxels = countGrid(cavACC);
 
 // EXTRA STEPS TO REMOVE SURFACE CAVITIES???
@@ -150,7 +150,7 @@ Accessible Process
 
 //Pull channels out of inverse access map
   gridpt *chanACC=NULL;
-  chanACC = (gridpt*) malloc (NUMBINS);
+  chanACC = (gridpt*) std::malloc (NUMBINS);
   zeroGrid(chanACC);
   cerr << "Getting Connected Next" << endl;
   get_Connected_Point(cavACC,chanACC,firstpt); //modifies chanACC
@@ -158,21 +158,21 @@ Accessible Process
   int chanACC_voxels = countGrid(chanACC);
 //Subtract channels from access map leaving cavities
   subt_Grids(cavACC,chanACC); //modifies cavACC
-  free (chanACC);
+  std::free (chanACC);
   int cavACC_voxels = countGrid(cavACC);
 
 //Grow Access Cavs
   gridpt *ecavACC=NULL;
-  ecavACC = (gridpt*) malloc (NUMBINS);
+  ecavACC = (gridpt*) std::malloc (NUMBINS);
   grow_ExcludeGrid(probe,cavACC,ecavACC);
-  free (cavACC);
+  std::free (cavACC);
   
 //Intersect Grown Access Cavities with Shell
   int scavACC_voxels = countGrid(ecavACC);
   int ecavACC_voxels = intersect_Grids(ecavACC,shellEXC); //modifies ecavACC
 
   //float surfEXC = surface_area(ecavACC);
-  free (ecavACC);
+  std::free (ecavACC);
 
 /*******************************************************
 Excluded Process
@@ -180,21 +180,21 @@ Excluded Process
 
 //Create access map
   gridpt *access2=NULL;
-  access2 = (gridpt*) malloc (NUMBINS);
+  access2 = (gridpt*) std::malloc (NUMBINS);
   fill_AccessGrid_fromFile(natoms,probe,file,access2);
 
 //Create exclude map
   gridpt *exclude=NULL;
-  exclude = (gridpt*) malloc (NUMBINS);
+  exclude = (gridpt*) std::malloc (NUMBINS);
   trun_ExcludeGrid(probe,access2,exclude);
-  free (access2);
+  std::free (access2);
 
 //Create inverse exclude map
   gridpt *cavEXC=NULL;
-  cavEXC = (gridpt*) malloc (NUMBINS);
+  cavEXC = (gridpt*) std::malloc (NUMBINS);
   copyGrid(shellEXC,cavEXC);
   subt_Grids(cavEXC,exclude); //modifies cavEXC
-  free (exclude);
+  std::free (exclude);
   int echanEXC_voxels = countGrid(cavEXC);
 
 //Get first point
@@ -212,7 +212,7 @@ Excluded Process
 
 //Pull channels out of inverse excluded map
   gridpt *chanEXC=NULL;
-  chanEXC = (gridpt*) malloc (NUMBINS);
+  chanEXC = (gridpt*) std::malloc (NUMBINS);
   zeroGrid(chanEXC);
   cerr << "Getting Connected Next" << endl;
   get_Connected_Point(cavEXC,chanEXC,firstpt); //modifies chanEXC
@@ -220,7 +220,7 @@ Excluded Process
   int chanEXC_voxels = countGrid(chanEXC);
 //Subtract channels from exclude map leaving cavities
   subt_Grids(cavEXC,chanEXC); //modifies cavEXC
-  free (chanEXC);
+  std::free (chanEXC);
   int cavEXC_voxels = countGrid(cavEXC);
 
 //Write out exclude cavities
@@ -234,7 +234,7 @@ Excluded Process
     writeMRCFile(cavEXC, mrcfile);
   }
   //float surfEXC = surface_area(cavEXC);
-  free (cavEXC);
+  std::free (cavEXC);
 
   cerr << endl;
   cerr << "achanACC_voxels = " << achanACC_voxels << endl
