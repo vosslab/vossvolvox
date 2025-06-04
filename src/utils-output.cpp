@@ -242,10 +242,10 @@ void write_BinnedEZD(const gridpt grid[], const char outfile[], int binFactor, b
             << " for file: " << outfile << std::endl;
 
   // Arrays for grid start, end, min/max physical dimensions, origin, and extent
-  int start[3] = {NUMBINS, NUMBINS, NUMBINS};
-  int end[3] = {0, 0, 0};
+  unsigned int start[3] = {NUMBINS, NUMBINS, NUMBINS};
+  unsigned int end[3] = {0, 0, 0};
   float min[3], max[3];
-  int origin[3], extent[3];
+  unsigned int origin[3], extent[3];
 
   // Identify the boundaries of the occupied grid
   for (unsigned int ind = 0; ind < NUMBINS; ind++) {
