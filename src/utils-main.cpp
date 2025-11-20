@@ -122,8 +122,10 @@ float OLDgetIdealGrid () {
 
 /*********************************************/
 // A helper function for clarity and reuse
+// NOTE: The +1 preserves the historical padding that prevented boundary points
+// from mapping just outside the allocated grid (fixes ijk2pt out-of-bounds).
 unsigned int calculateDimension(float min, float max, float grid) {
-  return static_cast<unsigned int>(std::ceil((max - min) / grid / 4.0)) * 4;
+  return static_cast<unsigned int>(std::ceil((max - min) / grid / 4.0 + 1.0)) * 4;
 }
 
 void assignLimits() {
