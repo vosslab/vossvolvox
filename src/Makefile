@@ -39,7 +39,7 @@ OBJS = utils-main.o utils-output.o utils-mrc.o
 $(OBJS): $(BIN_DIR)
 
 # The default target, which builds all programs
-all: $(BIN_DIR) cav chan allchan allexc fsv sol tun vdw vol volnocav twovol frac cust
+all: $(BIN_DIR) cav chan allchan allexc fsv sol tun vdw vol volnocav twovol frac cust pdbxyzr
 
 # Clean target to remove all compiled binaries and object files
 .PHONY: clean
@@ -130,3 +130,6 @@ cust: $(OBJS) customvolume.cpp
 	$(CC) $(FLAGS) -o $(BIN_DIR)/Custom.exe $(OBJS) customvolume.cpp
 	@chmod +x $(BIN_DIR)/Custom.exe
 
+pdbxyzr: $(BIN_DIR) pdb_to_xyzr.cpp atmtypenumbers_data.h
+	$(CC) $(FLAGS) -std=c++17 -o $(BIN_DIR)/pdb_to_xyzr.exe pdb_to_xyzr.cpp
+	@chmod +x $(BIN_DIR)/pdb_to_xyzr.exe

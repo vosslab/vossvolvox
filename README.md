@@ -66,6 +66,12 @@ To install the Voss Volume Voxelator package, follow these steps:
      ```
    - This will display the help information for the Volume.exe program.
 
+### Optional Gemmi Support
+
+- The native `pdb_to_xyzr.exe` uses the [Gemmi](https://gemmi.readthedocs.io/) reader when the headers are available, which enables direct parsing of PDB, mmCIF, PDBML, and their `.gz` variants without intermediate scripts.
+- Install Gemmi via your preferred package manager (e.g., `pip install gemmi` or `brew install gemmi`) before running `make`. The build automatically detects the headers via `__has_include`.
+- **Security updates:** because Gemmi is header-only, periodically update the installed package (`pip install --upgrade gemmi` or `brew upgrade gemmi`) and rebuild `pdb_to_xyzr.exe` to pick up upstream fixes.
+
 For more details, see the `QUICKSTART` section below.
 
 ## Quickstart
@@ -84,12 +90,11 @@ To get started with the Voss Volume Voxelator tools, follow these steps:
    ```
 
 3. **Convert PDB to XYZR Format**
-   Ensure the 'atmtypenumbers' file is in the current directory when running `pdb_to_xyzr`:
+   Use the native converter that now embeds the Connolly radii table:
    ```
-   cd xyzr
-   pdb_to_xyzr ../1a01-noions.pdb > ../1a01-noions.xyzr
-   cd ..
+   bin/pdb_to_xyzr.exe 1a01-noions.pdb > 1a01-noions.xyzr
    ```
+   - The legacy shell (`xyzr/pdb_to_xyzr.sh`) and Python (`xyzr/pdb_to_xyzr.py`) scripts are still available if you need to compare outputs.
 
 4. **Compile the Program**
    Navigate to the source directory and build the `vol` program:
