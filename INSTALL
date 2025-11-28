@@ -29,7 +29,7 @@ Installation Steps
 
 5. Run the Programs
    - To test the programs, you can run any of the compiled executables. For example:
-     ./bin/Volume.exe -h
-     This will display the help information for the Volume.exe program.
+     ./bin/pdb_to_xyzr.exe --help   # new converter with filtering options
+     ./bin/Volume.exe -h            # main volume tool
 
 See the QUICKSTART file for example usage.

@@ -1,1 +1,5 @@
+11-28-2025	2.0.0-beta2: native pdb_to_xyzr converters with filtering + new tests
+11-14-2024	2.0.0-beta1: codebase modernization (refactors and prep for new converters)
+06-02-2009	Added MRC export support
+10-24-2006	Minimal updates and maintenance release
 06-20-2006	Initial Public Release

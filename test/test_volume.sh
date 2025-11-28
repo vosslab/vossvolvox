@@ -9,10 +9,9 @@ PDB_TO_XYZR_BIN="${PDB_TO_XYZR_BIN:-../bin/pdb_to_xyzr.exe}"
 # Define constants
 PDB_ID="2LYZ"
 PDB_FILE="${PDB_ID}.pdb"
-PDB_NOIONS="${PDB_ID}-noions.pdb"
-XYZR_FILE="${PDB_ID}-noions.xyzr"
+XYZR_FILE="${PDB_ID}-filtered.xyzr"
 OUTPUT_PDB="${PDB_ID}-volume.pdb"
-EXPECTED_MD5="06d3c78774706cb6fe4b2ded04bc2882"
+EXPECTED_MD5="ee27f829edc71a40c046d9d0a4203483"
 
 # Step A/B: Download or reuse the PDB file
 if [ -s "${PDB_FILE}" ]; then
@@ -32,17 +31,14 @@ fi
 PDB_LINES=$(wc -l < "${PDB_FILE}")
 echo "Downloaded PDB file has ${PDB_LINES} lines."
 
-# Step C: Filter the ATOM lines to remove ions and save to a new file
-echo "Filtering ATOM lines from ${PDB_FILE}..."
-grep -E "^ATOM  " "${PDB_FILE}" > "${PDB_NOIONS}"
-
-# Count lines in the filtered PDB file
-NOIONS_LINES=$(wc -l < "${PDB_NOIONS}")
-echo "Filtered PDB file (no ions) has ${NOIONS_LINES} lines."
-
-# Step D: Convert the filtered PDB to XYZR format
-echo "Converting ${PDB_NOIONS} to XYZR format using ${PDB_TO_XYZR_BIN}..."
-"${PDB_TO_XYZR_BIN}" "${PDB_NOIONS}" > "${XYZR_FILE}"
+# Step C: Convert to XYZR format with precise filters
+FILTER_ARGS=(--exclude-ions --exclude-water)
+if [ -n "${PDB_TO_XYZR_FILTERS:-}" ]; then
+  # shellcheck disable=SC2206
+  FILTER_ARGS=(${PDB_TO_XYZR_FILTERS})
+fi
+echo "Converting ${PDB_FILE} to XYZR format using ${PDB_TO_XYZR_BIN} ${FILTER_ARGS[*]}..."
+"${PDB_TO_XYZR_BIN}" "${FILTER_ARGS[@]}" "${PDB_FILE}" > "${XYZR_FILE}"
 
 # Step E: Compile the Volume program (if needed)
 if [ ! -x ../bin/Volume.exe ]; then

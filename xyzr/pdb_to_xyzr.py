@@ -13,7 +13,7 @@ import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Pattern, TextIO
+from typing import Dict, Iterable, Iterator, List, Optional, Pattern, Set, TextIO, Tuple
 
 
 @dataclass
@@ -32,10 +32,288 @@ class PDBAtom:
     atom: str
     resnum: str
     line_no: int
+    record: str
+    chain: str
+    element: str
 
 
 SUPPORTED_FORMATS = ("pdb", "mmcif", "pdbxml")
 
+WATER_NAMES: Set[str] = {
+    "HOH",
+    "H2O",
+    "DOD",
+    "WAT",
+    "SOL",
+    "TIP",
+    "TIP3",
+    "TIP3P",
+    "TIP4",
+    "TIP4P",
+    "TIP5P",
+    "SPC",
+    "OH2",
+}
+
+AMINO_ACID_RESIDUES: Set[str] = {
+    "ALA",
+    "ARG",
+    "ASN",
+    "ASP",
+    "ASX",
+    "CYS",
+    "GLN",
+    "GLU",
+    "GLX",
+    "GLY",
+    "HIS",
+    "HID",
+    "HIE",
+    "HIP",
+    "HISN",
+    "HISL",
+    "ILE",
+    "LEU",
+    "LYS",
+    "MET",
+    "MSE",
+    "PHE",
+    "PRO",
+    "SER",
+    "THR",
+    "TRP",
+    "TYR",
+    "VAL",
+    "SEC",
+    "PYL",
+    "ASH",
+    "GLH",
+}
+
+NUCLEIC_ACID_RESIDUES: Set[str] = {
+    "A",
+    "C",
+    "G",
+    "U",
+    "I",
+    "DA",
+    "DG",
+    "DC",
+    "DT",
+    "DI",
+    "ADE",
+    "GUA",
+    "CYT",
+    "URI",
+    "THY",
+    "PSU",
+    "OMC",
+    "OMU",
+    "OMG",
+    "5IU",
+    "H2U",
+    "M2G",
+    "7MG",
+    "1MA",
+    "1MG",
+    "2MG",
+}
+
+ION_RESIDUES: Set[str] = {
+    "NA",
+    "K",
+    "MG",
+    "MN",
+    "FE",
+    "ZN",
+    "CU",
+    "CA",
+    "CL",
+    "BR",
+    "I",
+    "LI",
+    "CO",
+    "NI",
+    "HG",
+    "CD",
+    "SR",
+    "CS",
+    "BA",
+    "YB",
+    "MO",
+    "RU",
+    "OS",
+    "IR",
+    "AU",
+    "AG",
+    "PT",
+    "TI",
+    "AL",
+    "GA",
+    "V",
+    "W",
+    "ZN2",
+    "FE2",
+}
+
+ION_ELEMENTS: Set[str] = {
+    "NA",
+    "K",
+    "MG",
+    "MN",
+    "FE",
+    "ZN",
+    "CU",
+    "CA",
+    "CL",
+    "BR",
+    "I",
+    "LI",
+    "CO",
+    "NI",
+    "HG",
+    "CD",
+    "SR",
+    "CS",
+    "BA",
+    "YB",
+    "MO",
+    "RU",
+    "OS",
+    "IR",
+    "AU",
+    "AG",
+    "PT",
+    "TI",
+    "AL",
+    "GA",
+    "V",
+    "W",
+    "ZN",
+    "FE",
+    "MN",
+    "CU",
+}
+
+
+@dataclass
+class ResidueInfo:
+    name: str
+    chain: str
+    resnum: str
+    atom_count: int = 0
+    hetatm_only: bool = True
+    polymer_flag: bool = False
+    elements: Set[str] = None
+    is_water: bool = False
+    is_nucleic: bool = False
+    is_amino: bool = False
+    is_ion: bool = False
+    is_ligand: bool = False
+
+    def __post_init__(self) -> None:
+        if self.elements is None:
+            self.elements = set()
+
+
+@dataclass
+class Filters:
+    exclude_ions: bool = False
+    exclude_ligands: bool = False
+    exclude_hetatm: bool = False
+    exclude_water: bool = False
+    exclude_nucleic_acids: bool = False
+    exclude_amino_acids: bool = False
+
+
+def _normalize_name(name: str) -> str:
+    return name.strip().upper()
+
+
+def _looks_like_nucleic(name: str) -> bool:
+    if len(name) == 1 and name in {"A", "C", "G", "U", "I", "T"}:
+        return True
+    if len(name) == 2 and name.startswith("D") and name[1] in {"A", "C", "G", "U", "T"}:
+        return True
+    return False
+
+
+def _residue_key(atom: PDBAtom) -> Tuple[str, str, str]:
+    return (_normalize_name(atom.chain), atom.resnum.strip(), _normalize_name(atom.residue))
+
+
+def _is_water(name: str) -> bool:
+    upper = _normalize_name(name)
+    return upper in WATER_NAMES or upper.startswith("HOH") or upper.startswith("TIP")
+
+
+def _is_amino(name: str) -> bool:
+    upper = _normalize_name(name)
+    return upper in AMINO_ACID_RESIDUES
+
+
+def _is_nucleic(name: str) -> bool:
+    upper = _normalize_name(name)
+    return upper in NUCLEIC_ACID_RESIDUES or _looks_like_nucleic(upper)
+
+
+def _is_ion(info: ResidueInfo) -> bool:
+    upper = _normalize_name(info.name)
+    if upper in ION_RESIDUES:
+        return True
+    if info.atom_count <= 1:
+        for element in info.elements:
+            elem = _normalize_name(element)
+            if elem in ION_ELEMENTS:
+                return True
+        if upper in ION_ELEMENTS:
+            return True
+    return False
+
+
+def classify_residues(atoms: List[PDBAtom]) -> Dict[Tuple[str, str, str], ResidueInfo]:
+    residues: Dict[Tuple[str, str, str], ResidueInfo] = {}
+    for atom in atoms:
+        key = _residue_key(atom)
+        info = residues.get(key)
+        if info is None:
+            info = ResidueInfo(name=atom.residue, chain=atom.chain, resnum=atom.resnum)
+            residues[key] = info
+        info.atom_count += 1
+        if atom.element:
+            info.elements.add(_normalize_name(atom.element))
+        if atom.record.upper() == "ATOM":
+            info.polymer_flag = True
+        if atom.record.upper() != "HETATM":
+            info.hetatm_only = False
+    for info in residues.values():
+        name = _normalize_name(info.name)
+        if name in AMINO_ACID_RESIDUES or name in NUCLEIC_ACID_RESIDUES:
+            info.polymer_flag = True
+        info.is_water = _is_water(name)
+        info.is_amino = _is_amino(name)
+        info.is_nucleic = _is_nucleic(name)
+        info.is_ion = _is_ion(info)
+        info.is_ligand = not info.polymer_flag and not info.is_water and not info.is_ion
+    return residues
+
+
+def should_filter(atom: PDBAtom, info: Optional[ResidueInfo], filters: Filters) -> bool:
+    if info is None:
+        return False
+    if filters.exclude_water and info.is_water:
+        return True
+    if filters.exclude_ions and info.is_ion:
+        return True
+    if filters.exclude_ligands and info.is_ligand:
+        return True
+    if filters.exclude_hetatm and info.hetatm_only:
+        return True
+    if filters.exclude_nucleic_acids and info.is_nucleic:
+        return True
+    if filters.exclude_amino_acids and info.is_amino:
+        return True
+    return False
 
 def format_coordinate(value: str | float) -> str:
     try:
@@ -198,6 +476,36 @@ def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
         help="force the input format (autodetected from extension by default)",
     )
     parser.add_argument(
+        "--exclude-ions",
+        action="store_true",
+        help="exclude residues classified as ions",
+    )
+    parser.add_argument(
+        "--exclude-ligands",
+        action="store_true",
+        help="exclude non-polymer ligands (excludes ions and water automatically)",
+    )
+    parser.add_argument(
+        "--exclude-hetatm",
+        action="store_true",
+        help="exclude residues composed solely of HETATM records",
+    )
+    parser.add_argument(
+        "--exclude-water",
+        action="store_true",
+        help="exclude water molecules / solvent",
+    )
+    parser.add_argument(
+        "--exclude-nucleic-acids",
+        action="store_true",
+        help="exclude nucleic-acid residues",
+    )
+    parser.add_argument(
+        "--exclude-amino-acids",
+        action="store_true",
+        help="exclude amino-acid residues",
+    )
+    parser.add_argument(
         "pdb",
         nargs="?",
         default="-",
@@ -294,6 +602,10 @@ def iter_pdb_atoms(handle: TextIO) -> Iterator[PDBAtom]:
         residue = line[17:20].strip()
         atom_name = line[12:16]
         resnum = line[22:26].strip()
+        chain = line[21:22].strip()
+        element = line[76:78].strip() if len(line) >= 78 else ""
+        if not element:
+            element = re.sub(r"[^A-Za-z]", "", atom_name).upper()[:2]
 
         yield PDBAtom(
             x=x_raw,
@@ -303,6 +615,9 @@ def iter_pdb_atoms(handle: TextIO) -> Iterator[PDBAtom]:
             atom=normalize_atom_name(atom_name),
             resnum=resnum,
             line_no=line_no,
+            record=record,
+            chain=chain,
+            element=element.upper(),
         )
 
 
@@ -440,6 +755,14 @@ def iter_mmcif_atoms(text: str, source_label: str) -> Iterator[PDBAtom]:
             insertion = _mmcif_value(values, tag_index, "_atom_site.pdbx_pdb_ins_code")
             if insertion and insertion not in {".", "?"}:
                 resnum = f"{resnum}{insertion}"
+            chain = _mmcif_value(
+                values,
+                tag_index,
+                "_atom_site.auth_asym_id",
+                "_atom_site.label_asym_id",
+            )
+            record_type = _mmcif_value(values, tag_index, "_atom_site.group_pdb") or "ATOM"
+            element = _mmcif_value(values, tag_index, "_atom_site.type_symbol")
 
             yield PDBAtom(
                 x=x,
@@ -449,6 +772,9 @@ def iter_mmcif_atoms(text: str, source_label: str) -> Iterator[PDBAtom]:
                 atom=normalize_atom_name(atom_label),
                 resnum=resnum,
                 line_no=row_start + 1,
+                record=record_type.upper(),
+                chain=chain,
+                element=(element or "").upper(),
             )
         # continue scanning rest of file for additional loops
 
@@ -491,6 +817,9 @@ def iter_pdbxml_atoms(text: str, source_label: str) -> Iterator[PDBAtom]:
         insertion = data.get("pdbx_pdb_ins_code")
         if insertion and insertion not in {".", "?"}:
             resnum = f"{resnum}{insertion}"
+        chain = data.get("auth_asym_id") or data.get("label_asym_id") or ""
+        record_type = data.get("group_pdb") or "ATOM"
+        element = data.get("type_symbol") or ""
 
         line_no += 1
         yield PDBAtom(
@@ -501,6 +830,9 @@ def iter_pdbxml_atoms(text: str, source_label: str) -> Iterator[PDBAtom]:
             atom=normalize_atom_name(atom_label),
             resnum=resnum,
             line_no=line_no,
+            record=record_type.upper(),
+            chain=chain,
+            element=element.upper(),
         )
 
 
@@ -510,19 +842,28 @@ def process_structure(
     source_label: str,
     use_united: bool,
     structure_format: str,
+    filters: Filters,
 ) -> None:
     if structure_format == "pdb":
-        iterator = iter_pdb_atoms(handle)
+        atoms = list(iter_pdb_atoms(handle))
     else:
         text = handle.read()
         if structure_format == "mmcif":
-            iterator = iter_mmcif_atoms(text, source_label)
+            atoms = list(iter_mmcif_atoms(text, source_label))
         elif structure_format == "pdbxml":
-            iterator = iter_pdbxml_atoms(text, source_label)
+            atoms = list(iter_pdbxml_atoms(text, source_label))
         else:
             raise ValueError(f"Unsupported format {structure_format!r}")
 
-    for atom in iterator:
+    if not atoms:
+        return
+
+    residue_info = classify_residues(atoms)
+
+    for atom in atoms:
+        info = residue_info.get(_residue_key(atom))
+        if should_filter(atom, info, filters):
+            continue
         atmnum, radius = library.radius_for(atom.residue, atom.atom, use_united)
         if atmnum is None:
             print(
@@ -567,8 +908,16 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     use_united = not args.hydrogens
     label = "<stdin>" if args.pdb == "-" else args.pdb
+    filters = Filters(
+        exclude_ions=args.exclude_ions,
+        exclude_ligands=args.exclude_ligands,
+        exclude_hetatm=args.exclude_hetatm,
+        exclude_water=args.exclude_water,
+        exclude_nucleic_acids=args.exclude_nucleic_acids,
+        exclude_amino_acids=args.exclude_amino_acids,
+    )
     try:
-        process_structure(library, handle, label, use_united, structure_format)
+        process_structure(library, handle, label, use_united, structure_format, filters)
     except ValueError as exc:
         print(f"pdb_to_xyzr: {exc}", file=sys.stderr)
         return 2

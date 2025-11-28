@@ -42,6 +42,9 @@
 *.idb
 *.pdb
 
+# Generated comparison artifacts
+test/pdb_to_xyzr_results/
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd

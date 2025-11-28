@@ -10,6 +10,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -191,9 +192,208 @@ class AtomTypeLibrary {
     std::unordered_map<std::string, RadiusEntry> radii_;
 };
 
+struct AtomRecord {
+    std::string x;
+    std::string y;
+    std::string z;
+    std::string residue;
+    std::string atom;
+    std::string resnum;
+    std::string chain;
+    std::string element;
+    std::string record;
+};
+
+struct ResidueInfo {
+    std::string name;
+    std::string chain;
+    std::string resnum;
+    int atom_count = 0;
+    bool polymer_flag = false;
+    bool hetatm_only = true;
+    std::unordered_set<std::string> elements;
+    bool is_water = false;
+    bool is_nucleic = false;
+    bool is_amino = false;
+    bool is_ion = false;
+    bool is_ligand = false;
+};
+
+struct Filters {
+    bool exclude_ions = false;
+    bool exclude_ligands = false;
+    bool exclude_hetatm = false;
+    bool exclude_water = false;
+    bool exclude_nucleic_acids = false;
+    bool exclude_amino_acids = false;
+};
+
+const std::unordered_set<std::string> kWaterResidues = {
+    "HOH", "H2O", "DOD", "WAT", "SOL", "TIP", "TIP3", "TIP3P", "TIP4", "TIP4P", "TIP5P", "SPC", "OH2"};
+const std::unordered_set<std::string> kAminoResidues = {
+    "ALA", "ARG", "ASN", "ASP", "ASX", "CYS", "GLN", "GLU", "GLX", "GLY", "HIS", "HID", "HIE", "HIP",
+    "HISN", "HISL", "ILE", "LEU", "LYS", "MET", "MSE", "PHE", "PRO", "SER", "THR", "TRP", "TYR",
+    "VAL", "SEC", "PYL", "ASH", "GLH"};
+const std::unordered_set<std::string> kNucleicResidues = {
+    "A",   "C",   "G",   "U",   "I",   "T",   "DA",  "DG",  "DC",  "DT",  "DI",  "ADE", "GUA",
+    "CYT", "URI", "THY", "PSU", "OMC", "OMU", "OMG", "5IU", "H2U", "M2G", "7MG", "1MA", "1MG", "2MG"};
+const std::unordered_set<std::string> kIonResidues = {
+    "NA",  "K",   "MG",  "MN",  "FE",  "ZN",  "CU",  "CA",  "CL",  "BR",  "I",   "LI",  "CO",
+    "NI",  "HG",  "CD",  "SR",  "CS",  "BA",  "YB",  "MO",  "RU",  "OS",  "IR",  "AU",  "AG",
+    "PT",  "TI",  "AL",  "GA",  "V",   "W",   "ZN2", "FE2"};
+const std::unordered_set<std::string> kIonElements = {
+    "NA", "K",  "MG", "MN", "FE", "ZN", "CU", "CA", "CL", "BR", "I",  "LI", "CO", "NI",
+    "HG", "CD", "SR", "CS", "BA", "YB", "MO", "RU", "OS", "IR", "AU", "AG", "PT", "TI",
+    "AL", "GA", "V",  "W"};
+
+std::string to_upper(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(), [](char c) {
+        return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    });
+    return value;
+}
+
+bool looks_like_nucleic(const std::string& name) {
+    if (name.size() == 1 && std::string("ACGUIT").find(name[0]) != std::string::npos) {
+        return true;
+    }
+    if (name.size() == 2 && name[0] == 'D' && std::string("ACGUIT").find(name[1]) != std::string::npos) {
+        return true;
+    }
+    return false;
+}
+
+std::string make_residue_key(const AtomRecord& atom) {
+    std::ostringstream oss;
+    oss << to_upper(atom.chain) << '|' << atom.resnum << '|' << to_upper(atom.residue);
+    return oss.str();
+}
+
+bool is_water(const std::string& name) {
+    const std::string upper = to_upper(name);
+    if (kWaterResidues.count(upper) > 0) {
+        return true;
+    }
+    if (upper.rfind("HOH", 0) == 0 || upper.rfind("TIP", 0) == 0) {
+        return true;
+    }
+    return false;
+}
+
+bool is_amino(const std::string& name) {
+    return kAminoResidues.count(to_upper(name)) > 0;
+}
+
+bool is_nucleic(const std::string& name) {
+    const std::string upper = to_upper(name);
+    return kNucleicResidues.count(upper) > 0 || looks_like_nucleic(upper);
+}
+
+bool is_ion(const ResidueInfo& info) {
+    const std::string upper = to_upper(info.name);
+    if (kIonResidues.count(upper) > 0) {
+        return true;
+    }
+    if (info.atom_count <= 1) {
+        for (const auto& element : info.elements) {
+            if (kIonElements.count(to_upper(element)) > 0) {
+                return true;
+            }
+        }
+        if (kIonElements.count(upper) > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::unordered_map<std::string, ResidueInfo> classify_residues(const std::vector<AtomRecord>& atoms) {
+    std::unordered_map<std::string, ResidueInfo> residues;
+    for (const auto& atom : atoms) {
+        const std::string key = make_residue_key(atom);
+        auto& info = residues[key];
+        if (info.atom_count == 0) {
+            info.name = atom.residue;
+            info.chain = atom.chain;
+            info.resnum = atom.resnum;
+        }
+        ++info.atom_count;
+        if (!atom.element.empty()) {
+            info.elements.insert(to_upper(atom.element));
+        }
+        if (to_upper(atom.record) == "ATOM") {
+            info.polymer_flag = true;
+        }
+        if (to_upper(atom.record) != "HETATM") {
+            info.hetatm_only = false;
+        }
+    }
+    for (auto& entry : residues) {
+        auto& info = entry.second;
+        if (is_amino(info.name) || is_nucleic(info.name)) {
+            info.polymer_flag = true;
+        }
+        info.is_water = is_water(info.name);
+        info.is_amino = is_amino(info.name);
+        info.is_nucleic = is_nucleic(info.name);
+        info.is_ion = is_ion(info);
+        info.is_ligand = !info.polymer_flag && !info.is_water && !info.is_ion;
+    }
+    return residues;
+}
+
+bool should_filter(const ResidueInfo& info, const Filters& filters) {
+    if (filters.exclude_water && info.is_water) {
+        return true;
+    }
+    if (filters.exclude_ions && info.is_ion) {
+        return true;
+    }
+    if (filters.exclude_ligands && info.is_ligand) {
+        return true;
+    }
+    if (filters.exclude_hetatm && info.hetatm_only) {
+        return true;
+    }
+    if (filters.exclude_nucleic_acids && info.is_nucleic) {
+        return true;
+    }
+    if (filters.exclude_amino_acids && info.is_amino) {
+        return true;
+    }
+    return false;
+}
+
+void emit_atoms(const std::vector<AtomRecord>& atoms,
+                const std::string& label,
+                const AtomTypeLibrary& library,
+                bool use_united,
+                const Filters& filters) {
+    if (atoms.empty()) {
+        return;
+    }
+    const auto residues = classify_residues(atoms);
+    for (const auto& atom : atoms) {
+        const auto key = make_residue_key(atom);
+        const auto residue_it = residues.find(key);
+        const ResidueInfo* info = residue_it != residues.end() ? &residue_it->second : nullptr;
+        if (info && should_filter(*info, filters)) {
+            continue;
+        }
+        const auto result = library.radius_for(atom.residue, atom.atom, use_united);
+        if (!result.first) {
+            std::cerr << "pdb_to_xyzr: error, file " << label << " residue " << atom.resnum
+                      << " atom pattern " << atom.residue << ' ' << atom.atom
+                      << " was not found in embedded atmtypenumbers" << std::endl;
+        }
+        std::cout << atom.x << ' ' << atom.y << ' ' << atom.z << ' ' << result.second << '\n';
+    }
+}
+
 struct Options {
     bool use_united = true;
     std::string input = "-";
+    Filters filters;
 };
 
 bool has_extension(std::string path, std::initializer_list<const char*> exts) {
@@ -225,7 +425,17 @@ bool is_pdbml_file(const std::string& path) {
 }
 
 void print_help(const char* program) {
-    std::cout << "Usage: " << program << " [-h|--hydrogens] [--help] [input]" << std::endl;
+    std::cout << "Usage: " << program
+              << " [options] [input]\n\n"
+              << "Options:\n"
+              << "  -h, --hydrogens          use explicit hydrogen radii\n"
+              << "      --exclude-ions       drop residues classified as ions\n"
+              << "      --exclude-ligands    drop non-polymer ligands\n"
+              << "      --exclude-hetatm     drop residues composed of HETATM records only\n"
+              << "      --exclude-water      drop water molecules\n"
+              << "      --exclude-nucleic-acids drop nucleic-acid residues\n"
+              << "      --exclude-amino-acids  drop amino-acid residues\n"
+              << "      --help               show this message\n";
 }
 
 Options parse_options(int argc, char** argv) {
@@ -238,6 +448,30 @@ Options parse_options(int argc, char** argv) {
         }
         if (arg == "-h" || arg == "--hydrogens") {
             options.use_united = false;
+            continue;
+        }
+        if (arg == "--exclude-ions") {
+            options.filters.exclude_ions = true;
+            continue;
+        }
+        if (arg == "--exclude-ligands") {
+            options.filters.exclude_ligands = true;
+            continue;
+        }
+        if (arg == "--exclude-hetatm") {
+            options.filters.exclude_hetatm = true;
+            continue;
+        }
+        if (arg == "--exclude-water") {
+            options.filters.exclude_water = true;
+            continue;
+        }
+        if (arg == "--exclude-nucleic-acids") {
+            options.filters.exclude_nucleic_acids = true;
+            continue;
+        }
+        if (arg == "--exclude-amino-acids") {
+            options.filters.exclude_amino_acids = true;
             continue;
         }
         if (!arg.empty() && arg[0] == '-') {
@@ -257,11 +491,11 @@ Options parse_options(int argc, char** argv) {
 bool process_stream(std::istream& input,
                     const std::string& label,
                     const AtomTypeLibrary& library,
-                    bool use_united) {
+                    bool use_united,
+                    const Filters& filters) {
     std::string line;
-    int line_no = 0;
+    std::vector<AtomRecord> atoms;
     while (std::getline(input, line)) {
-        ++line_no;
         if (line.size() < 6) {
             continue;
         }
@@ -278,49 +512,55 @@ bool process_stream(std::istream& input,
         if (trim(raw_x).empty() || trim(raw_y).empty() || trim(raw_z).empty()) {
             continue;
         }
-        const std::string residue = trim(get_field(line, 17, 3));
-        const std::string atom = normalize_atom_name(get_field(line, 12, 4));
-        std::string resnum = trim(get_field(line, 22, 4));
-
-        const auto result = library.radius_for(residue, atom, use_united);
-        if (!result.first) {
-            std::cerr << "pdb_to_xyzr: error, file " << label << " line " << line_no
-                      << " residue " << resnum << " atom pattern " << residue << ' '
-                      << atom << " was not found in embedded atmtypenumbers" << std::endl;
+        AtomRecord atom;
+        atom.record = record;
+        atom.x = raw_x;
+        atom.y = raw_y;
+        atom.z = raw_z;
+        atom.residue = trim(get_field(line, 17, 3));
+        atom.atom = normalize_atom_name(get_field(line, 12, 4));
+        atom.resnum = trim(get_field(line, 22, 4));
+        atom.chain = trim(get_field(line, 21, 1));
+        atom.element = trim(get_field(line, 76, 2));
+        if (atom.element.empty() && !atom.atom.empty()) {
+            atom.element = to_upper(atom.atom.substr(0, 1));
         }
-        std::cout << raw_x << ' ' << raw_y << ' ' << raw_z << ' ' << result.second << '\n';
+        atoms.push_back(std::move(atom));
     }
+    emit_atoms(atoms, label, library, use_united, filters);
     return true;
 }
 
 #ifdef VOSS_HAVE_GEMMI
 bool process_with_gemmi(const std::string& path,
                         const AtomTypeLibrary& library,
-                        bool use_united) {
+                        bool use_united,
+                        const Filters& filters) {
     try {
         gemmi::Structure structure = gemmi::read_structure(path);
+        std::vector<AtomRecord> atoms;
         for (const auto& model : structure.models) {
             for (const auto& chain : model.chains) {
                 for (const auto& residue : chain.residues) {
                     const std::string residue_name = trim(residue.name);
                     const std::string resnum = trim(residue.seqid.str());
                     for (const auto& atom : residue.atoms) {
-                        const std::string atom_name = atom.name;
-                        const std::string normalized_atom = normalize_atom_name(atom_name);
-                        const auto [matched, radius] =
-                            library.radius_for(residue_name, normalized_atom, use_united);
-                        if (!matched) {
-                            std::cerr << "pdb_to_xyzr: error, file " << path << " residue " << resnum
-                                      << " atom pattern " << residue_name << ' ' << normalized_atom
-                                      << " was not found in embedded atmtypenumbers" << std::endl;
-                        }
-                        std::cout << format_coordinate(atom.pos.x) << ' '
-                                  << format_coordinate(atom.pos.y) << ' '
-                                  << format_coordinate(atom.pos.z) << ' ' << radius << '\n';
+                        AtomRecord record;
+                        record.x = format_coordinate(atom.pos.x);
+                        record.y = format_coordinate(atom.pos.y);
+                        record.z = format_coordinate(atom.pos.z);
+                        record.residue = residue_name;
+                        record.atom = normalize_atom_name(atom.name);
+                        record.resnum = resnum;
+                        record.chain = chain.name;
+                        record.element = to_upper(atom.element.name());
+                        record.record = atom.het_flag == 'H' ? "HETATM" : "ATOM";
+                        atoms.push_back(std::move(record));
                     }
                 }
             }
         }
+        emit_atoms(atoms, path, library, use_united, filters);
         return true;
     } catch (const std::exception& ex) {
         std::cerr << "pdb_to_xyzr: Gemmi failed to read '" << path << "': " << ex.what()
@@ -340,7 +580,7 @@ int main(int argc, char** argv) {
     const bool use_stdin = options.input == "-";
 #ifdef VOSS_HAVE_GEMMI
     if (!use_stdin) {
-        if (process_with_gemmi(options.input, library, options.use_united)) {
+        if (process_with_gemmi(options.input, library, options.use_united, options.filters)) {
             return 0;
         }
         if (is_mmcif_file(options.input) || is_pdbml_file(options.input)) {
@@ -366,6 +606,6 @@ int main(int argc, char** argv) {
         input = &file_stream;
     }
     const std::string label = use_stdin ? "<stdin>" : options.input;
-    process_stream(*input, label, library, options.use_united);
+    process_stream(*input, label, library, options.use_united, options.filters);
     return 0;
 }

@@ -4,32 +4,27 @@
 wget -c "http://www.rcsb.org/pdb/cgi/export.cgi/1A01.pdb.gz?format=PDB&pdbId=1A01&compression=gz" -O 1A01.pdb.gz
 gunzip 1A01.pdb.gz
 
-# Step 2: Remove Hetero Atoms (e.g., Water, Salt, etc.) from PDB
-egrep "^ATOM  " 1A01.pdb > 1a01-noions.pdb
+# Step 2: Convert to XYZR with the native converter (filter ions/water directly)
+./bin/pdb_to_xyzr.exe --exclude-ions --exclude-water 1A01.pdb > 1a01-filtered.xyzr
+# (Alternatively: python3 xyzr/pdb_to_xyzr.py ...)
 
-# Step 3: Convert PDB to XYZR format
-# WARNING: Ensure the 'atmtypenumbers' file is in the current directory when running 'pdb_to_xyzr'
-cd xyzr
-pdb_to_xyzr ../1a01-noions.pdb > ../1a01-noions.xyzr
-cd ..
-
-# Step 4: Compile the Program
+# Step 3: Compile the Program
 # Navigate to the source directory and build the 'vol' program
 cd src
 make vol
 cd ..
 
-# Step 5: Calculate Solvent Excluded Volume
+# Step 4: Calculate Solvent Excluded Volume
 # Run the Volume.exe tool with the desired input and parameters
-bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5
+bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5
 
-# Step 6: Output to PDB (Visualize with RasMol or another molecular viewer)
-bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5 -o 1a01-excluded.pdb
+# Step 5: Output to PDB (Visualize with RasMol or another molecular viewer)
+bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5 -o 1a01-excluded.pdb
 
-# Step 7: Output to MRC format for visualization (e.g., in UCSF Chimera)
-bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5 -m 1a01-excluded.mrc
+# Step 6: Output to MRC format for visualization (e.g., in UCSF Chimera)
+bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5 -m 1a01-excluded.mrc
 
-# Step 8: View MRC file in UCSF Chimera
+# Step 7: View MRC file in UCSF Chimera
 # If you have UCSF Chimera installed, use the following command:
 chimera 1a01-excluded.mrc
 # Alternatively, download Chimera from: http://www.cgl.ucsf.edu/chimera/

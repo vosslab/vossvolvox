@@ -69,6 +69,7 @@ To install the Voss Volume Voxelator package, follow these steps:
 ### Optional Gemmi Support
 
 - The native `pdb_to_xyzr.exe` uses the [Gemmi](https://gemmi.readthedocs.io/) reader when the headers are available, which enables direct parsing of PDB, mmCIF, PDBML, and their `.gz` variants without intermediate scripts.
+- All converters now accept `--exclude-*` flags (`ions`, `ligands`, `hetatm`, `water`, `nucleic-acids`, `amino-acids`) so you can trim structures without ad-hoc `grep` pipelines.
 - Install Gemmi via your preferred package manager (e.g., `pip install gemmi` or `brew install gemmi`) before running `make`. The build automatically detects the headers via `__has_include`.
 - **Security updates:** because Gemmi is header-only, periodically update the installed package (`pip install --upgrade gemmi` or `brew upgrade gemmi`) and rebuild `pdb_to_xyzr.exe` to pick up upstream fixes.
 
@@ -84,19 +85,15 @@ To get started with the Voss Volume Voxelator tools, follow these steps:
    gunzip 1A01.pdb.gz
    ```
 
-2. **Remove Hetero Atoms (e.g., Water, Salt, etc.) from PDB**
+2. **Filter Out Solvent/Ions While Converting to XYZR**
+   Use the native converter with fine-grained exclude flags (ions, water, ligands, etc.):
    ```
-   egrep "^ATOM  " 1A01.pdb > 1a01-noions.pdb
+   bin/pdb_to_xyzr.exe --exclude-ions --exclude-water 1A01.pdb > 1a01-filtered.xyzr
    ```
-
-3. **Convert PDB to XYZR Format**
-   Use the native converter that now embeds the Connolly radii table:
-   ```
-   bin/pdb_to_xyzr.exe 1a01-noions.pdb > 1a01-noions.xyzr
-   ```
+   - Additional switches include `--exclude-ligands`, `--exclude-hetatm`, `--exclude-amino-acids`, and `--exclude-nucleic-acids`, letting you tailor the structure to your workflow without external `grep` passes.
    - The legacy shell (`xyzr/pdb_to_xyzr.sh`) and Python (`xyzr/pdb_to_xyzr.py`) scripts are still available if you need to compare outputs.
 
-4. **Compile the Program**
+3. **Compile the Program**
    Navigate to the source directory and build the `vol` program:
    ```
    cd src
@@ -104,20 +101,20 @@ To get started with the Voss Volume Voxelator tools, follow these steps:
    cd ..
    ```
 
-5. **Calculate Solvent Excluded Volume**
+4. **Calculate Solvent Excluded Volume**
    Run the Volume.exe tool with the desired input and parameters:
    ```
-   bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5
+   bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5
    ```
 
-6. **Output to PDB (Visualize with RasMol or another molecular viewer)**
+5. **Output to PDB (Visualize with RasMol or another molecular viewer)**
    ```
-   bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5 -o 1a01-excluded.pdb
+   bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5 -o 1a01-excluded.pdb
    ```
 
-7. **Output to MRC format for visualization (e.g., in UCSF Chimera)**
+6. **Output to MRC format for visualization (e.g., in UCSF Chimera)**
    ```
-   bin/Volume.exe -i 1a01-noions.xyzr -p 1.5 -g 0.5 -m 1a01-excluded.mrc
+   bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5 -m 1a01-excluded.mrc
    ```
 
 8. **View MRC file in UCSF Chimera**
