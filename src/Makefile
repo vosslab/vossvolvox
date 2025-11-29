@@ -61,7 +61,7 @@ none:
 	@echo "cav, chan, allchan, allexc, fsv, sol, tun, vdw, vol, volnocav, twovol, frac, or cust."
 
 # Declare vol and test as PHONY targets
-.PHONY: vol test
+.PHONY: vol test testhelp
 
 
 # Compilation rules for individual object files
@@ -117,6 +117,9 @@ vol: $(OBJS) volume.cpp
 # Test target depends on the vol target
 test: vol
 	cd ../test && ./test_volume.sh
+
+testhelp: all
+	cd $(BIN_DIR) && for i in *.exe; do echo $$i; ./$$i -q -h; sleep 0.1; done
 
 volnocav: $(OBJS) volnocav.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/VolumeNoCav.exe $(OBJS) volnocav.cpp
