@@ -1,7 +1,9 @@
-#include <cstdlib>                   // for std::free, std::malloc, NULL
-#include <iostream>                   // for char_traits, cerr, cout
-#include <cstdio>                   // for snprintf
-#include "utils.h"                    // for endl, cerr, gridpt, zeroGrid
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
+#include "utils.h"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -16,51 +18,60 @@ extern float CUTOFF;
 extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
+  std::cerr << std::endl;
 
-printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-printCitation(); // Replaces CITATION;
+  std::string input_path;
+  double BIGPROBE = 10.0;
+  double PROBESTEP = 0.1;
+  double TRIMPROBE = 1.5;
+  float grid = GRID;
 
-// ****************************************************
-// INITIALIZATION
-// ****************************************************
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Calculate fractional solvent volume as the probe radius varies.");
+  vossvolvox::add_input_option(parser, input_path);
+  parser.add_option("-b",
+                    "--big-probe",
+                    BIGPROBE,
+                    10.0,
+                    "Maximum probe radius in Angstroms.",
+                    "<big probe>");
+  parser.add_option("-s",
+                    "--probe-step",
+                    PROBESTEP,
+                    0.1,
+                    "Probe radius increment in Angstroms.",
+                    "<step>");
+  parser.add_option("-t",
+                    "--trim-probe",
+                    TRIMPROBE,
+                    1.5,
+                    "Trim radius applied to the shell (Angstroms).",
+                    "<trim>");
+  parser.add_option("-g",
+                    "--grid",
+                    grid,
+                    GRID,
+                    "Grid spacing in Angstroms.",
+                    "<grid>");
+  parser.add_example("./FsvCalc.exe -i sample.xyzr -b 10 -s 0.25 -t 1.5 -g 0.8");
 
-//HEADER INFO
-  char file[256]; file[0] = '\0';
-  char ezdfile[256]; ezdfile[0] = '\0';
-  char pdbfile[256]; pdbfile[0] = '\0';
-  char mrcfile[256]; mrcfile[0] = '\0';
-  double BIGPROBE=10.0;
-  double PROBESTEP=0.1;
-  double TRIMPROBE=1.5; //HEADER INFO
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (!vossvolvox::ensure_input_present(input_path, parser)) {
+    return 1;
+  }
 
-  while(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 's') {
-      PROBESTEP = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'b') {
-      BIGPROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 't') {
-      TRIMPROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'o') {
-      snprintf(pdbfile, sizeof(pdbfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'e') {
-      snprintf(ezdfile, sizeof(ezdfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'h') {
-      cerr << "./FsvCalc.exe -i <file> -b <big_probe> -s <probe_step> " << endl
-        << "\t-t <trim probe> -g <gridspace> " << endl;
-      //  << "\t-e <EZD outfile> -o <PDB outfile> -m <MRC outfile> " << endl;
-      cerr << "FsvCalc.exe -- Calculates the Fractional Solvent Volume" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  GRID = grid;
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
   }
 
 
@@ -72,10 +83,10 @@ printCitation(); // Replaces CITATION;
   cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
   cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Complexity:      " << int(8000000/float(GRIDVOL))/1000.0 << endl;
-  cerr << "Input file:   " << file << endl;
+  cerr << "Input file:   " << input_path << endl;
 
 //FIRST PASS, MINMAX
-  int numatoms = read_NumAtoms(file);
+  int numatoms = read_NumAtoms(const_cast<char*>(input_path.c_str()));
 
 //CHECK LIMITS & SIZE
   assignLimits();
@@ -89,7 +100,7 @@ printCitation(); // Replaces CITATION;
   shell = (gridpt*) std::malloc (NUMBINS);
   if (shell==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
   zeroGrid(shell);
-  int shellvol = get_ExcludeGrid_fromFile(numatoms,BIGPROBE,file,shell);
+  int shellvol = get_ExcludeGrid_fromFile(numatoms,BIGPROBE,const_cast<char*>(input_path.c_str()),shell);
 
 //INIT NEW smShellACC GRID
   cerr << "Trimming Radius: " << TRIMPROBE << endl;
@@ -122,7 +133,7 @@ printCitation(); // Replaces CITATION;
 	  probeACC = (gridpt*) std::malloc (NUMBINS);
 	  if (probeACC==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
 	  zeroGrid(probeACC);
-	  fill_AccessGrid_fromFile(numatoms, SMPROBE, file, probeACC);
+	  fill_AccessGrid_fromFile(numatoms, SMPROBE, const_cast<char*>(input_path.c_str()), probeACC);
 	  subt_Grids(solventACC, probeACC);
 	  std::free (probeACC);
 
@@ -146,7 +157,7 @@ printCitation(); // Replaces CITATION;
 	  printVolCout(shellvol);
 	  printVolCout(solventvol);
 	  double fsv = double(solventvol) / double(shellvol);
-	  cout << fsv << "\t" << file << endl;
+	  cout << fsv << "\t" << input_path << endl;
 
     /*
 	  if(pdbfile[0] != '\0') {
@@ -167,4 +178,3 @@ printCitation(); // Replaces CITATION;
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;
 };
-

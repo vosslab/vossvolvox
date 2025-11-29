@@ -1,8 +1,10 @@
-#include <cmath>                     // for log, fabs, sqrt, pow
-#include <cstdlib>                   // for std::free, std::malloc, NULL
-#include <iostream>                   // for char_traits, cerr, cout
-#include <cstdio>                   // for snprintf
-#include "utils.h"                    // for endl, cerr, assignLimits, count...
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
+#include "utils.h"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -17,53 +19,65 @@ extern float CUTOFF;
 extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
+  std::cerr << std::endl;
 
-printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-printCitation(); // Replaces CITATION;
+  std::string input_path;
+  double probe = 10.0;
+  double grid_start = 0.4;
+  double grid_end = 0.8;
+  double grid_steps = 10.0;
 
-// ****************************************************
-// INITIALIZATION
-// ****************************************************
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Calculate fractional dimensions across a range of grid spacings.");
+  vossvolvox::add_input_option(parser, input_path);
+  parser.add_option("-p",
+                    "--probe",
+                    probe,
+                    10.0,
+                    "Probe radius in Angstroms.",
+                    "<probe>");
+  parser.add_option("-g1",
+                    "--grid-start",
+                    grid_start,
+                    0.4,
+                    "Minimum grid spacing in Angstroms.",
+                    "<grid>");
+  parser.add_option("-g2",
+                    "--grid-end",
+                    grid_end,
+                    0.8,
+                    "Maximum grid spacing in Angstroms.",
+                    "<grid>");
+  parser.add_option("-gn",
+                    "--grid-steps",
+                    grid_steps,
+                    10.0,
+                    "Number of grid steps between g1 and g2.",
+                    "<steps>");
+  parser.add_example("./FracDim.exe -i sample.xyzr -p 1.5 -g1 0.4 -g2 0.8 -gn 8");
 
-//HEADER INFO
-  char file[256]; file[0] = '\0';
-  char ezdfile[256]; ezdfile[0] = '\0';
-  char pdbfile[256]; pdbfile[0] = '\0';
-  char mrcfile[256]; mrcfile[0] = '\0';
-  double PROBE=10.0;
-  double GRID1=0.4;
-  double GRID2=0.8;
-  double NUMGRIDSTEP=10;
-  
-  
-  while(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'p') {
-      PROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'g' && argv[1][2] == '1') {
-      GRID1 = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'g' && argv[1][2] == '2') {
-      GRID2 = atof(&argv[2][0]);            
-    } else if(argv[1][1] == 'g' && argv[1][2] == 'n') {
-      NUMGRIDSTEP = atof(&argv[2][0]);         
-    } else if(argv[1][1] == 'h') {
-      cerr << "./FracDim.exe -i <file> -p <probe_rad> " << endl
-       << "  -g1 <grid 1> -g2 <grid 2> -gn <num grid step>" << endl;
-      cerr << "FracDim.exe -- Calculate the fractional dimension for any probe radius" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (!vossvolvox::ensure_input_present(input_path, parser)) {
+    return 1;
+  }
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
   }
 
 	double xsum=0, yAsum=0, xyAsum=0, yBsum=0, xyBsum=0, x2sum=0, yA2sum=0, yB2sum=0, N=0;
 
 	//HEADER CHECK
-	cerr << "Probe Radius: " << PROBE << endl;
-	cerr << "Input file:   " << file << endl;
+	cerr << "Probe Radius: " << probe << endl;
+	cerr << "Input file:   " << input_path << endl;
 
 	//log(1/GRID1) - log(1/GRID2) = constant
 	//log(GRID2) - log(GRID1) = constant
@@ -74,15 +88,15 @@ printCitation(); // Replaces CITATION;
 	//GRID2 = GRID1 * GRIDSTEP ^ NUMGRIDSTEP
 	//GRIDSTEP ^ NUMGRIDSTEP = GRID2/GRID1
 	//GRIDSTEP = [ GRID2/GRID1 ] ^ ( 1/NUMGRIDSTEP )
-	double GRIDSTEP = pow(GRID2/GRID1, 1.0/NUMGRIDSTEP);
-	for (GRID=GRID1; GRID<=GRID2; GRID*=GRIDSTEP) {  
+	double GRIDSTEP = pow(grid_end/grid_start, 1.0/grid_steps);
+	for (GRID=grid_start; GRID<=grid_end; GRID*=GRIDSTEP) {  
 		//INITIALIZE GRID
-		finalGridDims(PROBE);
+		finalGridDims(probe);
 
 		cerr << "Grid Spacing: " << GRID << endl;
 
 		//FIRST PASS, MINMAX
-		int numatoms = read_NumAtoms(file);
+		int numatoms = read_NumAtoms(const_cast<char*>(input_path.c_str()));
 
 		//CHECK LIMITS & SIZE
 		assignLimits();
@@ -103,10 +117,10 @@ printCitation(); // Replaces CITATION;
 		if (EXCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
 		zeroGrid(EXCgrid);
 		int voxels;
-		if(PROBE > 0.0) { 
-			voxels = get_ExcludeGrid_fromFile(numatoms,PROBE,file,EXCgrid);
+		if(probe > 0.0) { 
+			voxels = get_ExcludeGrid_fromFile(numatoms,probe,const_cast<char*>(input_path.c_str()),EXCgrid);
 		} else {
-			voxels = fill_AccessGrid_fromFile(numatoms,0.0,file,EXCgrid);
+			voxels = fill_AccessGrid_fromFile(numatoms,0.0,const_cast<char*>(input_path.c_str()),EXCgrid);
 		}
 
 		int edgeVoxels = countEdgePoints(EXCgrid);
@@ -124,7 +138,7 @@ printCitation(); // Replaces CITATION;
 		cerr << endl;
 		//cout << x << "\t" << yA << "\t" << yB << "\t" << GRID << endl;
 		
-		double weight = 1.0/x - 1/GRID2 + 1e-6;
+		double weight = 1.0/x - 1/grid_end + 1e-6;
 		xsum += weight*x;
 		x2sum += weight*x*x;
 		xyAsum += weight*x*yA;
@@ -134,8 +148,8 @@ printCitation(); // Replaces CITATION;
 		yBsum += weight*yB;
 		yB2sum += weight*yB*yB;
 		N += weight;
-		cerr << endl << "Program Completed Sucessfully" << endl << endl;
 	}
+	cerr << endl << "Program Completed Sucessfully" << endl << endl;
 	double numer, denom;
 	numer = ((N * xyAsum) - (xsum * yAsum));
     denom = ((N * x2sum - xsum * xsum)* (N * yA2sum - yAsum * yAsum));	
@@ -147,9 +161,8 @@ printCitation(); // Replaces CITATION;
 	double slopeB = (xyBsum - xsum*yBsum/N)/(x2sum - xsum*xsum/N);
 	corrA = fabs(corrA);
 	corrB = fabs(corrB);	
-	//cout << PROBE << "\t" << slopeA << "\t" << corrA << "\t" << slopeB << "\t" << corrB << endl;
-	cout << PROBE << "\t" << slopeA << "\t" << slopeB << endl;
+	//cout << probe << "\t" << slopeA << "\t" << corrA << "\t" << slopeB << "\t" << corrB << endl;
+	cout << probe << "\t" << slopeA << "\t" << slopeB << endl;
 
 	return 0;
 };
-
