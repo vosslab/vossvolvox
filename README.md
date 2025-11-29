@@ -70,6 +70,7 @@ To install the Voss Volume Voxelator package, follow these steps:
 
 - The native `pdb_to_xyzr.exe` uses the [Gemmi](https://gemmi.readthedocs.io/) reader when the headers are available, which enables direct parsing of PDB, mmCIF, PDBML, and their `.gz` variants without intermediate scripts.
 - All converters now accept `--exclude-*` flags (`ions`, `ligands`, `hetatm`, `water`, `nucleic-acids`, `amino-acids`) so you can trim structures without ad-hoc `grep` pipelines.
+- Every executable shares a unified C++17 CLI helper, so `./bin/<tool> --help` now prints consistent usage information.
 - Install Gemmi via your preferred package manager (e.g., `pip install gemmi` or `brew install gemmi`) before running `make`. The build automatically detects the headers via `__has_include`.
 - **Security updates:** because Gemmi is header-only, periodically update the installed package (`pip install --upgrade gemmi` or `brew upgrade gemmi`) and rebuild `pdb_to_xyzr.exe` to pick up upstream fixes.
 

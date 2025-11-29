@@ -4,7 +4,7 @@ Prerequisites
 
 Before you begin, make sure you have the following:
 
-- C++ Compiler: The package requires a C++ compiler (e.g., g++ or clang++).
+- C++17 Compiler: The package requires a C++17-capable compiler (e.g., g++ 7+ or clang++).
 - Make: The make utility is required for building the package.
 
 Installation Steps

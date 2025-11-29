@@ -1,3 +1,4 @@
+2.0.0-beta3	Nov 28, 2025 Shared CLI helper (C++17) with Volume.exe migration
 2.0.0-beta2	Nov 28, 2025 Native converters with filtering and new test tooling
 2.0.0-beta1	Nov 14, 2024 Codebase modernization and groundwork for new converters
 1.2	Jun 02, 2009 Added MRC ability

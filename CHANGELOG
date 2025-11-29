@@ -1,5 +1,10 @@
 2025-11-28 Neil Voss <vossman77@yahoo.com>
 
+	* Introduced shared argument_helper (C++17) and migrated Volume.exe to it
+	* Set the toolchain default to C++17 for upcoming CLI modernization
+
+2025-11-28 Neil Voss <vossman77@yahoo.com>
+
 	* Added native Python and C++ pdb_to_xyzr converters with fine-grained filters
 	* Updated documentation/tests to rely on ./bin/pdb_to_xyzr executables
 
