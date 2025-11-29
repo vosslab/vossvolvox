@@ -443,22 +443,16 @@ class AtomTypeLibrary:
 
 def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        add_help=False,
         description=(
             "Extract x, y, z coordinates and atom radii from a PDB formatted file "
             "and write xyzr records to stdout."
         ),
     )
     parser.add_argument(
-        "-h",
+        "-H",
         "--hydrogens",
         action="store_true",
         help="use explicit hydrogen radii instead of the default united-atom radii",
-    )
-    parser.add_argument(
-        "--help",
-        action="help",
-        help="show this help message and exit",
     )
     parser.add_argument(
         "-t",
