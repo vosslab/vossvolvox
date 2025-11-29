@@ -1,7 +1,10 @@
-#include <cstdlib>                   // for std::free, std::malloc, NULL
-#include <iostream>                   // for char_traits, cerr, cout
-#include <cstdio>                   // for snprintf
-#include "utils.h"                    // for endl, cerr, gridpt, copyGrid
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
+#include "utils.h"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -16,51 +19,66 @@ extern float CUTOFF;
 extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
- 
-printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-printCitation(); // Replaces CITATION;
+  std::cerr << std::endl;
 
-// ****************************************************
-// INITIALIZATION
-// ****************************************************
- 
-//HEADER INFO
-  char file[256]; file[0] = '\0';
-  char ezdfile[256]; ezdfile[0] = '\0';
-  char pdbfile[256]; pdbfile[0] = '\0';
-  char mrcfile[256]; mrcfile[0] = '\0';
-  double BIGPROBE=9.0;
-  double SMPROBE=1.5;
-  double TRIMPROBE=1.5; //HEADER INFO
- 
-  while(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);   
-    } else if(argv[1][1] == 's') {
-      SMPROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'b') {
-      BIGPROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 't') {
-      TRIMPROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'e') {
-      snprintf(ezdfile, sizeof(ezdfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'o') {
-      snprintf(pdbfile, sizeof(pdbfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'h') {
-      cerr << "./Solvent.exe -i <file> -s <sm_probe_rad> -b <big_probe_rad>" << endl
-        << "\t-t <trim_probe_rad> -g <grid spacing> " << endl
-        << "\t-e <EZD outfile> -o <PDB outfile> -m <MRC outfile>" << endl;
-      cerr << "Solvent.exe -- Extracts the all of the solvent" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  std::string input_path;
+  std::string ezd_file;
+  std::string pdb_file;
+  std::string mrc_file;
+  double BIGPROBE = 9.0;
+  double SMPROBE = 1.5;
+  double TRIMPROBE = 1.5;
+  float grid = GRID;
+
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Extract all solvent from a structure for the given probe radii.");
+  vossvolvox::add_input_option(parser, input_path);
+  parser.add_option("-s",
+                    "--small-probe",
+                    SMPROBE,
+                    1.5,
+                    "Small probe radius in Angstroms.",
+                    "<small probe>");
+  parser.add_option("-b",
+                    "--big-probe",
+                    BIGPROBE,
+                    9.0,
+                    "Big probe radius in Angstroms.",
+                    "<big probe>");
+  parser.add_option("-t",
+                    "--trim-probe",
+                    TRIMPROBE,
+                    1.5,
+                    "Trim radius applied to the exterior solvent shell.",
+                    "<trim probe>");
+  parser.add_option("-g",
+                    "--grid",
+                    grid,
+                    GRID,
+                    "Grid spacing in Angstroms.",
+                    "<grid spacing>");
+  vossvolvox::add_ezd_option(parser, ezd_file);
+  vossvolvox::add_pdb_option(parser, pdb_file);
+  vossvolvox::add_mrc_option(parser, mrc_file);
+  parser.add_example("./Solvent.exe -i sample.xyzr -s 1.5 -b 9.0 -t 4 -g 0.5 -o solvent.pdb");
+
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (!vossvolvox::ensure_input_present(input_path, parser)) {
+    return 1;
+  }
+
+  GRID = grid;
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
   }
  
 //INITIALIZE GRID
@@ -72,13 +90,13 @@ printCitation(); // Replaces CITATION;
   cerr << " Big  Probe Radius: " << BIGPROBE << endl;
   cerr << "Trim  Probe Radius: " << TRIMPROBE << endl;
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Input file:   " << file << endl;
+  cerr << "Input file:   " << input_path << endl;
   cerr << "Resolution:   " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
   cerr << "Resolution:   " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
 
 
 //FIRST PASS, MINMAX
-  int numatoms = read_NumAtoms(file);
+  int numatoms = read_NumAtoms(const_cast<char*>(input_path.c_str()));
 
 //CHECK LIMITS & SIZE
   assignLimits();
@@ -92,7 +110,10 @@ printCitation(); // Replaces CITATION;
   zeroGrid(biggrid);
   int bigvox;
   if(BIGPROBE > 0.0) { 
-    bigvox = get_ExcludeGrid_fromFile(numatoms,BIGPROBE,file,biggrid);
+    bigvox = get_ExcludeGrid_fromFile(numatoms,
+                                      BIGPROBE,
+                                      const_cast<char*>(input_path.c_str()),
+                                      biggrid);
   } else {
     cerr << "BIGPROBE <= 0" << endl;
     return 1;
@@ -121,7 +142,7 @@ printCitation(); // Replaces CITATION;
     if (smgrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
     zeroGrid(smgrid);
     int smvox;
-    smvox = fill_AccessGrid_fromFile(numatoms,SMPROBE,file,smgrid);
+    smvox = fill_AccessGrid_fromFile(numatoms,SMPROBE,const_cast<char*>(input_path.c_str()),smgrid);
 
 // ****************************************************
 // GETTING ACCESSIBLE CHANNELS
@@ -158,15 +179,15 @@ printCitation(); // Replaces CITATION;
     long double surf = surface_area(solventEXC);
     cout << "\t" << surf << "\t" << flush;
     //printVolCout(solventACCvol);
-    cout << file << endl;
-    if(pdbfile[0] != '\0') {
-      write_SurfPDB(solventEXC, pdbfile);
+    cout << input_path << endl;
+    if(!pdb_file.empty()) {
+      write_SurfPDB(solventEXC, const_cast<char*>(pdb_file.c_str()));
     }
-    if(ezdfile[0] != '\0') {
-      write_HalfEZD(solventEXC, ezdfile);
+    if(!ezd_file.empty()) {
+      write_HalfEZD(solventEXC, const_cast<char*>(ezd_file.c_str()));
     }
-    if(mrcfile[0] != '\0') {
-      writeMRCFile(solventEXC, mrcfile);
+    if(!mrc_file.empty()) {
+      writeMRCFile(solventEXC, const_cast<char*>(mrc_file.c_str()));
     }
 
     std::free (solventEXC);

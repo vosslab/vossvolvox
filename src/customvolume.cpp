@@ -1,7 +1,10 @@
-#include <cstdlib>                   // for std::free, std::malloc, NULL
-#include <iostream>                   // for char_traits, cerr
-#include <cstdio>                   // for snprintf
-#include "utils.h"                    // for endl, cerr, gridpt, get_Exclude...
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
+#include "utils.h"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -43,37 +46,60 @@ int trimYAxis (gridpt grid[]) {
 
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
+  std::cerr << std::endl;
 
-printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-printCitation(); // Replaces CITATION;
+  std::string rna_file;
+  std::string amino_file;
+  double PROBE = 10.0;
+  float grid = GRID;
 
-// ****************************************************
-// INITIALIZATION
-// ****************************************************
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Compute RNA vs protein volumes on a shared grid and export MRC maps.");
+  parser.add_option("-r",
+                    "--rna-input",
+                    rna_file,
+                    std::string(),
+                    "Input XYZR file containing RNA coordinates (required).",
+                    "<RNA XYZR>");
+  parser.add_option("-a",
+                    "--amino-input",
+                    amino_file,
+                    std::string(),
+                    "Input XYZR file containing amino-acid coordinates (required).",
+                    "<amino XYZR>");
+  parser.add_option("-p",
+                    "--probe",
+                    PROBE,
+                    10.0,
+                    "Probe radius in Angstroms.",
+                    "<probe>");
+  parser.add_option("-g",
+                    "--grid",
+                    grid,
+                    GRID,
+                    "Grid spacing in Angstroms.",
+                    "<grid>");
+  parser.add_example("./Custom.exe -r rna.xyzr -a protein.xyzr -p 10 -g 0.8");
 
-//HEADER INFO
-  char rnafile[256]; rnafile[0] = '\0';
-  char aminofile[256]; aminofile[0] = '\0';
-  double PROBE=10.0;
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (rna_file.empty() || amino_file.empty()) {
+    std::cerr << "Error: both --rna-input and --amino-input are required.\n";
+    parser.print_help();
+    return 1;
+  }
 
-  while(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'r') {
-      snprintf(rnafile, sizeof(rnafile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'a') {
-      snprintf(aminofile, sizeof(aminofile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'p') {
-      PROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'h') {
-      cerr << "./Volume.exe -i <file> -g <gridspacing> -p <probe_rad> " << endl;
-      cerr << "Volume.exe -- Calculate the volume and surface area for any probe radius" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  GRID = grid;
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
   }
 
 
@@ -85,12 +111,12 @@ printCitation(); // Replaces CITATION;
   cerr << "Grid Spacing: " << GRID << endl;
   cerr << "Resolution:   " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
   cerr << "Resolution:   " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
-  cerr << "RNA file:     " << rnafile << endl;
-  cerr << "Amino file:   " << aminofile << endl;
+  cerr << "RNA file:     " << rna_file << endl;
+  cerr << "Amino file:   " << amino_file << endl;
 
 //FIRST PASS, MINMAX
-  int rnanumatoms = read_NumAtoms(rnafile);
-  int aminonumatoms = read_NumAtoms(aminofile);
+  int rnanumatoms = read_NumAtoms(const_cast<char*>(rna_file.c_str()));
+  int aminonumatoms = read_NumAtoms(const_cast<char*>(amino_file.c_str()));
 
 //CHECK LIMITS & SIZE
   assignLimits();
@@ -103,14 +129,14 @@ printCitation(); // Replaces CITATION;
   RNAgrid = (gridpt*) std::malloc (NUMBINS);
   if (RNAgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
   zeroGrid(RNAgrid);
-  int rnavoxels = get_ExcludeGrid_fromFile(rnanumatoms,PROBE,rnafile,RNAgrid);
+  int rnavoxels = get_ExcludeGrid_fromFile(rnanumatoms,PROBE,const_cast<char*>(rna_file.c_str()),RNAgrid);
 
 //READ FILE INTO AminoGrid
   gridpt *AminoGrid;
   AminoGrid = (gridpt*) std::malloc (NUMBINS);
   if (AminoGrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
   zeroGrid(AminoGrid);
-  int aminovoxels = get_ExcludeGrid_fromFile(aminonumatoms,PROBE,aminofile,AminoGrid);
+  int aminovoxels = get_ExcludeGrid_fromFile(aminonumatoms,PROBE,const_cast<char*>(amino_file.c_str()),AminoGrid);
 
 //Subtract the protein grid
   subt_Grids(RNAgrid, AminoGrid);
@@ -130,4 +156,3 @@ printCitation(); // Replaces CITATION;
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;
 };
-

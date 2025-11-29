@@ -1,6 +1,9 @@
-#include <iostream>  // for cerr, cout, endl
-#include <cstdlib>   // for std::malloc, std::free, exit, atof
-#include <cstdio>    // for snprintf (replacement for sprintf)
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
 #include "utils.h"   // for custom utility functions like assignLimits, printCompileInfo, etc.
 
 extern float XMIN, YMIN, ZMIN;
@@ -16,42 +19,46 @@ extern float CUTOFF;
 extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
+  std::cerr << std::endl;
 
-printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-printCitation(); // Replaces CITATION;
+  std::string input_path;
+  std::string ezd_file;
+  std::string pdb_file;
+  std::string mrc_file;
+  double PROBE = 0.0;
+  float grid = GRID;
 
-// ****************************************************
-// INITIALIZATION
-// ****************************************************
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Calculate van der Waals volume and surface area.");
+  vossvolvox::add_input_option(parser, input_path);
+  parser.add_option("-g",
+                    "--grid",
+                    grid,
+                    GRID,
+                    "Grid spacing in Angstroms.",
+                    "<grid spacing>");
+  vossvolvox::add_pdb_option(parser, pdb_file);
+  vossvolvox::add_ezd_option(parser, ezd_file);
+  vossvolvox::add_mrc_option(parser, mrc_file);
+  parser.add_example("./VDW.exe -i 1a01.xyzr -g 0.5 -o vdw_surface.pdb");
 
-//HEADER INFO
-  char file[256]; file[0] = '\0';
-  char ezdfile[256]; ezdfile[0] = '\0';
-  char pdbfile[256]; pdbfile[0] = '\0';
-  char mrcfile[256]; mrcfile[0] = '\0';
-  double PROBE=0.0;
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (!vossvolvox::ensure_input_present(input_path, parser)) {
+    return 1;
+  }
 
-  while(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'o') {
-      snprintf(pdbfile, sizeof(pdbfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'e') {
-      snprintf(ezdfile, sizeof(ezdfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'h') {
-      cerr << "./VDW.exe -i <file> -g <gridspacing> " << endl
-        << "\t-e <EZD outfile> -o <PDB outfile> -m <MRC outfile>" << endl;
-      cerr << "VDW.exe -- Calculate the VDW volume and surface area" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  GRID = grid;
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
   }
 
 
@@ -63,10 +70,10 @@ printCitation(); // Replaces CITATION;
   cerr << "Grid Spacing: " << GRID << endl;
   cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
   cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
-  cerr << "Input file:   " << file << endl;
+  cerr << "Input file:   " << input_path << endl;
 
 //FIRST PASS, MINMAX
-  int numatoms = read_NumAtoms(file);
+  int numatoms = read_NumAtoms(const_cast<char*>(input_path.c_str()));
 
 //CHECK LIMITS & SIZE
   assignLimits();
@@ -81,21 +88,21 @@ printCitation(); // Replaces CITATION;
   zeroGrid(EXCgrid);
   int voxels;
   if(PROBE > 0.0) { 
-    voxels = get_ExcludeGrid_fromFile(numatoms,PROBE,file,EXCgrid);
+    voxels = get_ExcludeGrid_fromFile(numatoms,PROBE,const_cast<char*>(input_path.c_str()),EXCgrid);
   } else {
-    voxels = fill_AccessGrid_fromFile(numatoms,0.0,file,EXCgrid);
+    voxels = fill_AccessGrid_fromFile(numatoms,0.0,const_cast<char*>(input_path.c_str()),EXCgrid);
   }
   long double surf;
   surf = surface_area(EXCgrid);
 
-  if(ezdfile[0] != '\0') {
-    write_HalfEZD(EXCgrid, ezdfile);
+  if(!ezd_file.empty()) {
+    write_HalfEZD(EXCgrid, const_cast<char*>(ezd_file.c_str()));
   }
-  if(pdbfile[0] != '\0') {
-    write_SurfPDB(EXCgrid, pdbfile);
+  if(!pdb_file.empty()) {
+    write_SurfPDB(EXCgrid, const_cast<char*>(pdb_file.c_str()));
   }
-  if(mrcfile[0] != '\0') {
-    writeMRCFile(EXCgrid, mrcfile);
+  if(!mrc_file.empty()) {
+    writeMRCFile(EXCgrid, const_cast<char*>(mrc_file.c_str()));
   }
 
 //RELEASE TEMPGRID
@@ -103,9 +110,8 @@ printCitation(); // Replaces CITATION;
 
   cout << PROBE << "\t" << GRID << "\t" << flush;
   printVolCout(voxels);
-  cout << "\t" << surf << "\t#" << file << endl;
+  cout << "\t" << surf << "\t#" << input_path << endl;
 
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;
 };
-

@@ -1,6 +1,9 @@
-#include <cstdlib>                   // for std::free, std::malloc, NULL
-#include <iostream>                   // for char_traits, cerr
-#include <cstdio>                   // for snprintf
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
 #include "utils.h"                    // for endl, cerr, gridpt, countGrid
 
 // ****************************************************
@@ -24,50 +27,95 @@ int getCavitiesBothMeth(const float probe, gridpt shellACC[], gridpt shellEXC[],
 	const int natoms, char file1[], char file2[], char mrcfile1[], char mrcfile2[]);
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
-// ****************************************************
-// USER INPUT
-// ****************************************************
+  std::cerr << std::endl;
 
-printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-printCitation(); // Replaces CITATION;
-
-  char file1[256]; file1[0] = '\0';
-  char mrcfile1[256]; mrcfile1[0] = '\0';
-  char file2[256]; file2[0] = '\0';
-  char mrcfile2[256]; mrcfile2[0] = '\0';
+  std::string file1;
+  std::string file2;
+  std::string mrcfile1;
+  std::string mrcfile2;
   double PROBE1 = -1;
-  double PROBE2 = -1;  
-  unsigned int merge=0, fill=0;
-  
-  while(argc > 1 && argv[1][0] == '-') {
-	if(argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'p' && argv[1][2] == '1') {
-      PROBE1 = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'p' && argv[1][2] == '2') {
-      PROBE2 = atof(&argv[2][0]);      
-    } else if(argv[1][1] == 'i'  && argv[1][2] == '1') {
-      snprintf(file1, sizeof(file1), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'i' && argv[1][2] == '2') {
-      snprintf(file2, sizeof(file2), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'm' && argv[1][2] == '1') {
-      snprintf(mrcfile1, sizeof(mrcfile1), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'm' && argv[1][2] == '2') {
-      snprintf(mrcfile2, sizeof(mrcfile2), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'm' && argv[1][2] == 'e') {
-      merge = atoi(&argv[2][0]);
-    } else if(argv[1][1] == 'f' && argv[1][2] == 'i') {
-      fill = atoi(&argv[2][0]);      
-    } else if(argv[1][1] == 'h') {
-      cerr << "./TwoVol.exe -i1 <file1> -i2 <file2> -g <grid spacing> -p1 <probe 1 radius> " << endl
-        << "\t-p2 <probe 2 radius> -m1 <MRC outfile 1> -m2 <MRC outfile 2> -merge <0,1,2> -fill <0,1,2>" << endl;
-      cerr << "TwoVol.exe -- Produces two volumes on the same grid for 3d printing" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  double PROBE2 = -1;
+  unsigned int merge = 0;
+  unsigned int fill = 0;
+  float grid = GRID;
+
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Produce two solvent-excluded volumes on the same grid for 3D printing.");
+  parser.add_option("-i1",
+                    "--input1",
+                    file1,
+                    std::string(),
+                    "First input XYZR file (required).",
+                    "<file1>");
+  parser.add_option("-i2",
+                    "--input2",
+                    file2,
+                    std::string(),
+                    "Second input XYZR file (required).",
+                    "<file2>");
+  parser.add_option("-p1",
+                    "--probe1",
+                    PROBE1,
+                    -1.0,
+                    "Probe radius for the first file.",
+                    "<probe1>");
+  parser.add_option("-p2",
+                    "--probe2",
+                    PROBE2,
+                    -1.0,
+                    "Probe radius for the second file.",
+                    "<probe2>");
+  parser.add_option("-g",
+                    "--grid",
+                    grid,
+                    GRID,
+                    "Grid spacing in Angstroms.",
+                    "<grid>");
+  parser.add_option("-m1",
+                    "--mrc-output1",
+                    mrcfile1,
+                    std::string(),
+                    "Output MRC file for the first volume.",
+                    "<mrc1>");
+  parser.add_option("-m2",
+                    "--mrc-output2",
+                    mrcfile2,
+                    std::string(),
+                    "Output MRC file for the second volume.",
+                    "<mrc2>");
+  parser.add_option("",
+                    "--merge",
+                    merge,
+                    0u,
+                    "Merge mode (0=no merge, 1=vol1<-vol2, 2=vol2<-vol1).",
+                    "<0|1|2>");
+  parser.add_option("",
+                    "--fill",
+                    fill,
+                    0u,
+                    "Fill mode for MakerBot adjustment (0=none, 1=vol2->vol1, 2=vol1->vol2).",
+                    "<0|1|2>");
+  parser.add_example("./TwoVol.exe -i1 prot.xyzr -i2 lig.xyzr -p1 1.5 -p2 3 -g 0.6 -m1 prot.mrc -m2 lig.mrc");
+
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (file1.empty() || file2.empty()) {
+    std::cerr << "Error: both --input1 and --input2 must be provided.\n";
+    parser.print_help();
+    return 1;
+  }
+
+  GRID = grid;
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
   }
   
   if (PROBE1 < 0 && PROBE2 > 0) {
@@ -102,8 +150,8 @@ printCitation(); // Replaces CITATION;
   cerr << "DIMENSIONS:   " << DX << ", " << DY << ", " << DZ << endl;
 
 //FIRST PASS, MINMAX
-  int numatoms1 = read_NumAtoms(file1);
-  int numatoms2 = read_NumAtoms(file2);
+  int numatoms1 = read_NumAtoms(const_cast<char*>(file1.c_str()));
+  int numatoms2 = read_NumAtoms(const_cast<char*>(file2.c_str()));
 
 //CHECK LIMITS & SIZE
   assignLimits();
@@ -116,10 +164,10 @@ printCitation(); // Replaces CITATION;
 // ****************************************************
 
   shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromFile(numatoms1,PROBE1,file1,shellACC);
+  fill_AccessGrid_fromFile(numatoms1,PROBE1,const_cast<char*>(file1.c_str()),shellACC);
   if(merge == 1) {
     shellACC2 = (gridpt*) std::malloc (NUMBINS);
-    fill_AccessGrid_fromFile(numatoms2,minPROBE,file2,shellACC2);
+    fill_AccessGrid_fromFile(numatoms2,minPROBE,const_cast<char*>(file2.c_str()),shellACC2);
     cerr << "Merge Volumes 1->2" << endl;
     merge_Grids(shellACC, shellACC2);
     std::free (shellACC2);
@@ -139,10 +187,10 @@ printCitation(); // Replaces CITATION;
 // ****************************************************
 
   shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromFile(numatoms2,PROBE2,file2,shellACC);
+  fill_AccessGrid_fromFile(numatoms2,PROBE2,const_cast<char*>(file2.c_str()),shellACC);
   if(merge == 2) {
     shellACC2 = (gridpt*) std::malloc (NUMBINS);
-    fill_AccessGrid_fromFile(numatoms2,minPROBE,file1,shellACC2);
+    fill_AccessGrid_fromFile(numatoms2,minPROBE,const_cast<char*>(file1.c_str()),shellACC2);
     cerr << "Merge Volumes 2->1" << endl;
     merge_Grids(shellACC, shellACC2);
     std::free (shellACC2);
@@ -188,15 +236,15 @@ printCitation(); // Replaces CITATION;
   ** So outgrid gets bigger
   */
 
-  if(mrcfile1[0] != '\0') {
-    writeMRCFile(EXCgrid1, mrcfile1);
+  if(!mrcfile1.empty()) {
+    writeMRCFile(EXCgrid1, const_cast<char*>(mrcfile1.c_str()));
   }
 
 //RELEASE TEMPGRID
   std::free (EXCgrid1);
 
-  if(mrcfile2[0] != '\0') {
-    writeMRCFile(EXCgrid2, mrcfile2);
+  if(!mrcfile2.empty()) {
+    writeMRCFile(EXCgrid2, const_cast<char*>(mrcfile2.c_str()));
   }
 
 //RELEASE TEMPGRID

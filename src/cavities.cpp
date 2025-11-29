@@ -1,7 +1,10 @@
-#include <cstdlib>                   // for std::free, std::malloc, NULL
-#include <iostream>                   // for char_traits, cerr, cout
-#include <cstdio>                   // for snprintf
-#include "utils.h"                    // for endl, gridpt, cerr, countGrid
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
+#include "utils.h"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -19,49 +22,66 @@ int getCavitiesBothMeth(const float probe, gridpt shellACC[], gridpt shellEXC[],
 	const int natoms, char file[], char ezdfile[], char pdbfile[], char mrcfile[]);
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
-// ****************************************************
-// USER INPUT
-// ****************************************************
+  std::cerr << std::endl;
 
-printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-printCitation(); // Replaces CITATION;
-
-  char file[256]; file[0] = '\0';
-  char ezdfile[256]; ezdfile[0] = '\0';
-  char pdbfile[256]; pdbfile[0] = '\0';
-  char mrcfile[256]; mrcfile[0] = '\0';
+  std::string input_path;
+  std::string ezd_file;
+  std::string pdb_file;
+  std::string mrc_file;
   double shell_rad = 10.0;
   double probe_rad = 3.0;
   double trim_rad = 3.0;
+  float grid = GRID;
 
-  while(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'b') {
-      shell_rad = atof(&argv[2][0]);
-    } else if(argv[1][1] == 's') {
-      probe_rad = atof(&argv[2][0]);
-    } else if(argv[1][1] == 't') {
-      trim_rad = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'e') {
-      snprintf(ezdfile, sizeof(ezdfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'o') {
-      snprintf(pdbfile, sizeof(pdbfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'h') {
-      cerr << "./Cavities.exe -i <file> -g <grid spacing> -b <big/shell radius> " << endl
-        << "\t-s <small/probe radius> -t <trim_probe_rad>  " << endl
-        << "\t-e <EZD outfile> -o <PDB outfile> -m <MRC outfile>" << endl;
-      cerr << "Cavities.exe -- Extracts the cavities for a given probe radius" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Extract cavities within a molecular structure for a given probe radius.");
+  vossvolvox::add_input_option(parser, input_path);
+  parser.add_option("-b",
+                    "--shell-radius",
+                    shell_rad,
+                    10.0,
+                    "Shell (big probe) radius in Angstroms.",
+                    "<shell radius>");
+  parser.add_option("-s",
+                    "--probe-radius",
+                    probe_rad,
+                    3.0,
+                    "Probe radius in Angstroms.",
+                    "<probe>");
+  parser.add_option("-t",
+                    "--trim-radius",
+                    trim_rad,
+                    3.0,
+                    "Trim radius applied to the shell (Angstroms).",
+                    "<trim>");
+  parser.add_option("-g",
+                    "--grid",
+                    grid,
+                    GRID,
+                    "Grid spacing in Angstroms.",
+                    "<grid spacing>");
+  vossvolvox::add_ezd_option(parser, ezd_file);
+  vossvolvox::add_pdb_option(parser, pdb_file);
+  vossvolvox::add_mrc_option(parser, mrc_file);
+  parser.add_example("./Cavities.exe -i 1a01.xyzr -b 10 -s 3 -t 3 -g 0.5 -o cavities.pdb");
+
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (!vossvolvox::ensure_input_present(input_path, parser)) {
+    return 1;
+  }
+
+  GRID = grid;
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
   }
 
 // ****************************************************
@@ -74,9 +94,9 @@ printCitation(); // Replaces CITATION;
   cerr << "Grid Spacing: " << GRID << endl;
   cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
   cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
-  cerr << "Input file:   " << file << endl;
+  cerr << "Input file:   " << input_path << endl;
 //FIRST PASS, MINMAX
-  int numatoms = read_NumAtoms(file);
+  int numatoms = read_NumAtoms(const_cast<char*>(input_path.c_str()));
 //CHECK LIMITS & SIZE
   assignLimits();
 
@@ -86,7 +106,7 @@ printCitation(); // Replaces CITATION;
 
   gridpt *shellACC=NULL;
   shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromFile(numatoms,shell_rad,file,shellACC);
+  fill_AccessGrid_fromFile(numatoms,shell_rad,const_cast<char*>(input_path.c_str()),shellACC);
   fill_cavities(shellACC);
 
   gridpt *shellEXC=NULL;
@@ -97,7 +117,14 @@ printCitation(); // Replaces CITATION;
 // STARTING MAIN PROGRAM
 // ****************************************************
 
-  getCavitiesBothMeth(probe_rad,shellACC,shellEXC,numatoms,file,ezdfile,pdbfile, mrcfile);
+  getCavitiesBothMeth(probe_rad,
+                      shellACC,
+                      shellEXC,
+                      numatoms,
+                      const_cast<char*>(input_path.c_str()),
+                      const_cast<char*>(ezd_file.c_str()),
+                      const_cast<char*>(pdb_file.c_str()),
+                      const_cast<char*>(mrc_file.c_str()));
 
 // ****************************************************
 // CLEAN UP AND QUIT

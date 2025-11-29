@@ -1,6 +1,9 @@
-#include <cstdlib>                   // for std::free, std::malloc, NULL
-#include <iostream>                   // for char_traits, cerr, cout
-#include <cstdio>                   // for snprintf
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
 #include "utils.h"                    // for get_Connected, endl, gridpt, cerr
 
 extern float XMIN, YMIN, ZMIN;
@@ -22,57 +25,72 @@ void printTun(const float probe,
 void defineTunnel(gridpt tunnel[], gridpt channels[]);
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
+  std::cerr << std::endl;
 
-printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-printCitation(); // Replaces CITATION;
-
-// ****************************************************
-// INITIALIZATION :: REQUIRED
-// ****************************************************
-
-//HEADER INFO
-  char file[256]; file[0] = '\0';
-  char ezdfile[256]; ezdfile[0] = '\0';
-  char pdbfile[256]; pdbfile[0] = '\0';
-  char mrcfile[256]; mrcfile[0] = '\0';
+  std::string input_path;
+  std::string ezd_file;
+  std::string pdb_file;
+  std::string mrc_file;
   double shell_rad = 10.0;
-  double tunnel_prb = 3.000;
-  double trim_prb = 3.000;
+  double tunnel_prb = 3.0;
+  double trim_prb = 3.0;
+  float grid = GRID;
 
-  while(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'b') {
-      shell_rad = atof(&argv[2][0]);
-    } else if(argv[1][1] == 's') {
-      tunnel_prb = atof(&argv[2][0]);
-    } else if(argv[1][1] == 't') {
-      trim_prb = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'e') {
-      snprintf(ezdfile, sizeof(ezdfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'o') {
-      snprintf(pdbfile, sizeof(pdbfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'h') {
-      cerr << "./Tunnel.exe -i <file> -g <grid spacing> -s <small tunnel probe radius>" << endl
-        << "\t-e <EZD outfile> -o <PDB outfile> -m <MRC outfile>" << endl
-        << "\t-b <big shell radius> -t <trim radius>" << endl;
-      cerr << "Tunnel.exe -- Extracts the ribosomal exit tunnel from the H. marismortui structure" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Extract the ribosomal exit tunnel from a structure.");
+  vossvolvox::add_input_option(parser, input_path);
+  parser.add_option("-b",
+                    "--shell-radius",
+                    shell_rad,
+                    10.0,
+                    "Shell (big probe) radius in Angstroms.",
+                    "<shell radius>");
+  parser.add_option("-s",
+                    "--tunnel-probe",
+                    tunnel_prb,
+                    3.0,
+                    "Small tunnel probe radius in Angstroms.",
+                    "<probe>");
+  parser.add_option("-t",
+                    "--trim-radius",
+                    trim_prb,
+                    3.0,
+                    "Trim radius applied to the shell (Angstroms).",
+                    "<trim radius>");
+  parser.add_option("-g",
+                    "--grid",
+                    grid,
+                    GRID,
+                    "Grid spacing in Angstroms.",
+                    "<grid>");
+  vossvolvox::add_ezd_option(parser, ezd_file);
+  vossvolvox::add_pdb_option(parser, pdb_file);
+  vossvolvox::add_mrc_option(parser, mrc_file);
+  parser.add_example("./Tunnel.exe -i 1jj2.xyzr -b 12 -s 3 -t 4 -g 0.6 -o tunnel.pdb");
+
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (!vossvolvox::ensure_input_present(input_path, parser)) {
+    return 1;
+  }
+
+  GRID = grid;
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
   }
 
 //INITIALIZE GRID
   finalGridDims(shell_rad);
 //FIRST PASS, MINMAX
-  int numatoms = read_NumAtoms(file);
+  int numatoms = read_NumAtoms(const_cast<char*>(input_path.c_str()));
 //CHECK LIMITS & SIZE
   assignLimits();
 
@@ -80,7 +98,7 @@ printCitation(); // Replaces CITATION;
   cerr << "Grid Spacing: " << GRID << endl;
   cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
   cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
-  cerr << "Input file:   " << file << endl;
+  cerr << "Input file:   " << input_path << endl;
 
 // ****************************************************
 // BUSINESS PART
@@ -89,7 +107,7 @@ printCitation(); // Replaces CITATION;
 //Compute Shell
   gridpt *shellACC=NULL;
   shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromFile(numatoms,shell_rad,file,shellACC);
+  fill_AccessGrid_fromFile(numatoms,shell_rad,const_cast<char*>(input_path.c_str()),shellACC);
   fill_cavities(shellACC);
 
   gridpt *shellEXC=NULL;
@@ -115,7 +133,7 @@ printCitation(); // Replaces CITATION;
 //Get Access Volume for "probe"
   gridpt *access;
   access = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromFile(numatoms,tunnel_prb,file,access);
+  fill_AccessGrid_fromFile(numatoms,tunnel_prb,const_cast<char*>(input_path.c_str()),access);
 
 //Get Channels for "probe"
   gridpt *chanACC;
@@ -170,21 +188,26 @@ printCitation(); // Replaces CITATION;
   float surfEXC = surface_area(tunnEXC);
 
 //Output
-  if(pdbfile[0] != '\0') {
-    write_SurfPDB(tunnEXC, pdbfile);
+  if(!pdb_file.empty()) {
+    write_SurfPDB(tunnEXC, const_cast<char*>(pdb_file.c_str()));
   }
-  if(ezdfile[0] != '\0') {
-    write_HalfEZD(tunnEXC, ezdfile);
+  if(!ezd_file.empty()) {
+    write_HalfEZD(tunnEXC, const_cast<char*>(ezd_file.c_str()));
   }
-  if(mrcfile[0] != '\0') {
-    //writeMRCFile(tunnEXC, mrcfile);
-    writeSmallMRCFile(tunnEXC, mrcfile);
+  if(!mrc_file.empty()) {
+    writeSmallMRCFile(tunnEXC, const_cast<char*>(mrc_file.c_str()));
   }
 
   std::free (tunnEXC);
 
-  printTun(trim_prb,surfEXC,tunnEXC_voxels,0,
-	surfACC,tunnACC_voxels,chanACC_voxels,file);
+  printTun(trim_prb,
+           surfEXC,
+           tunnEXC_voxels,
+           0,
+           surfACC,
+           tunnACC_voxels,
+           chanACC_voxels,
+           const_cast<char*>(input_path.c_str()));
 
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;

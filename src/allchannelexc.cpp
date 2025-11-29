@@ -1,7 +1,10 @@
-#include <cstdlib>                   // for std::free, std::malloc, NULL
-#include <iostream>                   // for char_traits, cerr, cout
-#include <cstdio>                   // for snprintf
-#include "utils.h"                    // for endl, cerr, gridpt, countGrid
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+#include "argument_helper.h"
+#include "utils.h"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -16,60 +19,85 @@ extern float CUTOFF;
 extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
-  cerr << endl;
+  std::cerr << std::endl;
 
-  printCompileInfo(argv[0]); // Replaces COMPILE_INFO;
-  printCitation(); // Replaces CITATION;
+  std::string input_path;
+  std::string mrc_output;
+  double BIGPROBE = 9.0;
+  double SMPROBE = 1.5;
+  double TRIMPROBE = 4.0;
+  int MINSIZE = 20;
+  double minvol = 0.0;
+  double minperc = 0.0;
+  float grid = GRID;
 
-// ****************************************************
-// INITIALIZATION
-// ****************************************************
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Extract all solvent channels from a structure above a cutoff.");
+  vossvolvox::add_input_option(parser, input_path);
+  parser.add_option("-b",
+                    "--big-probe",
+                    BIGPROBE,
+                    9.0,
+                    "Probe radius for large probe (default 9.0 A).",
+                    "<big probe>");
+  parser.add_option("-s",
+                    "--small-probe",
+                    SMPROBE,
+                    1.5,
+                    "Probe radius for small probe (default 1.5 A).",
+                    "<small probe>");
+  parser.add_option("-t",
+                    "--trim-probe",
+                    TRIMPROBE,
+                    4.0,
+                    "Probe radius for trimming exterior solvent (default 4.0 A).",
+                    "<trim probe>");
+  parser.add_option("-g",
+                    "--grid",
+                    grid,
+                    GRID,
+                    "Grid spacing (default auto).",
+                    "<grid spacing>");
+  parser.add_option("-v",
+                    "--min-volume",
+                    minvol,
+                    0.0,
+                    "Minimum channel volume in A^3.",
+                    "<min volume>");
+  parser.add_option("-p",
+                    "--min-percent",
+                    minperc,
+                    0.0,
+                    "Minimum percentage of volume for inclusion (e.g., 0.01 for 1%).",
+                    "<fraction>");
+  vossvolvox::add_mrc_option(parser, mrc_output);
+  parser.add_example(
+      "./AllChannelExc.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -g 0.5 -t 4.0 -v 5000 -p 0.01");
 
-//HEADER INFO
-  char file[256]; file[0] = '\0';
-  char dirname[256]; dirname[0] = '\0';
-  char mrcfile[256]; mrcfile[0] = '\0';
-  double BIGPROBE=9.0;
-  double SMPROBE=1.5;
-  double TRIMPROBE=4.0;
-  int MINSIZE=20;
-  double minvol=0;
-  double minperc=0;
-
-  while(argc > 1 && argv[1][0] == '-') {
-    if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'b') {
-      BIGPROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 's') {
-      SMPROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 't') {
-      TRIMPROBE = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'm') {
-      snprintf(mrcfile, sizeof(mrcfile), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'v') {
-      minvol = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'p') {
-      minperc = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'i') {
-      snprintf(file, sizeof(file), "%s", &argv[2][0]);
-    } else if(argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if(argv[1][1] == 'h') {
-      cerr << "./AllChannelExc.exe -i <file> -b <big_probe> -s <small_probe> -g <gridspace> " << endl
-        << "\t-t <trim probe> -v <min-volume in A^3> -p <min-percent in %>" << endl;
-      cerr << "AllChannelExc.exe -- Extracts all channels from the solvent above a cutoff" << endl;
-      cerr << endl;
-      return 1;
-    }
-    --argc; --argc;
-    ++argv; ++argv;
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (!vossvolvox::ensure_input_present(input_path, parser)) {
+    return 1;
   }
 
-  if (minvol > 0)
-    MINSIZE = int(minvol/GRIDVOL);
-  else if (minperc == 0)
-    minperc=0.01;
+  GRID = grid;
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
+  }
+
+  if (minvol > 0) {
+    MINSIZE = int(minvol / GRIDVOL);
+  } else if (minperc == 0) {
+    minperc = 0.01;
+  }
 
   //INITIALIZE GRID
   finalGridDims(BIGPROBE);
@@ -79,11 +107,11 @@ int main(int argc, char *argv[]) {
   cerr << "Grid Spacing: " << GRID << endl;
   cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
   cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
-  cerr << "Input file:   " << file << endl;
+  cerr << "Input file:   " << input_path << endl;
   cerr << "Minimum size: " << MINSIZE << " voxels" << endl;
 
   //FIRST PASS, MINMAX
-  int numatoms = read_NumAtoms(file);
+  int numatoms = read_NumAtoms(const_cast<char*>(input_path.c_str()));
 
   //CHECK LIMITS & SIZE
   assignLimits();
@@ -97,7 +125,7 @@ int main(int argc, char *argv[]) {
   zeroGrid(biggrid);
   int bigvox;
   if(BIGPROBE > 0.0) {
-    bigvox = get_ExcludeGrid_fromFile(numatoms,BIGPROBE,file,biggrid);
+    bigvox = get_ExcludeGrid_fromFile(numatoms,BIGPROBE,const_cast<char*>(input_path.c_str()),biggrid);
   } else {
     cerr << "BIGPROBE <= 0" << endl;
     return 1;
@@ -130,7 +158,7 @@ int main(int argc, char *argv[]) {
   if (smgrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
   zeroGrid(smgrid);
   int smvox;
-  smvox = fill_AccessGrid_fromFile(numatoms,SMPROBE,file,smgrid);
+  smvox = fill_AccessGrid_fromFile(numatoms,SMPROBE,const_cast<char*>(input_path.c_str()),smgrid);
 
   // ****************************************************
   // GETTING ACCESSIBLE CHANNELS
@@ -151,8 +179,8 @@ int main(int argc, char *argv[]) {
   if (solventEXC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
   grow_ExcludeGrid(SMPROBE, solventACC, solventEXC);
   intersect_Grids(solventEXC, trimgrid); //modifies solventEXC
-  snprintf(mrcfile, sizeof(mrcfile), "allsolvent.mrc");
-  writeMRCFile(solventEXC, mrcfile);
+  const std::string solvent_output = mrc_output.empty() ? "allsolvent.mrc" : mrc_output;
+  writeMRCFile(solventEXC, const_cast<char*>(solvent_output.c_str()));
   std::free (solventACC);
 
 // ***************************************************
@@ -206,9 +234,10 @@ int main(int argc, char *argv[]) {
     printVolCout(channelEXCvol);
     long double surf = surface_area(channelEXC);
     cout << "\t" << surf << "\t" << flush;
-    cout << "\t#" << file << endl;
-    snprintf(mrcfile, sizeof(mrcfile), "channel-%03d.mrc", numchannels);
-    writeSmallMRCFile(channelEXC, mrcfile);
+    cout << "\t#" << input_path << endl;
+    char channel_file[64];
+    std::snprintf(channel_file, sizeof(channel_file), "channel-%03d.mrc", numchannels);
+    writeSmallMRCFile(channelEXC, channel_file);
     cerr << "---------------------------------------------" << endl;
   }
   if (numchannels == 0)
@@ -226,4 +255,3 @@ int main(int argc, char *argv[]) {
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;
 };
-
