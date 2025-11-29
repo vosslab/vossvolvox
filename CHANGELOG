@@ -1,5 +1,11 @@
 2025-11-28 Neil Voss <vossman77@yahoo.com>
 
+	* Added safety padding to assignLimits() (modern + legacy) to avoid OOB fills
+	* Introduced python test_volumes.py harness and volume_reference make target
+	* Expanded README/NEWS/VERSION to describe the new workflow
+
+2025-11-28 Neil Voss <vossman77@yahoo.com>
+
 	* Introduced shared argument_helper (C++17) and migrated Volume.exe to it
 	* Set the toolchain default to C++17 for upcoming CLI modernization
 

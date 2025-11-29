@@ -35,6 +35,7 @@ $(BIN_DIR):
 
 # Object files used in all programs
 OBJS = utils-main.o utils-output.o utils-mrc.o argument_helper.o
+LEGACY_OBJS = utils-main-legacy.o utils-output-legacy.o utils-mrc-legacy.o
 
 # Ensure the bin directory exists before building object files
 $(OBJS): $(BIN_DIR)
@@ -68,11 +69,20 @@ none:
 utils-main.o: utils-main.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main.o utils-main.cpp
 
+utils-main-legacy.o: utils-main-legacy.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main-legacy.o utils-main-legacy.cpp
+
 utils-output.o: utils-main.o utils-output.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output.o utils-output.cpp
 
+utils-output-legacy.o: utils-main-legacy.o utils-output.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output-legacy.o utils-output.cpp
+
 utils-mrc.o: utils-mrc.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc.o utils-mrc.cpp
+
+utils-mrc-legacy.o: utils-mrc.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc-legacy.o utils-mrc.cpp
 
 argument_helper.o: argument_helper.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o argument_helper.o argument_helper.cpp
@@ -113,6 +123,14 @@ vdw: $(OBJS) vdw.cpp
 vol: $(OBJS) volume.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
 	@chmod +x $(BIN_DIR)/Volume.exe
+
+volume_original: $(LEGACY_OBJS) volume_original.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume-legacy.exe $(LEGACY_OBJS) volume_original.cpp
+	@chmod +x $(BIN_DIR)/Volume-legacy.exe
+
+volume_reference: $(LEGACY_OBJS) volume_original.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume-1.0.exe $(LEGACY_OBJS) volume_original.cpp
+	@chmod +x $(BIN_DIR)/Volume-1.0.exe
 
 # Test target depends on the vol target
 test: vol

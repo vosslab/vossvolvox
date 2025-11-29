@@ -76,6 +76,13 @@ To install the Voss Volume Voxelator package, follow these steps:
 
 For more details, see the `QUICKSTART` section below.
 
+### Testing and Regression Harness
+
+- Run `python3 test/test_volumes.py` to regenerate filtered XYZR files, execute `Volume.exe`, `Volume-legacy.exe`, and the archival `Volume-1.0.exe`, and store the resulting PDB/MRC pairs under `test/volume_results/<PDBID>/`.
+- The script accepts `--pdb-id`, `--probe-radius`, and `--grid-spacing` so you can sweep different structures and parameters. Pass `--skip-build` once the binaries are up to date.
+- We now ship two convenience targets: `make volume_original` produces `bin/Volume-legacy.exe` (stand-alone legacy build) and `make volume_reference` rebuilds the historical `bin/Volume-1.0.exe` so it picks up the latest safety fixes.
+- Use the output tables from `test_volumes.py` to confirm volumes, surfaces, line counts, and sanitized MD5 sums remain stable after changes.
+
 ## Quickstart
 
 To get started with the Voss Volume Voxelator tools, follow these steps:
