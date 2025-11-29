@@ -7,14 +7,15 @@
 # Compiler and compilation flags
 # Set the compiler to g++
 CC = g++
-# Basic optimization and quiet mode flags
-BASE_FLAGS = -O3 -w
+# Basic optimization flag
+BASE_FLAGS = -O3
 # CPU-specific optimizations for current architecture
 CPU_FLAGS = -march=native -mtune=native
 # OpenMP flag for parallel processing
 OPENMP_FLAGS = -fopenmp
 # Default to base flags; OpenMP will be added if supported
 FLAGS = $(strip $(BASE_FLAGS) $(CPU_FLAGS))
+STD_FLAG = -std=c++17
 
 # Setup target to configure flags based on OpenMP support
 setup:
@@ -33,7 +34,7 @@ $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 # Object files used in all programs
-OBJS = utils-main.o utils-output.o utils-mrc.o
+OBJS = utils-main.o utils-output.o utils-mrc.o argument_helper.o
 
 # Ensure the bin directory exists before building object files
 $(OBJS): $(BIN_DIR)
@@ -65,49 +66,52 @@ none:
 
 # Compilation rules for individual object files
 utils-main.o: utils-main.cpp
-	$(CC) $(FLAGS) -c -o utils-main.o utils-main.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main.o utils-main.cpp
 
 utils-output.o: utils-main.o utils-output.cpp
-	$(CC) $(FLAGS) -c -o utils-output.o utils-output.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output.o utils-output.cpp
 
 utils-mrc.o: utils-mrc.cpp
-	$(CC) $(FLAGS) -c -o utils-mrc.o utils-mrc.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc.o utils-mrc.cpp
+
+argument_helper.o: argument_helper.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o argument_helper.o argument_helper.cpp
 
 # Individual program targets
 cav: $(OBJS) cavities.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/Cavities.exe $(OBJS) cavities.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Cavities.exe $(OBJS) cavities.cpp
 	@chmod +x $(BIN_DIR)/Cavities.exe
 
 chan: $(OBJS) channel.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/Channel.exe $(OBJS) channel.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Channel.exe $(OBJS) channel.cpp
 	@chmod +x $(BIN_DIR)/Channel.exe
 
 allchan: $(OBJS) allchannel.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/AllChannel.exe $(OBJS) allchannel.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/AllChannel.exe $(OBJS) allchannel.cpp
 	@chmod +x $(BIN_DIR)/AllChannel.exe
 
 allexc: $(OBJS) allchannelexc.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/AllChannelExc.exe $(OBJS) allchannelexc.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/AllChannelExc.exe $(OBJS) allchannelexc.cpp
 	@chmod +x $(BIN_DIR)/AllChannelExc.exe
 
 fsv: $(OBJS) fsv_calc.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/FsvCalc.exe $(OBJS) fsv_calc.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FsvCalc.exe $(OBJS) fsv_calc.cpp
 	@chmod +x $(BIN_DIR)/FsvCalc.exe
 
 sol: $(OBJS) solvent.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/Solvent.exe $(OBJS) solvent.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Solvent.exe $(OBJS) solvent.cpp
 	@chmod +x $(BIN_DIR)/Solvent.exe
 
 tun: $(OBJS) tunnel.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/Tunnel.exe $(OBJS) tunnel.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Tunnel.exe $(OBJS) tunnel.cpp
 	@chmod +x $(BIN_DIR)/Tunnel.exe
 
 vdw: $(OBJS) vdw.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/VDW.exe $(OBJS) vdw.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/VDW.exe $(OBJS) vdw.cpp
 	@chmod +x $(BIN_DIR)/VDW.exe
 
 vol: $(OBJS) volume.cpp
-	$(CC) $(FLAGS) -std=c++14 -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
 	@chmod +x $(BIN_DIR)/Volume.exe
 
 # Test target depends on the vol target
@@ -115,21 +119,21 @@ test: vol
 	cd ../test && ./test_volume.sh
 
 volnocav: $(OBJS) volnocav.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/VolumeNoCav.exe $(OBJS) volnocav.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/VolumeNoCav.exe $(OBJS) volnocav.cpp
 	@chmod +x $(BIN_DIR)/VolumeNoCav.exe
 
 twovol: $(OBJS) twovolnocav.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/TwoVol.exe $(OBJS) twovolnocav.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/TwoVol.exe $(OBJS) twovolnocav.cpp
 	@chmod +x $(BIN_DIR)/TwoVol.exe
 
-frac: $(OBJS) fracDim.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/FracDim.exe $(OBJS) fracDim.cpp
-	@chmod +x $(BIN_DIR)/FracDim.exe
-
 cust: $(OBJS) customvolume.cpp
-	$(CC) $(FLAGS) -o $(BIN_DIR)/Custom.exe $(OBJS) customvolume.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Custom.exe $(OBJS) customvolume.cpp
 	@chmod +x $(BIN_DIR)/Custom.exe
 
+frac: $(OBJS) fracDim.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FracDim.exe $(OBJS) fracDim.cpp
+	@chmod +x $(BIN_DIR)/FracDim.exe
+
 pdbxyzr: $(BIN_DIR) pdb_to_xyzr.cpp atmtypenumbers_data.h
-	$(CC) $(FLAGS) -std=c++17 -o $(BIN_DIR)/pdb_to_xyzr.exe pdb_to_xyzr.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/pdb_to_xyzr.exe pdb_to_xyzr.cpp
 	@chmod +x $(BIN_DIR)/pdb_to_xyzr.exe

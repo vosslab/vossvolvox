@@ -2,6 +2,8 @@
 #include <cstring>   // For std::strlen, std::strcpy, std::strrchr
 #include <iostream>  // For std::cerr
 #include <cstdio>    // For std::snprintf
+#include <string>
+#include "argument_helper.h"
 #include "utils.h"   // For custom utility functions
 
 extern float XMIN, YMIN, ZMIN;
@@ -65,94 +67,97 @@ void getDirname(char path[], char dir[]) {
   return;
 };
 
-// Function to print help message for the program
-void printHelp() {
-  std::cerr << "Usage: ./AllChannel.exe -i <file> -b <big_probe> -s <small_probe> -g <gridspace> " << std::endl
-  << "\t-t <trim_probe> -v <min_volume in A^3> -p <min_percent> -n <number_of_channels>" << std::endl
-  << std::endl;
-  std::cerr << "Purpose: AllChannel.exe extracts all solvent channels from a structure above a cutoff." << std::endl;
-  std::cerr << std::endl;
-  std::cerr << "Options:" << std::endl;
-  std::cerr << "  -i <file>         : Input file in XYZR format." << std::endl;
-  std::cerr << "  -b <big_probe>    : Probe radius for large probe (default is 9.0 Angstroms)." << std::endl;
-  std::cerr << "  -s <small_probe>  : Probe radius for small probe (default is 1.5 Angstroms)." << std::endl;
-  std::cerr << "  -g <gridspace>    : Grid spacing (default 1.0 Angstrom per voxel edge length, controlling the resolution of the grid)." << std::endl;
-  std::cerr << "  -t <trim_probe>   : Probe radius for trimming the exterior solvent (default is 4.0 Angstroms)." << std::endl;
-  std::cerr << "  -v <min_volume>   : Minimum volume in A^3 for a channel to be considered." << std::endl;
-  std::cerr << "  -p <min_percent>  : Minimum percentage of volume for channel inclusion (e.g., 0.01 for 1%)." << std::endl;
-  std::cerr << "  -n <num_channels> : Number of channels to isolate (optional, default is to find all)." << std::endl;
-  std::cerr << std::endl;
-  std::cerr << "Example: ./AllChannel.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -g 0.5 -t 4.0 -v 5000 -p 0.01 -n 1" << std::endl;
-  std::cerr << std::endl;
-  std::cerr << "AllChannel.exe will output multiple MRC files, each representing an isolated channel." << std::endl;
-}
-
-// Function to process command-line arguments and update the passed variables
-void processArguments(int argc, char* argv[], char file[], double &BIGPROBE, double &SMPROBE, double &TRIMPROBE, double &minperc, char mrcfile[], int &numchan, double &minvol, float &GRID) {
-  // Initialize defaults
-  BIGPROBE = 9.0;
-  SMPROBE = 1.5;
-  TRIMPROBE = 4.0;
-  minperc = 0;
-  numchan = 0;
-  minvol = 0;
-  GRID = 0.0;
-
-  // Process command-line arguments
-  while (argc > 1 && argv[1][0] == '-') {
-    if (argv[1][1] == 'i') {
-      snprintf(file, 256, "%s", &argv[2][0]);
-    } else if (argv[1][1] == 'b') {
-      BIGPROBE = atof(&argv[2][0]);
-    } else if (argv[1][1] == 's') {
-      SMPROBE = atof(&argv[2][0]);
-    } else if (argv[1][1] == 't') {
-      TRIMPROBE = atof(&argv[2][0]);
-    } else if (argv[1][1] == 'p') {
-      minperc = atof(&argv[2][0]);
-    } else if (argv[1][1] == 'm') {
-      snprintf(mrcfile, 256, "%s", &argv[2][0]);
-    } else if (argv[1][1] == 'n') {
-      numchan = int(atof(&argv[2][0]));
-    } else if (argv[1][1] == 'v') {
-      minvol = atof(&argv[2][0]);
-    } else if (argv[1][1] == 'g') {
-      GRID = atof(&argv[2][0]);
-    } else if (argv[1][1] == 'h') {
-      // Print help message
-      printHelp();
-      exit(0);  // Exit after printing help
-    }
-    --argc; --argc;
-    ++argv; ++argv;
-  }
-}
-
-
-
 // Main function for channel extraction
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
 
-  // Print compile information and citation
-  printCompileInfo(argv[0]);
-  printCitation();
+  std::string input_path;
+  std::string mrc_path;
+  double BIGPROBE = 9.0;
+  double SMPROBE = 1.5;
+  double TRIMPROBE = 4.0;
+  int MINSIZE = 20;
+  double minvol = 0.0;
+  double minperc = 0.0;
+  int numchan = 0;
+  float grid_override = 0.0f;
 
-  // Variable initialization
-  char file[256] = "";  // Input file name (initialized to an empty string)
-  char dirname[256] = "";  // Directory name (initialized to an empty string)
-  char mrcfile[256] = "";  // MRC file name (initialized to an empty string)
-  double BIGPROBE = 9.0;  // Default big probe radius
-  double SMPROBE = 1.5;  // Default small probe radius
-  double TRIMPROBE = 4.0;  // Default trim probe radius
-  int MINSIZE = 20;  // Default minimum size for channels
-  double minvol = 0;  // Minimum volume
-  double minperc = 0;  // Minimum percentage for channel volume
-  int numchan = 0;  // Number of channels to isolate (0 means all channels)
-  float GRID = 1.0;  // Grid spacing (default 1.0 invalid)
+  vossvolvox::ArgumentParser parser(
+      argv[0],
+      "Extract all solvent channels from a structure above a cutoff.");
+  vossvolvox::add_input_option(parser, input_path);
+  parser.add_option("-b",
+                    "--big-probe",
+                    BIGPROBE,
+                    9.0,
+                    "Probe radius for large probe (default 9.0 A).",
+                    "<big probe>");
+  parser.add_option("-s",
+                    "--small-probe",
+                    SMPROBE,
+                    1.5,
+                    "Probe radius for small probe (default 1.5 A).",
+                    "<small probe>");
+  parser.add_option("-t",
+                    "--trim-probe",
+                    TRIMPROBE,
+                    4.0,
+                    "Probe radius for trimming exterior solvent (default 4.0 A).",
+                    "<trim probe>");
+  parser.add_option("-g",
+                    "--grid",
+                    grid_override,
+                    0.0f,
+                    "Grid spacing (default auto).",
+                    "<grid spacing>");
+  parser.add_option("-v",
+                    "--min-volume",
+                    minvol,
+                    0.0,
+                    "Minimum channel volume in A^3.",
+                    "<min volume>");
+  parser.add_option("-p",
+                    "--min-percent",
+                    minperc,
+                    0.0,
+                    "Minimum percentage of volume for inclusion (e.g., 0.01 for 1%).",
+                    "<fraction>");
+  parser.add_option("-n",
+                    "--num-channels",
+                    numchan,
+                    0,
+                    "Number of channels to isolate (0 = all).",
+                    "<count>");
+  vossvolvox::add_mrc_option(parser, mrc_path);
+  parser.add_example(
+      "./AllChannel.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -g 0.5 -t 4.0 -v 5000 -p 0.01 -n 1");
 
-  // Call to process command-line arguments and modify variables accordingly
-  processArguments(argc, argv, file, BIGPROBE, SMPROBE, TRIMPROBE, minperc, mrcfile, numchan, minvol, GRID);
+  const auto parse_result = parser.parse(argc, argv);
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+    return 0;
+  }
+  if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+    return 1;
+  }
+  if (!vossvolvox::ensure_input_present(input_path, parser)) {
+    return 1;
+  }
+  if (grid_override > 0.0f) {
+    GRID = grid_override;
+  }
+
+  if (!vossvolvox::quiet_mode()) {
+    printCompileInfo(argv[0]);
+    printCitation();
+  }
+
+  char file[256] = "";
+  char dirname[256] = "";
+  char mrcfile[256] = "";
+  std::snprintf(file, sizeof(file), "%s", input_path.c_str());
+  if (!mrc_path.empty()) {
+    std::snprintf(mrcfile, sizeof(mrcfile), "%s", mrc_path.c_str());
+  }
 
   if (numchan > 0) {
     // set min volume really low and find biggest channels
@@ -447,4 +452,3 @@ int main(int argc, char *argv[]) {
   std::cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;
 };
-
