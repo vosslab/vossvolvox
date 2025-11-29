@@ -58,14 +58,11 @@ void write_PDB(const gridpt grid[], const char outfile[]) {
   }
 
   // Write header information
-  time_t t;
-  time(&t);
   out << "REMARK (c) Neil Voss, 2005" << endl;
   out << "REMARK PDB file created from " << XYZRFILE << endl;
   out << "REMARK Grid: " << GRID << "\tGRIDVOL: " << GRIDVOL
       << "\tWater_Res: " << WATER_RES << "\tMaxProbe: " << MAXPROBE
       << "\tCutoff: " << CUTOFF << endl;
-  //out << "REMARK Date: " << ctime(&t) << flush;
 
   // Progress tracking
   float count = 0;
@@ -111,7 +108,6 @@ void write_PDB(const gridpt grid[], const char outfile[]) {
 void write_SurfPDB(const gridpt grid[], const char outfile[]) {
   std::cerr << "Writing SURFACE PDB to file: " << outfile << std::endl;
   std::ofstream out(outfile);
-  time_t t;
 
   // Write header
   out << "REMARK (c) Neil Voss, 2005" << std::endl;
@@ -119,8 +115,6 @@ void write_SurfPDB(const gridpt grid[], const char outfile[]) {
   out << "REMARK Grid: " << GRID << "\tGRIDVOL: " << GRIDVOL
       << "\tWater_Res: " << WATER_RES
       << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << std::endl;
-  time(&t);
-  //out << "REMARK Date: " << ctime(&t) << std::flush;
 
   // Progress tracking
   int anum = 0, pnum = 0;
