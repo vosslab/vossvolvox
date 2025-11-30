@@ -44,6 +44,7 @@
 
 # Generated comparison artifacts
 test/pdb_to_xyzr_results/
+test/volume_results/
 
 # Kernel Module Compile Results
 *.mod*
