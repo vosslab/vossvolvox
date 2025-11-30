@@ -85,6 +85,14 @@ For more details, see the `QUICKSTART` section below.
 - Use the output tables from `test_volumes.py` to confirm volumes, surfaces, line counts, and sanitized MD5 sums remain stable after changes.
 - Run `python3 test/test_suite.py` to execute the YAML-driven regression suite defined in `test/test_suite.yml`. The runner auto-resolves binaries from `bin/`, reuses cached inputs, prints color-coded pass/fail lines with per-test runtimes, and surfaces MD5/volume mismatches immediately. Install [PyYAML](https://pyyaml.org/) (`pip install pyyaml`) before running the suite.
 - The suite exercises both traditional `.xyzr` pipelines and the new direct-PDB path (`volume_pdb_input_2LYZ`), ensuring the embedded converter stays in lockstep with the standalone script.
+- Use `python3 test/test_suite.py --list` to see all scenarios; add a YAML block whenever you fix a bug or add a feature so coverage grows with the codebase.
+
+### What's new in 2.0.0-beta5
+
+- **In-memory XYZR buffers:** `pdb_io.*` now exposes a converter library that every executable can call. Programs no longer need temporary `.xyzr` files just to populate grids.
+- **Direct structure input:** Volume.exe, Solvent.exe, and the other grid-based tools now accept `.pdb`, `.mmcif`, `.pdbml`, or `.xyzr` transparently and expose the same `-H/--hydrogens` and `--exclude-*` filtering flags as `pdb_to_xyzr`.
+- **Cleaner CLIs:** `argument_helper` gained reusable option bundles (`add_output_file_options`, `add_xyzr_filter_flags`), giving each executable the same help layout and spacing.
+- **Regression coverage:** `test/test_suite.yml` now includes `volume_pdb_input_2LYZ` so the embedded converter stays in sync with the standalone script even when reading raw PDB/mmCIF files.
 
 #### YAML test-suite reference
 

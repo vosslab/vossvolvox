@@ -7,6 +7,8 @@ gunzip 1A01.pdb.gz
 # Step 2: Convert to XYZR with the native converter (filter ions/water directly)
 ./bin/pdb_to_xyzr.exe --exclude-ions --exclude-water 1A01.pdb > 1a01-filtered.xyzr
 # (Alternatively: python3 xyzr/pdb_to_xyzr.py ...)
+#   or skip the intermediate file entirely and let Volume.exe read the PDB:
+# ./bin/Volume.exe -i 1A01.pdb --exclude-ions --exclude-water -p 1.5 -g 0.5 -o 1a01-excluded.pdb
 
 # Step 3: Compile the Program
 # Navigate to the source directory and build the 'vol' program
@@ -15,8 +17,10 @@ make vol
 cd ..
 
 # Step 4: Calculate Solvent Excluded Volume
-# Run the Volume.exe tool with the desired input and parameters
+# Run the Volume.exe tool with the desired input and parameters (XYZR or raw PDB)
 bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5
+# or
+# bin/Volume.exe -i 1A01.pdb --exclude-ions --exclude-water -p 1.5 -g 0.5
 
 # Step 5: Output to PDB (Visualize with RasMol or another molecular viewer)
 bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5 -o 1a01-excluded.pdb
