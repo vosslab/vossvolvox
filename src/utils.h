@@ -80,6 +80,18 @@ using std::cout;
   struct vector { float x; float y; float z; };
 #endif
 
+struct XYZRAtom {
+  float x;
+  float y;
+  float z;
+  float r;
+};
+
+struct XYZRBuffer {
+  std::vector<XYZRAtom> atoms;
+  inline int size() const { return static_cast<int>(atoms.size()); }
+};
+
 //init functions
 void finalGridDims (float maxprobe);
 float getIdealGrid ();
@@ -95,8 +107,13 @@ void inverseGrid (gridpt grid[]);
 
 //file based functions
 int read_NumAtoms (char file[]);
+int read_NumAtoms_from_array (const XYZRBuffer& buffer);
 int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[], gridpt grid[]);
+int fill_AccessGrid_fromArray (int numatoms, const float probe,
+	const XYZRBuffer& buffer, gridpt grid[]);
 int get_ExcludeGrid_fromFile (int numatoms, const float probe, char file[], gridpt EXCgrid[]);
+int get_ExcludeGrid_fromArray (int numatoms, const float probe,
+	const XYZRBuffer& buffer, gridpt EXCgrid[]);
 
 //generate grids / grid changers
 //void expand (gridpt oldgrid[], gridpt newgrid[]);

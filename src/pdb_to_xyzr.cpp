@@ -118,44 +118,22 @@ int main(int argc, char** argv) {
         print_citation();
     }
 
-    vossvolvox::pdbio::PdbToXyzrConverter converter;
     vossvolvox::pdbio::ConversionOptions convert_options;
     convert_options.use_united = options.use_united;
     convert_options.filters = options.filters;
 
     const bool use_stdin = options.input == "-";
-#if VOSS_HAVE_GEMMI
     if (!use_stdin) {
-        if (converter.ConvertWithGemmi(options.input, convert_options, std::cout)) {
-            return 0;
-        }
-        if (vossvolvox::pdbio::IsMmcifFile(options.input) ||
-            vossvolvox::pdbio::IsPdbmlFile(options.input)) {
+        vossvolvox::pdbio::XyzrData data;
+        if (!vossvolvox::pdbio::ReadFileToXyzr(options.input, convert_options, data)) {
             return 2;
         }
+        vossvolvox::pdbio::WriteXyzrToStream(std::cout, data);
+        return 0;
     }
-#else
-    if (!use_stdin &&
-        (vossvolvox::pdbio::IsMmcifFile(options.input) ||
-         vossvolvox::pdbio::IsPdbmlFile(options.input))) {
-        std::cerr << "pdb_to_xyzr: this build lacks Gemmi; unable to read '" << options.input
-                  << "'. Please install Gemmi headers and recompile." << std::endl;
-        return 2;
-    }
-#endif
 
-    std::istream* input = &std::cin;
-    std::ifstream file_stream;
-    if (!use_stdin) {
-        file_stream.open(options.input);
-        if (!file_stream) {
-            std::cerr << "pdb_to_xyzr: unable to open '" << options.input << "'" << std::endl;
-            return 2;
-        }
-        input = &file_stream;
-    }
-    const std::string label = use_stdin ? "<stdin>" : options.input;
-    converter.ConvertStream(*input, label, convert_options, std::cout);
+    vossvolvox::pdbio::PdbToXyzrConverter converter;
+
+    converter.ConvertStream(std::cin, "<stdin>", convert_options, std::cout);
     return 0;
 }
-

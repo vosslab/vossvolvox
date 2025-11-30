@@ -615,4 +615,32 @@ bool LoadStructureAsXyzr(const std::string& path,
     return converter.ConvertFileToAtoms(path, options, atoms);
 }
 
+bool ReadFileToXyzr(const std::string& path,
+                    const ConversionOptions& options,
+                    XyzrData& data) {
+    return LoadStructureAsXyzr(path, options, data.atoms);
+}
+
+bool WriteXyzrToFile(const std::string& path, const XyzrData& data) {
+    std::ofstream output(path);
+    if (!output) {
+        return false;
+    }
+    WriteXyzrToStream(output, data);
+    return true;
+}
+
+void WriteXyzrToStream(std::ostream& output, const XyzrData& data) {
+    auto old_flags = output.flags();
+    auto old_precision = output.precision();
+    for (const auto& atom : data.atoms) {
+        output << std::setw(8) << std::fixed << std::setprecision(3) << atom.x << ' '
+               << std::setw(8) << std::setprecision(3) << atom.y << ' '
+               << std::setw(8) << std::setprecision(3) << atom.z << ' '
+               << std::setprecision(2) << atom.radius << '\n';
+    }
+    output.flags(old_flags);
+    output.precision(old_precision);
+}
+
 }  // namespace vossvolvox::pdbio

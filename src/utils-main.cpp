@@ -357,6 +357,68 @@ int read_NumAtoms (char file[]) {
 };
 
 /*********************************************/
+int read_NumAtoms_from_array (const XYZRBuffer& buffer) {
+  const int total = buffer.size();
+  if (total <= 0) {
+    std::cerr << "read_NumAtoms_from_array: buffer is empty" << std::endl;
+    exit(1);
+  }
+  std::strncpy(XYZRFILE, "<memory>", sizeof(XYZRFILE));
+  XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
+  int count = 0;
+  float minmax[6];
+  minmax[0] = 100;  minmax[1] = 100;  minmax[2] = 100;
+  minmax[3] = -100;  minmax[4] = -100;  minmax[5] = -100;
+
+  std::cerr << "Processing in-memory XYZR buffer (" << total << " atoms)" << std::endl;
+  for(const auto& atom : buffer.atoms) {
+    const float x = atom.x;
+    const float y = atom.y;
+    const float z = atom.z;
+    const float r = atom.r;
+    if (r > 0 && r < 100) {
+      count++;
+      if(count % 3000 == 0) { std::cerr << "." << std::flush; }
+      if(x < minmax[0]) { minmax[0] = x; }
+      if(x > minmax[3]) { minmax[3] = x; }
+      if(y < minmax[1]) { minmax[1] = y; }
+      if(y > minmax[4]) { minmax[4] = y; }
+      if(z < minmax[2]) { minmax[2] = z; }
+      if(z > minmax[5]) { minmax[5] = z; }
+    }
+  }
+  std::cerr << std::endl;
+  for(int i=0; i<=5; i++) {
+    std::cerr << minmax[i] << " -- " << std::flush;
+  }
+  std::cerr << std::endl << " [ processed " << count << " atoms ]" << std::endl << std::endl;
+  if (count < 3) {
+    std::cerr << std::endl << " not enough atoms were found" << std::endl << std::endl;
+    exit(1);
+  }
+
+  float FACT = MAXVDW + MAXPROBE + 2*GRID;
+  for(int i=0;i<=2;i++) {
+    minmax[i] -= FACT;
+    minmax[i] = int(minmax[i]/(4*GRID)-1)*4*GRID;
+  }
+  for(int i=3;i<=5;i++) {
+    minmax[i] += FACT;
+    minmax[i] = int(minmax[i]/(4*GRID)+1)*4*GRID;
+  }
+  if(minmax[0] < XMIN) { XMIN = minmax[0]; }
+  if(minmax[1] < YMIN) { YMIN = minmax[1]; }
+  if(minmax[2] < ZMIN) { ZMIN = minmax[2]; }
+  if(minmax[3] > XMAX) { XMAX = minmax[3]; }
+  if(minmax[4] > YMAX) { YMAX = minmax[4]; }
+  if(minmax[5] > ZMAX) { ZMAX = minmax[5]; }
+
+  std::cerr << "Now Run AssignLimits() to Get NUMBINS Variable" << std::endl << std::endl;
+
+  return count;
+};
+
+/*********************************************/
 int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
 	gridpt grid[]) {
 
@@ -407,6 +469,56 @@ int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
 };
 
 /*********************************************/
+int fill_AccessGrid_fromArray (int numatoms, const float probe,
+	const XYZRBuffer& buffer, gridpt grid[]) {
+
+  if (grid==NULL) {
+    std::cerr << "Allocating Grid..." << std::endl;
+    grid = (gridpt*) std::malloc (NUMBINS);
+    if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
+  }
+  zeroGrid(grid);
+
+  if(!XYZRFILE[0]) {
+    std::strncpy(XYZRFILE, "<memory>", sizeof(XYZRFILE));
+    XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
+  }
+
+  const int total = buffer.size();
+  if (numatoms <= 0 || numatoms > total) {
+    numatoms = total;
+  }
+
+  float count = 0;
+  const float cat = numatoms > 0 ? float(numatoms)/60.0f : 1.0f;
+  float cut = cat;
+
+  std::cerr << "Filling in-memory atoms into Grid (probe " << probe << ")..." << std::endl;
+  printBar();
+
+  int filled=0;
+  for(int idx = 0; idx < numatoms; ++idx) {
+    const auto& atom = buffer.atoms[idx];
+    count++;
+    if(count > cut) {
+      std::cerr << "^" << std::flush;
+      cut += cat;
+    }
+    filled += fill_AccessGrid(atom.x, atom.y, atom.z, atom.r + probe, grid);
+  }
+  std::cerr << std::endl << "[ processed " << count << " atoms ]" << std::endl;
+
+  std::cerr << std::endl << "Access volume for probe " << probe << std::flush;
+  std::cerr << "   voxels " << filled << std::flush;
+  std::cerr << " x gridvol " << GRIDVOL << std::endl;
+  std::cerr << "  ACCESS VOL:  ";
+  printVol(filled);
+  std::cerr << std::endl;
+
+  return filled;
+};
+
+/*********************************************/
 int get_ExcludeGrid_fromFile (int numatoms, const float probe,
 	char file[], gridpt EXCgrid[]) {
 //READ FILE INTO ACCGRID
@@ -424,6 +536,31 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
   std::free (ACCgrid);
 
 //OUTPUT INFO
+  int voxels = countGrid(EXCgrid);
+  std::cerr << std::endl << "******************************************" << std::endl;
+  std::cerr << "Excluded Volume for Probe " << probe << std::flush;
+  std::cerr << "   voxels " << voxels << std::flush;
+  std::cerr << " x gridvol " << GRIDVOL << std::endl;
+  std::cerr << "  EXCLUDED VOL:  ";
+  printVol(voxels);
+  std::cerr << std::endl << "******************************************" << std::endl;
+
+  return voxels;
+};
+
+/*********************************************/
+int get_ExcludeGrid_fromArray (int numatoms, const float probe,
+	const XYZRBuffer& buffer, gridpt EXCgrid[]) {
+  gridpt *ACCgrid;
+  std::cerr << "Allocating Grid..." << std::endl;
+  ACCgrid = (gridpt*) std::malloc (NUMBINS);
+  if (ACCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
+  fill_AccessGrid_fromArray(numatoms,probe,buffer,ACCgrid);
+
+  trun_ExcludeGrid_fast(probe, ACCgrid, EXCgrid);
+
+  std::free (ACCgrid);
+
   int voxels = countGrid(EXCgrid);
   std::cerr << std::endl << "******************************************" << std::endl;
   std::cerr << "Excluded Volume for Probe " << probe << std::flush;
