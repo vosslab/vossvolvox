@@ -1,0 +1,57 @@
+tests:
+  - name: volume_modern_2LYZ
+    description: Verify modern Volume.exe output for 2LYZ at probe 2.1 / grid 0.9
+    workdir: volume_results/2LYZ
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 2LYZ
+        dest: 2LYZ.pdb
+      - action: convert_xyzr
+        pdb: 2LYZ.pdb
+        output: 2LYZ-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+    command:
+      - ../../../bin/Volume.exe
+      - -i 2LYZ-modern-suite.xyzr
+      - -p 2.1
+      - -g 0.9
+      - -o 2LYZ-volume-suite.pdb
+      - -m 2LYZ-volume-suite.mrc
+    expect:
+      summary:
+        volume: 18551.124
+        surface: 4982.05
+        atoms: 1001
+      pdb:
+        path: 2LYZ-volume-suite.pdb
+        lines: 4874
+        md5: c5be764829fea313f023c1b6554e7fa0
+
+  - name: channel_seed_2LYZ
+    description: Ensure Channel.exe handles an empty seed on 2LYZ
+    workdir: volume_results/2LYZ
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 2LYZ
+        dest: 2LYZ.pdb
+      - action: convert_xyzr
+        pdb: 2LYZ.pdb
+        output: 2LYZ-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+    command:
+      - ../../../bin/Channel.exe
+      - -i 2LYZ-modern-suite.xyzr
+      - -b 2.5
+      - -s 1.5
+      - -t 2.0
+      - -g 0.9
+      - -x -10
+      - -y 5
+      - -z 0
+      - -o 2LYZ-channel-suite.pdb
+    expect:
+      stdout_contains: "Accessible Channel Volume"
+      pdb:
+        path: 2LYZ-channel-suite.pdb
+        lines: 4
+        md5: 28f8030d94e377501ce7de4a177f9ac9
