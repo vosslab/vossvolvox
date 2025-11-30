@@ -1,3 +1,10 @@
+2025-11-29 Neil Voss <vossman77@yahoo.com>
+
+	* Added pdb_io library + XYZRBuffer helpers so all tools can share in-memory XYZR data
+	* Updated Volume.exe to auto-detect PDB/mmCIF/PDBML/XYZR inputs and expose pdb_to_xyzr filtering flags
+	* Extended README/INSTALL/QUICKSTART to describe direct PDB usage and new CLI options
+	* Expanded VERSION/NEWS for the 2.0.0-beta5 release and added YAML coverage for PDB input
+
 2025-11-28 Neil Voss <vossman77@yahoo.com>
 
 	* Added safety padding to assignLimits() (modern + legacy) to avoid OOB fills

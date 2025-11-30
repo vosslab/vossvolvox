@@ -70,6 +70,7 @@ To install the Voss Volume Voxelator package, follow these steps:
 
 - The native `pdb_to_xyzr.exe` uses the [Gemmi](https://gemmi.readthedocs.io/) reader when the headers are available, which enables direct parsing of PDB, mmCIF, PDBML, and their `.gz` variants without intermediate scripts.
 - All converters now accept `--exclude-*` flags (`ions`, `ligands`, `hetatm`, `water`, `nucleic-acids`, `amino-acids`) so you can trim structures without ad-hoc `grep` pipelines.
+- Every grid executable (Volume.exe, Solvent.exe, etc.) now auto-detects `.xyzr`, `.pdb`, `.mmcif`, and `.pdbml` inputs and exposes the same `-H/--hydrogens` and `--exclude-*` switches as `pdb_to_xyzr.exe`, so you can point tools directly at raw structural files.
 - Every executable shares a unified C++17 CLI helper, so `./bin/<tool> --help` now prints consistent usage information.
 - Install Gemmi via your preferred package manager (e.g., `pip install gemmi` or `brew install gemmi`) before running `make`. The build automatically detects the headers via `__has_include`.
 - **Security updates:** because Gemmi is header-only, periodically update the installed package (`pip install --upgrade gemmi` or `brew upgrade gemmi`) and rebuild `pdb_to_xyzr.exe` to pick up upstream fixes.
@@ -83,6 +84,7 @@ For more details, see the `QUICKSTART` section below.
 - We now ship two convenience targets: `make volume_original` produces `bin/Volume-legacy.exe` (stand-alone legacy build) and `make volume_reference` rebuilds the historical `bin/Volume-1.0.exe` so it picks up the latest safety fixes.
 - Use the output tables from `test_volumes.py` to confirm volumes, surfaces, line counts, and sanitized MD5 sums remain stable after changes.
 - Run `python3 test/test_suite.py` to execute the YAML-driven regression suite defined in `test/test_suite.yml`. The runner auto-resolves binaries from `bin/`, reuses cached inputs, prints color-coded pass/fail lines with per-test runtimes, and surfaces MD5/volume mismatches immediately. Install [PyYAML](https://pyyaml.org/) (`pip install pyyaml`) before running the suite.
+- The suite exercises both traditional `.xyzr` pipelines and the new direct-PDB path (`volume_pdb_input_2LYZ`), ensuring the embedded converter stays in lockstep with the standalone script.
 
 #### YAML test-suite reference
 
@@ -121,6 +123,8 @@ To get started with the Voss Volume Voxelator tools, follow these steps:
    ```
    - Additional switches include `--exclude-ligands`, `--exclude-hetatm`, `--exclude-amino-acids`, and `--exclude-nucleic-acids`, letting you tailor the structure to your workflow without external `grep` passes.
    - The legacy shell (`xyzr/pdb_to_xyzr.sh`) and Python (`xyzr/pdb_to_xyzr.py`) scripts are still available if you need to compare outputs.
+   - Prefer to skip the intermediate file? `Volume.exe` (and friends) now accept raw PDB/mmCIF/PDBML directly with the same filters:  
+     `bin/Volume.exe -i 1A01.pdb --exclude-ions --exclude-water -p 1.5 -g 0.5`.
 
 3. **Compile the Program**
    Navigate to the source directory and build the `vol` program:

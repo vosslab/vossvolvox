@@ -1,3 +1,4 @@
+11-29-2025	2.0.0-beta5: in-memory XYZR buffers, direct PDB/mmCIF inputs, and shared filtering flags in Volume.exe
 11-28-2025	2.0.0-beta4: grid-padding fixes + python regression harness (YAML-driven suite)
 11-28-2025	2.0.0-beta3: shared argument helper (C++17) and unified Volume.exe CLI
 11-28-2025	2.0.0-beta2: native pdb_to_xyzr converters with filtering + new tests

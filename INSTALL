@@ -31,5 +31,6 @@ Installation Steps
    - To test the programs, you can run any of the compiled executables. For example:
      ./bin/pdb_to_xyzr.exe --help   # new converter with filtering options
      ./bin/Volume.exe -h            # main volume tool
+     ./bin/Volume.exe -i 1A01.pdb --exclude-ions --exclude-water -p 1.5 -g 0.5  # direct PDB input with filters
 
 See the QUICKSTART file for example usage.
