@@ -82,6 +82,7 @@ For more details, see the `QUICKSTART` section below.
 - The script accepts `--pdb-id`, `--probe-radius`, and `--grid-spacing` so you can sweep different structures and parameters. Pass `--skip-build` once the binaries are up to date.
 - We now ship two convenience targets: `make volume_original` produces `bin/Volume-legacy.exe` (stand-alone legacy build) and `make volume_reference` rebuilds the historical `bin/Volume-1.0.exe` so it picks up the latest safety fixes.
 - Use the output tables from `test_volumes.py` to confirm volumes, surfaces, line counts, and sanitized MD5 sums remain stable after changes.
+- Run `python3 test/test_suite.py` to execute the YAML-driven regression suite defined in `test/test_suite.yml`. Each entry describes the program, CLI arguments, prerequisites (PDB download/XYZR conversion), and expected results (volume, surface, PDB line counts, MD5). The suite caches structures under `test/volume_results/<PDBID>/` and falls back to downloading from the RCSB if the cache is missing. This tool requires [PyYAML](https://pyyaml.org/) (`pip install pyyaml`).
 
 ## Quickstart
 

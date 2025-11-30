@@ -1,4 +1,4 @@
-11-28-2025	2.0.0-beta4: grid-padding fixes + python volume regression harness
+11-28-2025	2.0.0-beta4: grid-padding fixes + python regression harness (YAML-driven suite)
 11-28-2025	2.0.0-beta3: shared argument helper (C++17) and unified Volume.exe CLI
 11-28-2025	2.0.0-beta2: native pdb_to_xyzr converters with filtering + new tests
 11-14-2024	2.0.0-beta1: codebase modernization (refactors and prep for new converters)

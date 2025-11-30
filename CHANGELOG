@@ -1,7 +1,8 @@
 2025-11-28 Neil Voss <vossman77@yahoo.com>
 
 	* Added safety padding to assignLimits() (modern + legacy) to avoid OOB fills
-	* Introduced python test_volumes.py harness and volume_reference make target
+	* Introduced python test_volumes.py harness, YAML-driven test_suite.py, and volume_reference make target
+	* Removed redundant xyzr/pdb_to_xyzr_legacy.py + sort_xyzr.py in favor of the native converter
 	* Expanded README/NEWS/VERSION to describe the new workflow
 
 2025-11-28 Neil Voss <vossman77@yahoo.com>
