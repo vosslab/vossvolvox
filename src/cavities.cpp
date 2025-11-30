@@ -61,9 +61,7 @@ int main(int argc, char *argv[]) {
                     GRID,
                     "Grid spacing in Angstroms.",
                     "<grid spacing>");
-  vossvolvox::add_ezd_option(parser, ezd_file);
-  vossvolvox::add_pdb_option(parser, pdb_file);
-  vossvolvox::add_mrc_option(parser, mrc_file);
+  vossvolvox::add_output_file_options(parser, pdb_file, ezd_file, mrc_file);
   parser.add_example("./Cavities.exe -i 1a01.xyzr -b 10 -s 3 -t 3 -g 0.5 -o cavities.pdb");
 
   const auto parse_result = parser.parse(argc, argv);

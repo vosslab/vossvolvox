@@ -58,9 +58,7 @@ int main(int argc, char *argv[]) {
                     GRID,
                     "Grid spacing in Angstroms.",
                     "<grid spacing>");
-  vossvolvox::add_ezd_option(parser, ezd_file);
-  vossvolvox::add_pdb_option(parser, pdb_file);
-  vossvolvox::add_mrc_option(parser, mrc_file);
+  vossvolvox::add_output_file_options(parser, pdb_file, ezd_file, mrc_file);
   parser.add_example("./Solvent.exe -i sample.xyzr -s 1.5 -b 9.0 -t 4 -g 0.5 -o solvent.pdb");
 
   const auto parse_result = parser.parse(argc, argv);

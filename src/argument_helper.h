@@ -128,6 +128,60 @@ inline void add_mrc_option(ArgumentParser& parser, std::string& target) {
                     "<MRC file>");
 }
 
+inline void add_output_file_options(ArgumentParser& parser,
+                                    std::string& pdb_output,
+                                    std::string& ezd_output,
+                                    std::string& mrc_output) {
+  add_pdb_option(parser, pdb_output);
+  add_ezd_option(parser, ezd_output);
+  add_mrc_option(parser, mrc_output);
+}
+
+inline void add_xyzr_filter_flags(ArgumentParser& parser,
+                                  bool& use_hydrogens,
+                                  bool& exclude_ions,
+                                  bool& exclude_ligands,
+                                  bool& exclude_hetatm,
+                                  bool& exclude_water,
+                                  bool& exclude_nucleic_acids,
+                                  bool& exclude_amino_acids) {
+  parser.add_flag("-H",
+                  "--hydrogens",
+                  use_hydrogens,
+                  false,
+                  "Use explicit hydrogen radii (explicit radii table).");
+  parser.add_flag("",
+                  "--exclude-ions",
+                  exclude_ions,
+                  false,
+                  "Drop residues classified as ions.");
+  parser.add_flag("",
+                  "--exclude-ligands",
+                  exclude_ligands,
+                  false,
+                  "Drop non-polymer ligands.");
+  parser.add_flag("",
+                  "--exclude-hetatm",
+                  exclude_hetatm,
+                  false,
+                  "Drop residues composed only of HETATM records.");
+  parser.add_flag("",
+                  "--exclude-water",
+                  exclude_water,
+                  false,
+                  "Drop water molecules.");
+  parser.add_flag("",
+                  "--exclude-nucleic-acids",
+                  exclude_nucleic_acids,
+                  false,
+                  "Drop nucleic-acid residues.");
+  parser.add_flag("",
+                  "--exclude-amino-acids",
+                  exclude_amino_acids,
+                  false,
+                  "Drop amino-acid residues.");
+}
+
 inline bool ensure_input_present(const std::string& input, const ArgumentParser& parser) {
   if (!input.empty()) {
     return true;

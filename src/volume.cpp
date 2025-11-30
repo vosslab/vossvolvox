@@ -53,16 +53,15 @@ int main(int argc, char* argv[]) {
   parser.add_option("-i", "--input", inputFile, std::string(), "Input XYZR file (required).", "<XYZR file>");
   parser.add_option("-p", "--probe", probe, 10.0, "Probe radius in Angstroms (default 10.0).", "<probe radius>");
   parser.add_option("-g", "--grid", grid, GRID, "Grid spacing in Angstroms.", "<grid spacing>");
-  parser.add_option("-o", "--pdb-output", pdbFile, std::string(), "Write accessible surface points to this PDB file.", "<PDB file>");
-  parser.add_option("-e", "--ezd-output", ezdFile, std::string(), "Write excluded density to this EZD file.", "<EZD file>");
-  parser.add_option("-m", "--mrc-output", mrcFile, std::string(), "Write excluded density to this MRC file.", "<MRC file>");
-  parser.add_flag("-H", "--hydrogens", use_hydrogens, false, "Use explicit hydrogen radii (explicit radii table).");
-  parser.add_flag("", "--exclude-ions", exclude_ions, false, "Drop residues classified as ions.");
-  parser.add_flag("", "--exclude-ligands", exclude_ligands, false, "Drop non-polymer ligands.");
-  parser.add_flag("", "--exclude-hetatm", exclude_hetatm, false, "Drop residues composed only of HETATM records.");
-  parser.add_flag("", "--exclude-water", exclude_water, false, "Drop water molecules.");
-  parser.add_flag("", "--exclude-nucleic-acids", exclude_nucleic, false, "Drop nucleic-acid residues.");
-  parser.add_flag("", "--exclude-amino-acids", exclude_amino, false, "Drop amino-acid residues.");
+  vossvolvox::add_output_file_options(parser, pdbFile, ezdFile, mrcFile);
+  vossvolvox::add_xyzr_filter_flags(parser,
+                                    use_hydrogens,
+                                    exclude_ions,
+                                    exclude_ligands,
+                                    exclude_hetatm,
+                                    exclude_water,
+                                    exclude_nucleic,
+                                    exclude_amino);
   parser.add_example(std::string(argv[0]) + " -i sample.xyzr -p 1.5 -g 0.5 -o surface.pdb");
 
   const auto parse_result = parser.parse(argc, argv);

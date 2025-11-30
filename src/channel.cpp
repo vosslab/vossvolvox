@@ -80,9 +80,7 @@ int main(int argc, char *argv[]) {
                     1000.0,
                     "Seed Z coordinate for channel selection.",
                     "<z>");
-  vossvolvox::add_pdb_option(parser, pdb_file);
-  vossvolvox::add_ezd_option(parser, ezd_file);
-  vossvolvox::add_mrc_option(parser, mrc_file);
+  vossvolvox::add_output_file_options(parser, pdb_file, ezd_file, mrc_file);
   parser.add_example(
       "./Channel.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -t 4.0 -x -10 -y 5 -z 0 -o channel.pdb");
 

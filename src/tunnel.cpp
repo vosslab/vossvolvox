@@ -64,9 +64,7 @@ int main(int argc, char *argv[]) {
                     GRID,
                     "Grid spacing in Angstroms.",
                     "<grid>");
-  vossvolvox::add_ezd_option(parser, ezd_file);
-  vossvolvox::add_pdb_option(parser, pdb_file);
-  vossvolvox::add_mrc_option(parser, mrc_file);
+  vossvolvox::add_output_file_options(parser, pdb_file, ezd_file, mrc_file);
   parser.add_example("./Tunnel.exe -i 1jj2.xyzr -b 12 -s 3 -t 4 -g 0.6 -o tunnel.pdb");
 
   const auto parse_result = parser.parse(argc, argv);

@@ -82,6 +82,7 @@ void ArgumentParser::print_help(std::ostream& os) const {
     os << description_ << "\n\n";
   }
   os << "Options:\n";
+  constexpr int kColumnWidth = 32;
   for (const auto& opt_ptr : options_) {
     const auto& opt = *opt_ptr;
     std::ostringstream names;
@@ -97,7 +98,7 @@ void ArgumentParser::print_help(std::ostream& os) const {
     if (opt.expects_value && !opt.placeholder.empty()) {
       rendered += " " + opt.placeholder;
     }
-    os << "  " << std::left << std::setw(18) << rendered << opt.description << "\n";
+    os << "  " << std::left << std::setw(kColumnWidth) << rendered << opt.description << "\n";
   }
   if (!examples_.empty()) {
     os << "\nExamples:\n";
