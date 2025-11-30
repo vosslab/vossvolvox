@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -185,9 +186,11 @@ def download_pdb(pdb_id: str, dest: Path) -> None:
         shutil.copyfileobj(stream, out)
 
 
-def convert_xyzr(pdb: Path, output: Path, filters: List[str]) -> None:
+def convert_xyzr(pdb: Path, output: Path, filters: List[str], overwrite: bool = False) -> None:
     if output.exists():
-        return
+        if not overwrite:
+            return
+        output.unlink()
     ensure_dir(output.parent)
     converter = BIN_DIR / "pdb_to_xyzr.exe"
     cmd = [str(converter), *filters, str(pdb)]
@@ -205,14 +208,19 @@ def handle_prerequisite(action: Dict[str, Any], workdir: Path) -> None:
         pdb_path = resolve_path(workdir, action["pdb"])
         output = resolve_path(workdir, action["output"])
         filters = action.get("filters", [])
-        convert_xyzr(pdb_path, output, filters)
+        overwrite = action.get("overwrite", False)
+        convert_xyzr(pdb_path, output, filters, overwrite=overwrite)
     elif kind == "ensure_dir":
         ensure_dir(resolve_path(workdir, action.get("path", ".")))
+    elif kind == "remove":
+        target = resolve_path(workdir, action["path"])
+        if target.exists():
+            target.unlink()
     else:
         raise TestFailure(f"Unknown prerequisite action: {kind}")
 
 
-def run_test(test: Dict[str, Any]) -> None:
+def run_test(test: Dict[str, Any]) -> float:
     name = test["name"]
     rel_workdir = test.get("workdir", ".")
     workdir = (TEST_DIR / rel_workdir).resolve()
@@ -221,20 +229,31 @@ def run_test(test: Dict[str, Any]) -> None:
     for prereq in test.get("prerequisites", []):
         handle_prerequisite(prereq, workdir)
 
-    command_entries = test["command"]
-    if not isinstance(command_entries, list):
-        raise TestFailure(f"Test {name}: command must be a list.")
-
+    program = test.get("program")
     import shlex
 
-    command: List[str] = []
-    for entry in command_entries:
-        if isinstance(entry, list):
-            command.extend(entry)
-        else:
+    if program:
+        program_path = BIN_DIR / program
+        if not program_path.exists():
+            raise TestFailure(f"{name}: program {program_path} not found. Build the binaries first.")
+        command = [str(program_path)]
+        args_entries = test.get("args", [])
+        for entry in args_entries:
             command.extend(shlex.split(str(entry)))
+    else:
+        command_entries = test.get("command")
+        if not isinstance(command_entries, list):
+            raise TestFailure(f"Test {name}: command must be a list.")
+        command = []
+        for entry in command_entries:
+            if isinstance(entry, list):
+                command.extend(entry)
+            else:
+                command.extend(shlex.split(str(entry)))
 
+    start = time.perf_counter()
     result = run(command, cwd=workdir)
+    duration = time.perf_counter() - start
     expect = test.get("expect", {})
 
     if "summary" in expect:
@@ -271,6 +290,8 @@ def run_test(test: Dict[str, Any]) -> None:
         if needle not in combined:
             raise TestFailure(f"{name}: stdout missing expected text: {needle}")
 
+    return duration
+
 
 def load_tests(path: Path) -> List[Dict[str, Any]]:
     data = yaml.safe_load(path.read_text())
@@ -295,16 +316,18 @@ def main() -> None:
         return
 
     failures = []
+    durations = []
     for test in tests:
         name = test["name"]
         info(f"▶ Running {name} ...")
         try:
-            run_test(test)
+            elapsed = run_test(test)
+            durations.append((name, elapsed))
         except TestFailure as exc:
             error(f"✖ {name}: {exc}")
             failures.append(name)
         else:
-            success(f"✔ {name}")
+            success(f"✔ {name} [{elapsed:.2f}s]")
 
     if failures:
         error(f"{len(failures)} test(s) failed.")

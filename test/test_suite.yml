@@ -10,8 +10,9 @@ tests:
         pdb: 2LYZ.pdb
         output: 2LYZ-modern-suite.xyzr
         filters: ["--exclude-ions", "--exclude-water"]
-    command:
-      - ../../../bin/Volume.exe
+        overwrite: true
+    program: Volume.exe
+    args:
       - -i 2LYZ-modern-suite.xyzr
       - -p 2.1
       - -g 0.9
@@ -38,8 +39,9 @@ tests:
         pdb: 2LYZ.pdb
         output: 2LYZ-modern-suite.xyzr
         filters: ["--exclude-ions", "--exclude-water"]
-    command:
-      - ../../../bin/Channel.exe
+        overwrite: true
+    program: Channel.exe
+    args:
       - -i 2LYZ-modern-suite.xyzr
       - -b 2.5
       - -s 1.5
@@ -55,3 +57,56 @@ tests:
         path: 2LYZ-channel-suite.pdb
         lines: 4
         md5: 28f8030d94e377501ce7de4a177f9ac9
+
+  - name: cavities_modern_2LYZ
+    description: Run Cavities.exe on 2LYZ to ensure zero cavities produce the expected header-only PDB.
+    workdir: volume_results/2LYZ
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 2LYZ
+        dest: 2LYZ.pdb
+      - action: convert_xyzr
+        pdb: 2LYZ.pdb
+        output: 2LYZ-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+        overwrite: true
+      - action: remove
+        path: 2LYZ-cavities-suite.pdb
+    program: Cavities.exe
+    args:
+      - -i 2LYZ-modern-suite.xyzr
+      - -b 10
+      - -s 3
+      - -t 3
+      - -g 0.9
+      - -o 2LYZ-cavities-suite.pdb
+    expect:
+      stdout_contains: "CAVITY VOLUME"
+      pdb:
+        path: 2LYZ-cavities-suite.pdb
+
+  - name: volumeno_modern_2LYZ
+    description: Run VolumeNoCav.exe and ensure output matches Volume.exe baseline.
+    workdir: volume_results/2LYZ
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 2LYZ
+        dest: 2LYZ.pdb
+      - action: convert_xyzr
+        pdb: 2LYZ.pdb
+        output: 2LYZ-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+        overwrite: true
+      - action: remove
+        path: 2LYZ-volnocav-suite.pdb
+    program: VolumeNoCav.exe
+    args:
+      - -i 2LYZ-modern-suite.xyzr
+      - -p 2.1
+      - -g 0.9
+      - -o 2LYZ-volnocav-suite.pdb
+    expect:
+      pdb:
+        path: 2LYZ-volnocav-suite.pdb
+        lines: 4874
+        md5: 24df9f971e20206a36155de5525d2e67
