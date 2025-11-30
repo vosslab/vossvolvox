@@ -1,7 +1,35 @@
 #!/bin/bash
 
 # Exit immediately if any command fails
-set -e
+set -euo pipefail
+
+cleanup_files=()
+cleanup() {
+  for f in "${cleanup_files[@]:-}"; do
+    if [ -n "$f" ] && [ -f "$f" ]; then
+      rm -f "$f"
+    fi
+  done
+}
+trap cleanup EXIT
+
+compare_float() {
+  local label="$1"
+  local expected="$2"
+  local actual="$3"
+  local tolerance="${4:-1e-3}"
+  python3 - "$label" "$expected" "$actual" "$tolerance" <<'PY'
+import sys, math
+label, expected, actual, tol = sys.argv[1:]
+expected = float(expected)
+actual = float(actual)
+tol = float(tol)
+if math.fabs(expected - actual) > tol:
+    print(f"{label} mismatch: expected {expected}, got {actual}")
+    sys.exit(1)
+PY
+}
+overall_status=0
 
 # Allow overriding the converter binary (useful for comparing implementations)
 PDB_TO_XYZR_BIN="${PDB_TO_XYZR_BIN:-../bin/pdb_to_xyzr.exe}"
@@ -11,7 +39,11 @@ PDB_ID="2LYZ"
 PDB_FILE="${PDB_ID}.pdb"
 XYZR_FILE="${PDB_ID}-filtered.xyzr"
 OUTPUT_PDB="${PDB_ID}-volume.pdb"
-EXPECTED_MD5="ee27f829edc71a40c046d9d0a4203483"
+EXPECTED_MD5="f3271bd427b1fcc4d384a1221b738faf"
+EXPECTED_OUTPUT_LINES=4874
+EXPECTED_VOLUME=18551.124
+EXPECTED_SURFACE=4982.05
+VOLUME_TOLERANCE=0.01
 
 # Step A/B: Download or reuse the PDB file
 if [ -s "${PDB_FILE}" ]; then
@@ -52,11 +84,37 @@ fi
 
 # Step F: Run the Volume program
 echo "Running Volume.exe with probe radius 2.1 and grid spacing 0.9..."
-../bin/Volume.exe -i "${XYZR_FILE}" -p 2.1 -g 0.9 -o "${OUTPUT_PDB}" 1> /dev/null 2> /dev/null
+VOLUME_LOG=$(mktemp)
+cleanup_files+=("$VOLUME_LOG")
+if ! ../bin/Volume.exe -i "${XYZR_FILE}" -p 2.1 -g 0.9 -o "${OUTPUT_PDB}" >"${VOLUME_LOG}" 2>&1; then
+  echo "Volume.exe failed; log output:" >&2
+  cat "${VOLUME_LOG}" >&2
+  exit 1
+fi
+
+SUMMARY_LINE=$(grep -F "probe,grid,volume" "${VOLUME_LOG}" | tail -n 1 || true)
+if [ -z "${SUMMARY_LINE}" ]; then
+  echo "Unable to locate volume summary in Volume.exe output." >&2
+  cat "${VOLUME_LOG}" >&2
+  exit 1
+fi
+SUMMARY_NORMALIZED=$(echo "${SUMMARY_LINE}" | awk '{$1=$1}1')
+read -r SUMMARY_PROBE SUMMARY_GRID SUMMARY_VOLUME SUMMARY_SURFACE SUMMARY_ATOMS SUMMARY_INPUT SUMMARY_LABEL <<<"${SUMMARY_NORMALIZED}"
+echo "Volume summary: volume=${SUMMARY_VOLUME} A^3, surface=${SUMMARY_SURFACE} A^2, atoms=${SUMMARY_ATOMS} (input ${SUMMARY_INPUT})."
+if ! compare_float "Volume" "${EXPECTED_VOLUME}" "${SUMMARY_VOLUME}" "${VOLUME_TOLERANCE}"; then
+  overall_status=1
+fi
+if ! compare_float "Surface area" "${EXPECTED_SURFACE}" "${SUMMARY_SURFACE}" "${VOLUME_TOLERANCE}"; then
+  overall_status=1
+fi
 
 # Count lines in the output PDB file
 OUTPUT_LINES=$(wc -l < "${OUTPUT_PDB}")
 echo "Output PDB file has ${OUTPUT_LINES} lines."
+if [ "${OUTPUT_LINES}" -ne "${EXPECTED_OUTPUT_LINES}" ]; then
+  echo "Line count mismatch: expected ${EXPECTED_OUTPUT_LINES}, got ${OUTPUT_LINES}" >&2
+  overall_status=1
+fi
 
 # Step G: Calculate the MD5 checksum of the output
 echo "Calculating MD5 checksum of ${OUTPUT_PDB}..."
@@ -70,6 +128,11 @@ else
   echo "Test failed: MD5 checksum does not match expected value."
   echo "Expected: $EXPECTED_MD5"
   echo "Actual:   $OUTPUT_MD5"
+  overall_status=1
+fi
+
+if [ "${overall_status}" -ne 0 ]; then
+  echo "Test completed with failures."
   exit 1
 fi
 

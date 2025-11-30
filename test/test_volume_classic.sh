@@ -39,7 +39,7 @@ XYZR_FILE="${PDB_ID}-classic.xyzr"
 OUTPUT_PDB="${PDB_ID}-volume-classic.pdb"
 VOLUME_TOLERANCE=0.01
 
-PDB_TO_XYZR_BIN="${PDB_TO_XYZR_BIN:-../bin/pdb_to_xyzr.exe}"
+PDB_TO_XYZR_BIN="${PDB_TO_XYZR_BIN:-../xyzr/pdb_to_xyzr.sh}"
 LEGACY_BIN="${LEGACY_BIN:-../bin/Volume-legacy.exe}"
 REFERENCE_BIN="${REFERENCE_BIN:-../bin/Volume-1.0.exe}"
 

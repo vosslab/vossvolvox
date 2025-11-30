@@ -273,7 +273,6 @@ def main(argv: List[str]) -> None:
     legacy_bin = BIN_DIR / "Volume-legacy.exe"
     reference_bin = BIN_DIR / "Volume-1.0.exe"
     modern_converter = BIN_DIR / "pdb_to_xyzr.exe"
-    legacy_converter = XYZR_DIR / "pdb_to_xyzr_legacy.py"
 
     if not args.skip_build:
         ensure_binary(modern_bin, "vol")
