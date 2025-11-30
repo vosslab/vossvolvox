@@ -327,7 +327,7 @@ def main() -> None:
             error(f"✖ {name}: {exc}")
             failures.append(name)
         else:
-            success(f"✔ {name} [{elapsed:.2f}s]")
+            success(f"✔ {name} [{elapsed:.3f}s]")
 
     if failures:
         error(f"{len(failures)} test(s) failed.")
