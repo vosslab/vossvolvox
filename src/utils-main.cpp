@@ -363,8 +363,10 @@ int read_NumAtoms_from_array (const XYZRBuffer& buffer) {
     std::cerr << "read_NumAtoms_from_array: buffer is empty" << std::endl;
     exit(1);
   }
-  std::strncpy(XYZRFILE, "<memory>", sizeof(XYZRFILE));
-  XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
+  if(!XYZRFILE[0]) {
+    std::strncpy(XYZRFILE, "<memory>", sizeof(XYZRFILE));
+    XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
+  }
   int count = 0;
   float minmax[6];
   minmax[0] = 100;  minmax[1] = 100;  minmax[2] = 100;

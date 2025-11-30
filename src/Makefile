@@ -34,7 +34,7 @@ $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 # Object files used in all programs
-OBJS = utils-main.o utils-output.o utils-mrc.o argument_helper.o
+OBJS = utils-main.o utils-output.o utils-mrc.o argument_helper.o pdb_io.o
 LEGACY_OBJS = utils-main-legacy.o utils-output-legacy.o utils-mrc-legacy.o
 
 # Ensure the bin directory exists before building object files
