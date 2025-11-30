@@ -136,7 +136,7 @@ echo "Legacy summary:    volume=${LEGACY_VOLUME} A^3, surface=${LEGACY_SURFACE} 
 if ! compare_float "Volume difference" "${REFERENCE_VOLUME}" "${LEGACY_VOLUME}" "${VOLUME_TOLERANCE}"; then
   overall_status=1
 fi
-if ! compare_float "Surface difference" "${REFERENCE_SURFACE}" "${LEGACY_SURFACE}" "${VOLUME_TOLERANCE}"; then
+if ! compare_float "Legacy surface" "${REFERENCE_SURFACE}" "${LEGACY_SURFACE}" "${VOLUME_TOLERANCE}"; then
   overall_status=1
 fi
 if [ "${REFERENCE_ATOMS}" -ne "${LEGACY_ATOMS}" ]; then
@@ -157,4 +157,4 @@ if [ "${overall_status}" -ne 0 ]; then
   exit 1
 fi
 
-echo "Classic regression passed: Volume-legacy.exe matches historical Volume-1.0.exe (after stripping REMARK Date)."
+echo "Classic regression passed: Volume-legacy.exe matches historical Volume-1.0.exe."
