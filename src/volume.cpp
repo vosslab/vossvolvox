@@ -39,6 +39,13 @@ int main(int argc, char* argv[]) {
   std::string mrcFile;
   double probe = 10.0;
   float grid = GRID;  // Use global GRID value initially
+  bool use_hydrogens = false;
+  bool exclude_ions = false;
+  bool exclude_ligands = false;
+  bool exclude_hetatm = false;
+  bool exclude_water = false;
+  bool exclude_nucleic = false;
+  bool exclude_amino = false;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -49,6 +56,13 @@ int main(int argc, char* argv[]) {
   parser.add_option("-o", "--pdb-output", pdbFile, std::string(), "Write accessible surface points to this PDB file.", "<PDB file>");
   parser.add_option("-e", "--ezd-output", ezdFile, std::string(), "Write excluded density to this EZD file.", "<EZD file>");
   parser.add_option("-m", "--mrc-output", mrcFile, std::string(), "Write excluded density to this MRC file.", "<MRC file>");
+  parser.add_flag("-H", "--hydrogens", use_hydrogens, false, "Use explicit hydrogen radii (explicit radii table).");
+  parser.add_flag("", "--exclude-ions", exclude_ions, false, "Drop residues classified as ions.");
+  parser.add_flag("", "--exclude-ligands", exclude_ligands, false, "Drop non-polymer ligands.");
+  parser.add_flag("", "--exclude-hetatm", exclude_hetatm, false, "Drop residues composed only of HETATM records.");
+  parser.add_flag("", "--exclude-water", exclude_water, false, "Drop water molecules.");
+  parser.add_flag("", "--exclude-nucleic-acids", exclude_nucleic, false, "Drop nucleic-acid residues.");
+  parser.add_flag("", "--exclude-amino-acids", exclude_amino, false, "Drop amino-acid residues.");
   parser.add_example(std::string(argv[0]) + " -i sample.xyzr -p 1.5 -g 0.5 -o surface.pdb");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -83,6 +97,13 @@ int main(int argc, char* argv[]) {
 
   // Load atoms into memory and compute bounds
   vossvolvox::pdbio::ConversionOptions convert_options;
+  convert_options.use_united = !use_hydrogens;
+  convert_options.filters.exclude_ions = exclude_ions;
+  convert_options.filters.exclude_ligands = exclude_ligands;
+  convert_options.filters.exclude_hetatm = exclude_hetatm;
+  convert_options.filters.exclude_water = exclude_water;
+  convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
+  convert_options.filters.exclude_amino_acids = exclude_amino;
   vossvolvox::pdbio::XyzrData xyzr_data;
   if (!vossvolvox::pdbio::ReadFileToXyzr(inputFile, convert_options, xyzr_data)) {
     std::cerr << "Error: unable to load XYZR data from '" << inputFile << "'\n";

@@ -107,7 +107,7 @@ def sanitized_md5(path: Path) -> str:
     digest = hashlib.md5()
     with path.open("r") as handle:
         for line in handle:
-            if line.startswith("REMARK Date"):
+            if line.startswith("REMARK Date") or line.startswith("REMARK PDB file created from"):
                 continue
             digest.update(line.encode("utf-8"))
     return digest.hexdigest()

@@ -28,6 +28,33 @@ tests:
         lines: 4874
         md5: c5be764829fea313f023c1b6554e7fa0
 
+  - name: volume_pdb_input_2LYZ
+    description: Ensure Volume.exe accepts raw PDB input and matches XYZR results for 2LYZ.
+    workdir: volume_results/2LYZ
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 2LYZ
+        dest: 2LYZ.pdb
+      - action: remove
+        path: 2LYZ-volume-pdb-suite.pdb
+    program: Volume.exe
+    args:
+      - -i 2LYZ.pdb
+      - -p 2.1
+      - -g 0.9
+      - --exclude-ions
+      - --exclude-water
+      - -o 2LYZ-volume-pdb-suite.pdb
+    expect:
+      summary:
+        volume: 18551.124
+        surface: 4982.05
+        atoms: 1001
+      pdb:
+        path: 2LYZ-volume-pdb-suite.pdb
+        lines: 4874
+        md5_sanitized: 9d50d5818de494c11c3f3ff32160dfa5
+
   - name: channel_seed_2LYZ
     description: Ensure Channel.exe handles an empty seed on 2LYZ
     workdir: volume_results/2LYZ
