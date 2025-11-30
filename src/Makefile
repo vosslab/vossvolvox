@@ -87,6 +87,9 @@ utils-mrc-legacy.o: utils-mrc.cpp
 argument_helper.o: argument_helper.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o argument_helper.o argument_helper.cpp
 
+pdb_io.o: pdb_io.cpp pdb_io.h atmtypenumbers_data.h
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o pdb_io.o pdb_io.cpp
+
 # Individual program targets
 cav: $(OBJS) cavities.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Cavities.exe $(OBJS) cavities.cpp
@@ -155,6 +158,6 @@ frac: $(OBJS) fracDim.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FracDim.exe $(OBJS) fracDim.cpp
 	@chmod +x $(BIN_DIR)/FracDim.exe
 
-pdbxyzr: $(BIN_DIR) pdb_to_xyzr.cpp atmtypenumbers_data.h
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/pdb_to_xyzr.exe pdb_to_xyzr.cpp
+pdbxyzr: $(BIN_DIR) pdb_io.o pdb_to_xyzr.cpp pdb_io.h atmtypenumbers_data.h
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/pdb_to_xyzr.exe pdb_io.o pdb_to_xyzr.cpp
 	@chmod +x $(BIN_DIR)/pdb_to_xyzr.exe
