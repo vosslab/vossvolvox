@@ -110,3 +110,181 @@ tests:
         path: 2LYZ-volnocav-suite.pdb
         lines: 4874
         md5: 24df9f971e20206a36155de5525d2e67
+
+  - name: volume_modern_1BL8
+    description: Verify Volume.exe output for potassium channel 1BL8 at probe 1.0 / grid 0.9.
+    workdir: volume_results/1BL8
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 1BL8
+        dest: 1BL8.pdb
+      - action: convert_xyzr
+        pdb: 1BL8.pdb
+        output: 1BL8-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+        overwrite: true
+    program: Volume.exe
+    args:
+      - -i 1BL8-modern-suite.xyzr
+      - -p 1.0
+      - -g 0.9
+      - -o 1BL8-volume-suite.pdb
+    expect:
+      summary:
+        volume: 50426.465
+        surface: 16796.6
+        atoms: 2820
+      pdb:
+        path: 1BL8-volume-suite.pdb
+        lines: 16028
+        md5: b2d2f29083476c037ce41f167d43c067
+
+  - name: volumeno_modern_1BL8
+    description: Ensure VolumeNoCav.exe fills 1BL8 cavities when using probe 1.0 / grid 0.9.
+    workdir: volume_results/1BL8
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 1BL8
+        dest: 1BL8.pdb
+      - action: convert_xyzr
+        pdb: 1BL8.pdb
+        output: 1BL8-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+        overwrite: true
+    program: VolumeNoCav.exe
+    args:
+      - -i 1BL8-modern-suite.xyzr
+      - -p 1.0
+      - -g 0.9
+      - -o 1BL8-volnocav-suite.pdb
+    expect:
+      pdb:
+        path: 1BL8-volnocav-suite.pdb
+        lines: 15097
+        md5: d143e4ca81fcc76d672142d400f3c2d1
+
+  - name: vdw_modern_2LYZ
+    description: Validate VDW.exe van-der-Waals output on 2LYZ with 0 probe / 0.9 grid.
+    workdir: volume_results/2LYZ
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 2LYZ
+        dest: 2LYZ.pdb
+      - action: convert_xyzr
+        pdb: 2LYZ.pdb
+        output: 2LYZ-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+        overwrite: true
+      - action: remove
+        path: 2LYZ-vdw-suite.pdb
+    program: VDW.exe
+    args:
+      - -i 2LYZ-modern-suite.xyzr
+      - -g 0.9
+      - -o 2LYZ-vdw-suite.pdb
+    expect:
+      pdb:
+        path: 2LYZ-vdw-suite.pdb
+        lines: 10277
+        md5: 431bed37cbf33b89690ae2718b6bae7e
+
+  - name: solvent_modern_1BL8
+    description: Ensure Solvent.exe captures external solvent for 1BL8 using mixed probes.
+    workdir: volume_results/1BL8
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 1BL8
+        dest: 1BL8.pdb
+      - action: convert_xyzr
+        pdb: 1BL8.pdb
+        output: 1BL8-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+        overwrite: true
+      - action: remove
+        path: 1BL8-solvent-suite.pdb
+    program: Solvent.exe
+    args:
+      - -i 1BL8-modern-suite.xyzr
+      - -s 1.5
+      - -b 5.0
+      - -t 2.0
+      - -g 0.9
+      - -o 1BL8-solvent-suite.pdb
+    expect:
+      stdout_contains: "Accessible Channel Volume"
+      pdb:
+        path: 1BL8-solvent-suite.pdb
+        lines: 2347
+        md5: 51fad261a10bcf3383f3dbe1b8c35cae
+
+  - name: allchannel_1BL8
+    description: Detect potassium-channel paths from 1BL8 with AllChannel.exe.
+    workdir: volume_results/1BL8
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 1BL8
+        dest: 1BL8.pdb
+      - action: convert_xyzr
+        pdb: 1BL8.pdb
+        output: 1BL8-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+        overwrite: true
+      - action: remove
+        path: channel-001.mrc
+      - action: remove
+        path: channel-002.mrc
+      - action: remove
+        path: channel-003.mrc
+      - action: remove
+        path: channel-004.mrc
+      - action: remove
+        path: channel-005.mrc
+    program: AllChannel.exe
+    args:
+      - -i 1BL8-modern-suite.xyzr
+      - -b 5.0
+      - -s 1.0
+      - -g 0.8
+      - -t 2.0
+      - -v 20
+      - -p 0.0
+      - -n 5
+    expect:
+      stdout_contains: "Used 5 of 94 channels"
+
+  - name: allchannelexc_1BL8
+    description: Run AllChannelExc.exe with strict cutoffs to ensure only the central pore remains.
+    workdir: volume_results/1BL8
+    prerequisites:
+      - action: download_pdb
+        pdb_id: 1BL8
+        dest: 1BL8.pdb
+      - action: convert_xyzr
+        pdb: 1BL8.pdb
+        output: 1BL8-modern-suite.xyzr
+        filters: ["--exclude-ions", "--exclude-water"]
+        overwrite: true
+      - action: remove
+        path: 1BL8-allchannelexc-suite.mrc
+      - action: remove
+        path: channel-001.mrc
+      - action: remove
+        path: channel-002.mrc
+      - action: remove
+        path: channel-003.mrc
+      - action: remove
+        path: channel-004.mrc
+      - action: remove
+        path: channel-005.mrc
+    program: AllChannelExc.exe
+    args:
+      - -i 1BL8-modern-suite.xyzr
+      - -b 5.0
+      - -s 1.0
+      - -g 0.8
+      - -t 2.0
+      - -v 20
+      - -p 0.01
+      - -m 1BL8-allchannelexc-suite.mrc
+    expect:
+      stdout_contains: "Used 1 of 63 channels"
