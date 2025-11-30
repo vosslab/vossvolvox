@@ -82,7 +82,27 @@ For more details, see the `QUICKSTART` section below.
 - The script accepts `--pdb-id`, `--probe-radius`, and `--grid-spacing` so you can sweep different structures and parameters. Pass `--skip-build` once the binaries are up to date.
 - We now ship two convenience targets: `make volume_original` produces `bin/Volume-legacy.exe` (stand-alone legacy build) and `make volume_reference` rebuilds the historical `bin/Volume-1.0.exe` so it picks up the latest safety fixes.
 - Use the output tables from `test_volumes.py` to confirm volumes, surfaces, line counts, and sanitized MD5 sums remain stable after changes.
-- Run `python3 test/test_suite.py` to execute the YAML-driven regression suite defined in `test/test_suite.yml`. Each entry describes the program, CLI arguments, prerequisites (PDB download/XYZR conversion), and expected results (volume, surface, PDB line counts, MD5). The suite caches structures under `test/volume_results/<PDBID>/` and falls back to downloading from the RCSB if the cache is missing. This tool requires [PyYAML](https://pyyaml.org/) (`pip install pyyaml`).
+- Run `python3 test/test_suite.py` to execute the YAML-driven regression suite defined in `test/test_suite.yml`. The runner auto-resolves binaries from `bin/`, reuses cached inputs, prints color-coded pass/fail lines with per-test runtimes, and surfaces MD5/volume mismatches immediately. Install [PyYAML](https://pyyaml.org/) (`pip install pyyaml`) before running the suite.
+
+#### YAML test-suite reference
+
+Each test block in `test/test_suite.yml` contains the following keys:
+
+- `name`, `description`: human-friendly identifiers that show up in the CLI log.
+- `workdir`: directory (relative to `test/`) where artifacts and downloads will be staged. Results for different programs can share the same workspace to avoid redundant downloads, and cached files are reused across runs.
+- `prerequisites`: ordered actions the harness performs before invoking the binary. Available actions today are:
+  - `download_pdb`: fetches `<pdb_id>.pdb` (gz cache supported) into an arbitrary `dest`, preferring existing copies under `test/volume_results/<PDBID>/` before contacting the RCSB servers.
+  - `convert_xyzr`: calls `bin/pdb_to_xyzr.exe` with the provided `filters` (e.g., `["--exclude-ions", "--exclude-water"]`). Use `overwrite: true` to force regeneration.
+  - `ensure_dir`: creates a directory tree, handy for deposit locations.
+  - `remove`: deletes a path if it exists (useful when you want programs to recreate outputs).
+- `program`: just the executable name (for example `Volume.exe` or `Channel.exe`). The runner finds it under `<repo>/bin/` automatically, so there is no need to hard-code relative paths like `../../bin/...`.
+- `args`: list of CLI flags exactly as you would pass them at the shell. Keep each flag/value pair on the same item (e.g., `-i 2LYZ-modern-suite.xyzr`) so order is preserved.
+- `expect`: assertions the harness enforces after the command succeeds. Common fields are:
+  - `summary`: expected numeric values parsed from the program’s summary line (`volume`, `surface`, `atoms`, etc.).
+  - `pdb`: path plus optional `lines` and `md5` (sanitized by stripping `REMARK Date`). Leave off `lines`/`md5` if the file is optional.
+  - `stdout_contains`: substring that must appear in stdout.
+
+You can provide an alternate YAML via `python3 test/test_suite.py --config custom.yml`, and the script prints timing totals and highlights failures in red to speed up debugging.
 
 ## Quickstart
 
