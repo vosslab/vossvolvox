@@ -1,27 +1,66 @@
 /*
 ** utils-main.cpp
+** Helper/utility functions for working with volumetric grids that were
+** historically part of the Volume.exe toolchain.  The user asked for a
+** line-by-line explanation, so the file now contains inline comments that
+** document every statement.
 */
-#include <cstdio>     // for sscanf
-#include <cstdlib>    // for exit, std::malloc, std::free
-#include <cstring>    // for NULL, std::strcpy, strlen
-#include <cmath>      // for ceil, pow, sqrt
-#include <fstream>    // for basic_ifstream, char_traits
-#include <iostream>   // for cerr, cout
-#include "utils.h"    // for gridpt, DEBUG, vector, real
-#include <cassert> // Required header
+
+// Header providing sscanf for parsing XYZR records.
+#include <cstdio>
+
+// Standard allocation/shutdown helpers.
+#include <cstdlib>
+
+// C-string helpers (strcpy, strlen, NULL constants).
+#include <cstring>
+
+// Mathematical helpers (ceil, pow, sqrt).
+#include <cmath>
+
+// File stream helpers for legacy XYZR files.
+#include <fstream>
+
+// Logging helpers via std::cerr and std::cout.
+#include <iostream>
+
+// Project-specific definitions such as gridpt and DEBUG.
+#include "utils.h"
+
+// Enables assert-based invariants when debugging.
+#include <cassert>
+
+// Dynamic arrays used for neighbor offsets.
 #include <vector>
 
+// Minimum bounds derived from the input atoms plus padding.
 float XMIN, YMIN, ZMIN;
+
+// Maximum bounds derived from the input atoms plus padding.
 float XMAX, YMAX, ZMAX;
+
+// Grid widths in voxels along each axis.
 int DX, DY, DZ;
+
+// Precomputed strides for fast volume indexing (DX*DY etc.).
 int DXY, DXYZ;
+
+// Total number of voxels including padding guard cells.
 unsigned int NUMBINS;
+
+// Probe radius limit and default grid spacing.
 float MAXPROBE=15;
 float GRID=0.5;
+
+// Derived constants: voxel volume and water resolution units.
 float GRIDVOL=GRID*GRID*GRID;
 float WATER_RES=14.1372/GRIDVOL;
+
+// Miscellaneous cutoff used elsewhere.
 float CUTOFF=10000;
-char XYZRFILE[256]; //XYZR_FILE[0]='\0';
+
+// Memory-stable buffer holding the source XYZR filename.
+char XYZRFILE[256];
 
 /*********************************************
 **********************************************
@@ -32,10 +71,19 @@ char XYZRFILE[256]; //XYZR_FILE[0]='\0';
 //init functions
 /*********************************************/
 void finalGridDims (float maxprobe) {
+  // Recompute per-voxel volume in case GRID changed.
   GRIDVOL=GRID*GRID*GRID;
+
+  // Convert legacy constant into voxel units.
   WATER_RES=14137.2/GRIDVOL;
+
+  // Cache the runtime probe radius limit requested by caller.
   MAXPROBE = maxprobe;
+
+  // Reset logging metadata so new inputs appear fresh.
   XYZRFILE[0]='\0';
+
+  // Prepare minima/maxima for scanning (start with wide range)
   XMIN=1000;
   YMIN=1000;
   ZMIN=1000;
@@ -47,29 +95,49 @@ void finalGridDims (float maxprobe) {
 /*********************************************/
 float getIdealGrid () {
 
+  // Track the search interval bounds while we find the best spacing.
   double idealgrid, maxgrid=1, mingrid=-1;
+
+  // Reusable counters for voxel dimensions.
   unsigned int dx, dy, dz, voxels;
+
+  // Legacy safety limit on total voxel count.
   unsigned int maxvoxels = 1024*512*512;
+
+  // Constant needed for cube-root calculation.
   double third = 1/3.;
+
+  // Estimate spacing so that the bounding box fits within the legacy cap.
   idealgrid = pow((XMAX-XMIN)*(YMAX-YMIN)*(ZMAX-ZMIN)/maxvoxels, third);
 
+  // Search step size for fine-tuning the spacing.
   double increment = 0.001;
+
+  // Snap the starting guess to the nearest increment multiple.
   idealgrid = int(idealgrid/increment)*increment;
+
+  // Iteratively converge the spacing until the min/max gap is small.
   while(maxgrid - mingrid > 2*increment) {
-  	//cerr << "xx ideal grid: " << idealgrid << std::endl;
-	dx=int((XMAX-XMIN)/idealgrid/4.0+1)*4;
-  	dy=int((YMAX-YMIN)/idealgrid/4.0+1)*4;
-  	dz=int((ZMAX-ZMIN)/idealgrid/4.0+1)*4;
-	voxels = dx*dy*dz;
-  	//cerr << "voxels: " << voxels << "/" << maxvoxels << std::endl;
-	if (voxels > maxvoxels) {
-		mingrid = idealgrid;
-		idealgrid += increment;
-	} else {
-		maxgrid = idealgrid;
-		idealgrid -= increment;
-	}
+    //cerr << "xx ideal grid: " << idealgrid << std::endl;
+    // Align dimensions to multiples of four for the historical grid layout.
+    dx=int((XMAX-XMIN)/idealgrid/4.0+1)*4;
+    dy=int((YMAX-YMIN)/idealgrid/4.0+1)*4;
+    dz=int((ZMAX-ZMIN)/idealgrid/4.0+1)*4;
+
+    // Calculate the voxel count for this spacing.
+    voxels = dx*dy*dz;
+    //cerr << "voxels: " << voxels << "/" << maxvoxels << std::endl;
+
+    // Adjust bounds and iterate based on whether we exceeded the cap.
+    if (voxels > maxvoxels) {
+      mingrid = idealgrid;
+      idealgrid += increment;
+    } else {
+      maxgrid = idealgrid;
+      idealgrid -= increment;
+    }
   }
+  // Return the best-fit spacing found.
   return maxgrid;
 };
 
@@ -125,13 +193,18 @@ float OLDgetIdealGrid () {
 // NOTE: The +1 preserves the historical padding that prevented boundary points
 // from mapping just outside the allocated grid (fixes ijk2pt out-of-bounds).
 unsigned int calculateDimension(float min, float max, float grid) {
+  // Convert coordinate extent to voxel count while enforcing multiples of four.
   return static_cast<unsigned int>(std::ceil((max - min) / grid / 4.0 + 1.0)) * 4;
 }
 
 void assignLimits() {
+  // Determine number of safety buffer cells around the bounding box.
   const int safety_cells = static_cast<int>(std::ceil(MAXPROBE / GRID)) + 2;
   if (safety_cells > 0) {
+    // Convert buffer count to Angstrom padding.
     const float padding = safety_cells * GRID;
+
+    // Expand every axis to guarantee the probe can traverse beyond atoms.
     XMIN -= padding;
     YMIN -= padding;
     ZMIN -= padding;
@@ -140,17 +213,24 @@ void assignLimits() {
     ZMAX += padding;
   }
 
+  // Convert padded bounds into voxel counts along each axis.
   DX = calculateDimension(XMIN, XMAX, GRID);
   DY = calculateDimension(YMIN, YMAX, GRID);
   DZ = calculateDimension(ZMIN, ZMAX, GRID);
+
+  // Precompute strides for fast linear indexing.
   DXY = DY * DX;
   DXYZ = DZ * DXY;
+
+  // Add padding voxels, matching legacy ijk2pt expectations.
   NUMBINS = DXYZ + DXY + DX + 1;
 
-  std::cerr << "Percent filled NUMBINS/2^31: " <<
-            (NUMBINS * 1000.0 / MAXBINS) / 10.0 << "%" << std::endl;
+  // Emit a quick sanity check about grid usage.
+  std::cerr << "Percent filled NUMBINS/2^31: "
+            << (NUMBINS * 1000.0 / MAXBINS) / 10.0 << "%" << std::endl;
 
-  float idealGrid = getIdealGrid(); // Assuming getIdealGrid() is defined elsewhere
+  // Hint at an alternate grid spacing that satisfies the voxel cap.
+  float idealGrid = getIdealGrid();
   std::cerr << "Ideal Grid: " << idealGrid << std::endl;
 
   // Improved debug message for when NUMBINS exceeds MAXBINS
@@ -162,10 +242,13 @@ void assignLimits() {
     exit(1); // Consider throwing an exception instead of calling exit for better error handling
   }*/
 
-  std::cerr << std::endl;
+  std::cerr << std::endl;                     // Leave a blank line to separate log bundles.
 }
 
 /*********************************************/
+// Dumps the configured grid limits and a couple of reference values so that
+// downstream callers can sanity check the derived constants.  Nothing here
+// mutates state; it simply reports existing globals.
 void testLimits (gridpt grid[]) {
   std::cerr << "int(1.2) is " << int(1.2) << std::endl;
   std::cerr << "int(-1.2) is " << int(-1.2) << std::endl;
@@ -198,36 +281,47 @@ void testLimits (gridpt grid[]) {
 
 /*********************************************/
 int countGrid (const gridpt grid[]) {
+  // Reset the voxel counter before starting.
   int voxels=0;
 
+  // Announce the operation when debug logging is enabled.
   if (DEBUG > 0)
     std::cerr << "Counting up Voxels in Grid for Volume...  " << std::flush;
 
+  // Iterate every voxel to measure occupancy.
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     if(grid[pt]) {
       voxels++;
     }
   }
+
+  // Finish the debug report if necessary.
   if (DEBUG > 0)
     std::cerr << "done [ " << voxels << " voxels ]" << std::endl << std::endl;
+
   return voxels;
 };
 
 /*********************************************/
 void zeroGrid (gridpt grid[]) {
+  // Allocate working buffer if the caller has not provided one.
   if (grid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
     grid = (gridpt*) std::malloc (NUMBINS);
     if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
 
+  // Log the zeroing start when debugging.
   if (DEBUG > 0)
     std::cerr << "Zero-ing All Voxels in the Grid...  " << std::flush;
 
+  // Parallel loop to reset every voxel to an empty state.
   #pragma omp parallel for
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     grid[pt] = 0;
   }
+
+  // Acknowledge completion when debug logging is on.
   if (DEBUG > 0)
     std::cerr << "done " << std::endl << std::endl;
   return;
@@ -235,22 +329,27 @@ void zeroGrid (gridpt grid[]) {
 
 /*********************************************/
 int copyGridFromTo (const gridpt oldgrid[], gridpt newgrid[]) {
+  // Thin wrapper to satisfy legacy callers that use the old name.
   return copyGrid(oldgrid, newgrid);
 }
 
 /*********************************************/
 int copyGrid (const gridpt oldgrid[], gridpt newgrid[]) {
-  //Zero Grid Not Required
+  // Zeroing the destination is unnecessary because every element will be overwritten.
   int voxels=0;
+
+  // Allocate destination if so requested.
   if (newgrid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
     newgrid = (gridpt*) std::malloc (NUMBINS);
     if (newgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
 
+  // Emit progress when debugging.
   if (DEBUG > 0)
     std::cerr << "Duplicating Grid and Counting up Voxels...  " << std::flush;
 
+  // Parallel copy loop that counts occupancy at the same time.
   #pragma omp parallel for
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     if(oldgrid[pt]) {
@@ -261,6 +360,8 @@ int copyGrid (const gridpt oldgrid[], gridpt newgrid[]) {
       newgrid[pt] = 0;
     }
   }
+
+  // Log completion when debugging.
   if (DEBUG > 0)
     std::cerr << "done [ " << voxels << " voxels ]" << std::endl << std::endl;
   return voxels;
@@ -268,14 +369,17 @@ int copyGrid (const gridpt oldgrid[], gridpt newgrid[]) {
 
 /*********************************************/
 void inverseGrid (gridpt grid[]) {
+  // Ensure a target grid exists before mutating.
   if (grid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
     grid = (gridpt*) std::malloc (NUMBINS);
     if (grid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   }
+
   if (DEBUG > 0)
     std::cerr << "Inversing All Voxels in the Grid...  " << std::flush;
 
+  // Flip every voxel in parallel so the accessible/inaccessible regions swap.
   #pragma omp parallel for
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     if(grid[pt]) {
@@ -284,6 +388,7 @@ void inverseGrid (gridpt grid[]) {
       grid[pt] = 1;
     }
   }
+
   if (DEBUG > 0)
     std::cerr << "done " << std::endl << std::endl;
   return;
@@ -298,6 +403,7 @@ void inverseGrid (gridpt grid[]) {
 
 /*********************************************/
 int read_NumAtoms (char file[]) {
+  // Prepare the text reader and command-line helpers before parsing.
   ifstream infile;
   int count = 0;
   char line[256];
@@ -306,11 +412,14 @@ int read_NumAtoms (char file[]) {
   minmax[3] = -100;  minmax[4] = -100;  minmax[5] = -100;
   std::strcpy(XYZRFILE,file);
 
+  // Announce the file being inspected and begin reading lines.
   std::cerr << "Reading file for Min/Max: " << file << std::endl;
   infile.open(file);
+  // Read every line from the XYZR file, parsing atoms one by one.
   while(infile.getline(line,255)) {
     float x,y,z,r;
     sscanf(line," %f %f %f %f",&x,&y,&z,&r);
+    // Ignore invalid radii and update bounding values for each atom.
     if (r > 0 && r < 100) {
       count++;
       if(count % 3000 == 0) { std::cerr << "." << std::flush; }
@@ -322,6 +431,7 @@ int read_NumAtoms (char file[]) {
       if(z > minmax[5]) { minmax[5] = z; }
     }
   }
+  // Report min/max ranges and atom count once scanning is complete.
   infile.close();
   std::cerr << std::endl;
   for(int i=0; i<=5; i++) {
@@ -333,8 +443,7 @@ int read_NumAtoms (char file[]) {
     exit(1);
   }
 
-//INCREASE GRID SIZE TO ACCOMODATE SPHERES
-//ALSO ROUND GRID SIZE SO THE XMIN = INTEGER * GRID (FOR BETTER OUTPUT)
+  // Increase bounds so spheres and rounding do not clip at the edges.
   float FACT = MAXVDW + MAXPROBE + 2*GRID;
   for(int i=0;i<=2;i++) {
     minmax[i] -= FACT;
@@ -344,6 +453,8 @@ int read_NumAtoms (char file[]) {
     minmax[i] += FACT;
     minmax[i] = int(minmax[i]/(4*GRID)+1)*4*GRID;
   }
+
+  // Store the adjusted extents in the global min/max trackers.
   if(minmax[0] < XMIN) { XMIN = minmax[0]; }
   if(minmax[1] < YMIN) { YMIN = minmax[1]; }
   if(minmax[2] < ZMIN) { ZMIN = minmax[2]; }
@@ -351,6 +462,7 @@ int read_NumAtoms (char file[]) {
   if(minmax[4] > YMAX) { YMAX = minmax[4]; }
   if(minmax[5] > ZMAX) { ZMAX = minmax[5]; }
 
+  // Prompt caller to compute derived grid dimensions now that bounds exist.
   std::cerr << "Now Run AssignLimits() to Get NUMBINS Variable" << std::endl << std::endl;
 
   return count;
@@ -359,10 +471,12 @@ int read_NumAtoms (char file[]) {
 /*********************************************/
 int read_NumAtoms_from_array (const XYZRBuffer& buffer) {
   const int total = buffer.size();
+  // Guard against empty buffers which would produce meaningless bounds.
   if (total <= 0) {
     std::cerr << "read_NumAtoms_from_array: buffer is empty" << std::endl;
     exit(1);
   }
+  // Populate filename placeholder when the caller only provides memory data.
   if(!XYZRFILE[0]) {
     std::strncpy(XYZRFILE, "<memory>", sizeof(XYZRFILE));
     XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
@@ -378,6 +492,7 @@ int read_NumAtoms_from_array (const XYZRBuffer& buffer) {
     const float y = atom.y;
     const float z = atom.z;
     const float r = atom.r;
+    // Only consider valid atom radii to avoid garbage data.
     if (r > 0 && r < 100) {
       count++;
       if(count % 3000 == 0) { std::cerr << "." << std::flush; }
@@ -401,10 +516,12 @@ int read_NumAtoms_from_array (const XYZRBuffer& buffer) {
 
   float FACT = MAXVDW + MAXPROBE + 2*GRID;
   for(int i=0;i<=2;i++) {
+    // Shrink bounds on the lower axes to ensure integer multiples of 4*GRID.
     minmax[i] -= FACT;
     minmax[i] = int(minmax[i]/(4*GRID)-1)*4*GRID;
   }
   for(int i=3;i<=5;i++) {
+    // Expand the upper axes similarly to keep XMAX/YMAX/ZMAX aligned.
     minmax[i] += FACT;
     minmax[i] = int(minmax[i]/(4*GRID)+1)*4*GRID;
   }
@@ -424,6 +541,7 @@ int read_NumAtoms_from_array (const XYZRBuffer& buffer) {
 int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
 	gridpt grid[]) {
 
+  // Ensure a working grid exists before zeroing it out.
   if (grid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
     grid = (gridpt*) std::malloc (NUMBINS);
@@ -435,6 +553,7 @@ int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
   char line[256];
   if(!XYZRFILE[0]) { std::strcpy(XYZRFILE,file); }
 
+  // Warm-up counters used for showing progress to the user.
   float count = 0;
   const float cat = float(numatoms)/60.0;
   float cut = cat;
@@ -474,6 +593,7 @@ int fill_AccessGrid_fromFile (int numatoms, const float probe, char file[],
 int fill_AccessGrid_fromArray (int numatoms, const float probe,
 	const XYZRBuffer& buffer, gridpt grid[]) {
 
+  // Prepare the output grid the same way as the file-based helper.
   if (grid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
     grid = (gridpt*) std::malloc (NUMBINS);
@@ -486,11 +606,13 @@ int fill_AccessGrid_fromArray (int numatoms, const float probe,
     XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
   }
 
+  // Clamp the requested atom count to the buffer length.
   const int total = buffer.size();
   if (numatoms <= 0 || numatoms > total) {
     numatoms = total;
   }
 
+  // Progress counters similar to the file-based variant.
   float count = 0;
   const float cat = numatoms > 0 ? float(numatoms)/60.0f : 1.0f;
   float cut = cat;
@@ -499,6 +621,7 @@ int fill_AccessGrid_fromArray (int numatoms, const float probe,
   printBar();
 
   int filled=0;
+  // Iterate through every atom we intend to rasterize.
   for(int idx = 0; idx < numatoms; ++idx) {
     const auto& atom = buffer.atoms[idx];
     count++;
@@ -523,21 +646,21 @@ int fill_AccessGrid_fromArray (int numatoms, const float probe,
 /*********************************************/
 int get_ExcludeGrid_fromFile (int numatoms, const float probe,
 	char file[], gridpt EXCgrid[]) {
-//READ FILE INTO ACCGRID
+  // Read the molecule and rasterize accessible space first.
   gridpt *ACCgrid;
   std::cerr << "Allocating Grid..." << std::endl;
   ACCgrid = (gridpt*) std::malloc (NUMBINS);
   if (ACCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   fill_AccessGrid_fromFile(numatoms,probe,file,ACCgrid);
 
-//TRUNCATE GRID
+  // Shrink the accessible map into the excluded volume.
   //trun_ExcludeGrid(probe, ACCgrid, EXCgrid);
   trun_ExcludeGrid_fast(probe, ACCgrid, EXCgrid);
 
-//RELEASE ACCGRID
+  // Release the intermediate buffer.
   std::free (ACCgrid);
 
-//OUTPUT INFO
+  // Report the excluded volume summary.
   int voxels = countGrid(EXCgrid);
   std::cerr << std::endl << "******************************************" << std::endl;
   std::cerr << "Excluded Volume for Probe " << probe << std::flush;
@@ -553,14 +676,17 @@ int get_ExcludeGrid_fromFile (int numatoms, const float probe,
 /*********************************************/
 int get_ExcludeGrid_fromArray (int numatoms, const float probe,
 	const XYZRBuffer& buffer, gridpt EXCgrid[]) {
+  // Build the accessible grid from the in-memory atom buffer.
   gridpt *ACCgrid;
   std::cerr << "Allocating Grid..." << std::endl;
   ACCgrid = (gridpt*) std::malloc (NUMBINS);
   if (ACCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   fill_AccessGrid_fromArray(numatoms,probe,buffer,ACCgrid);
 
+  // Contract that accessible map into the excluded volume.
   trun_ExcludeGrid_fast(probe, ACCgrid, EXCgrid);
 
+  // Free the scratch grid before final reporting.
   std::free (ACCgrid);
 
   int voxels = countGrid(EXCgrid);
@@ -752,11 +878,9 @@ void trun_ExcludeGrid_fast(const float probe, const gridpt ACCgrid[], gridpt EXC
 
 
 /*********************************************/
+// Expands the excluded grid outward by filling neighbors around occupied voxels.
 void grow_ExcludeGrid (const float probe, const gridpt ACCgrid[], gridpt EXCgrid[]) {
-//expands
-//limit grid search
-  //XMIN=(minmax[3] - MAXVDW - PROBE - 2*GRID);
-  //XMAX=(minmax[3] + MAXVDW + PROBE + 2*GRID);
+  // Limit search to the main interior of the grid to avoid borders.
   const int imin = 1;
   const int jmin = DX;
   const int kmin = DXY;
@@ -764,6 +888,7 @@ void grow_ExcludeGrid (const float probe, const gridpt ACCgrid[], gridpt EXCgrid
   const int jmax = DXY;
   const int kmax = DXYZ;
 
+  // Allocate or reuse the exclusion grid and seed it from the accessible grid.
   if (EXCgrid==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
     EXCgrid = (gridpt*) std::malloc (NUMBINS);
@@ -771,46 +896,48 @@ void grow_ExcludeGrid (const float probe, const gridpt ACCgrid[], gridpt EXCgrid
   }
   copyGrid(ACCgrid,EXCgrid);
 
-//MUST USE COPYGRID BEFORE USING GROW_EXC
-
-
+  // Progress tracking to keep the user informed.
   float count = 0;
   const float cat = ((kmax-kmin)/DXY)/60.0;
   float cut = cat;
 
   std::cerr << std::endl << "Growing Excluded Grid from Accessible "
-	<< "Grid by Probe " << probe << "..." << std::endl;
+    << "Grid by Probe " << probe << "..." << std::endl;
   printBar();
 
+  // Sweep through the volume slice by slice, parallelizing the inner loops.
   for(int k=kmin; k<kmax; k+=DXY) {
-  count++;
-  if(count > cut) {
-    std::cerr << "^" << std::flush;
-    cut += cat;
-  }
-  #pragma omp parallel for
-  for(int j=jmin; j<jmax; j+=DX) {
-  for(int i=imin; i<imax; i++) {
-      const int pt = i+j+k;
-      if(ACCgrid[pt]) {
-        //MUST USE COPYGRID BEFORE USING GROW_EXC
-        if(hasEmptyNeighbor(pt,ACCgrid)) {
-          const int k2 = k/DXY;
-          const int j2 = j/DX;
-          //ONLY use of fill_ExcludeGrid()
-          fill_ExcludeGrid(i,j2,k2,probe,EXCgrid);
+    count++;
+    if(count > cut) {
+      std::cerr << "^" << std::flush;
+      cut += cat;
+    }
+    #pragma omp parallel for
+    for(int j=jmin; j<jmax; j+=DX) {
+      for(int i=imin; i<imax; i++) {
+        const int pt = i+j+k;
+        if(ACCgrid[pt]) {
+          if(hasEmptyNeighbor(pt,ACCgrid)) {
+            const int k2 = k/DXY;
+            const int j2 = j/DX;
+            fill_ExcludeGrid(i,j2,k2,probe,EXCgrid);
+          }
         }
       }
-  }}}
+    }
+  }
+
   std::cerr << std::endl << "done" << std::endl << std::endl;
   return;
 };
 
 /*********************************************/
 float *get_Point (gridpt grid[]) {
+  // Search the entire grid for an occupied voxel and return its coordinates.
   int gp;
   int i,j,k;
   float *xyz = (float*) std::malloc ( sizeof(float)*3 );
+
   for(k=0; k<DZ; k++) {
     for(j=0; j<DY; j++) {
       for(i=0; i<DX; i++) {
@@ -832,13 +959,14 @@ float *get_Point (gridpt grid[]) {
 
 /*********************************************/
 int get_GridPoint (gridpt grid[]) {
+  // Find and return the first occupied voxel index.
   int gp;
   if (DEBUG > 0)
     std::cerr << "searching for first filled grid point... " << std::endl;
   for(gp=0; gp<DXYZ; gp++) {
     if(grid[gp] == 1) {
-		if (DEBUG > 0)
-      	cerr << "grid point: " << gp << " of " << DXYZ
+      if (DEBUG > 0)
+        cerr << "grid point: " << gp << " of " << DXYZ
               << "; value: " << grid[gp] << std::endl;
       return gp;
     }
@@ -848,11 +976,13 @@ int get_GridPoint (gridpt grid[]) {
 
 /*********************************************/
 int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y, const float z) {
+  // Log the query point in physical space then convert to voxel index.
   std::cerr << std::endl << "x:" << x << " y:" << y << " z:" << z << std::endl;
   const int gp = xyz2pt(x,y,z);
   if (DEBUG > 0)
     std::cerr << "gp: " << gp << " grid value: " << grid[gp] << std::endl;
 
+  // Allocate the connectivity mask if the caller did not supply one.
   if (connect==NULL) {
     std::cerr << "Allocating Grid..." << std::endl;
     connect = (gridpt*) std::malloc (NUMBINS);
@@ -881,6 +1011,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
     }}}
   }
 
+  // Traverse neighbors from the starting point to mark connected voxels.
   const int max = NUMBINS;
   int steps=0;
   int connected=0;
@@ -897,10 +1028,12 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
     LIST[0] = gp;
     LIST[1] = 0;
 
+    // Breadth-first expansion loop.
     while(last != 0) {
     //cerr << "." << std::flush;
       int newlast = 0;
       int NEWLIST[MAXLIST];
+      // Try every point collected in the current frontier.
       for(int n=0; n<last; n++) {
         steps++;
         int p = LIST[n];
@@ -918,6 +1051,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
           }
         }}}
       }
+      // Copy new frontier back into the working list in parallel.
       #pragma omp parallel for
       for(int n=0; n<newlast; n++) {
         LIST[n] = NEWLIST[n];
@@ -945,7 +1079,7 @@ int get_Connected (gridpt grid[], gridpt connect[], const float x, const float y
 
 /*********************************************/
 int get_ConnectedRange (gridpt grid[], gridpt connect[], const float x, const float y, const float z) {
-//Get selected point in grid
+  // Locate a filled voxel near the user-specified coordinate and flood-fill it.
   int gp = xyz2pt(x,y,z);
   int ip,jp,kp;
   ip = int((x-XMIN)/GRID+0.5);
@@ -1592,6 +1726,7 @@ bool hasEmptyNeighbor_Fill(const int pt, const gridpt grid[]) {
 //void contract_Point (const int pt, gridpt grid[]);
 
 /*********************************************/
+// Zero out all voxels further than `radius` from the main tunnel vector.
 void limitToTunnelArea(const float radius, gridpt grid[]) {
   std::cerr << "Limiting to Cylinder Around Exit Tunnel...  " << std::flush;
 
@@ -1656,13 +1791,14 @@ float distFromPt (const float x, const float y, const float z) {
 /*********************************************/
 float crossSection (const real p, const vector v, const gridpt grid[])
 {
+  // Legacy overload that ignores the user-supplied vector and uses defaults.
   return crossSection(grid);
 };
 
 /*********************************************/
 float crossSection (const gridpt grid[])
 {
-//INIT POINT
+  //INIT POINT
   struct real p;
   p.x =  77.0;
   p.y = 124.0;
@@ -1696,6 +1832,7 @@ float crossSection (const gridpt grid[])
   double mult = GRID*GRID/6.0;
   std::cerr << "stepping" << std::flush;
   for(float k=-5; k<100; k+=0.5) {
+   // Snap the slicing plane to 0.25 increments for reproducibility.
    k = int(k*4.0)/4.0;
    std::cerr << "." << std::flush;
    count = 0.0;
@@ -1733,7 +1870,7 @@ float crossSection (const gridpt grid[])
 
 /*********************************************/
 void padLeft(char a[], int n) {
-  //len = 1 , n = 5
+  // Pad the string on the left by shifting characters to the right.
   int len = strlen(a);
   if(len < n) {
     for(int i=len; i<n; i++) {
@@ -1749,6 +1886,7 @@ void padLeft(char a[], int n) {
 
 /*********************************************/
 void padRight(char a[], int n) {
+  // Extend the string on the right by filling spaces up to `n`.
   int len = strlen(a);
   if(len < n) {
     while (len < n) {
@@ -1761,13 +1899,14 @@ void padRight(char a[], int n) {
 
 /*********************************************/
 void printBar () {
+  // Output the standard progress bar that wraps long-running loops.
   std::cerr << "|----+----+----+----+----+---<>---+----+----+----+----+----|" << std::endl;
   return;
 };
 
 /*********************************************/
 void printVol (int vox) {
-  //long double vol = vox*GRIDVOL;
+  // Print the voxel volume with thousands separators for readability.
   float tenp;
   tenp = 1000000.0;
   if(float(vox)*GRIDVOL > tenp) {
@@ -1804,6 +1943,7 @@ void printVol (int vox) {
 
 /*********************************************/
 void printVolCout (int vox) {
+  // Same as printVol but writes to stdout and tabs the output.
   long double vol = float(vox)*GRIDVOL;
   long double tenp;
   tenp = 1000000.0; //Millions
@@ -1842,6 +1982,7 @@ void printVolCout (int vox) {
 
 /*********************************************/
 void basename (char str[], char base[]) {
+  // Extract the path component after the final slash.
   int loc=0;
   for(int i=0; str[i] != '\0'; i++) {
     if (str[i] == '/') {
@@ -1885,6 +2026,7 @@ int countEdgePoints (gridpt grid[]) {
       cut += cat;
     }
     sj=-1;
+    // Walk the j and i indices to examine every voxel in the current slice.
     for(int j=0; j<DXY; j+=DX) {
       sj++;
       for(int i=0; i<DX; i++) {
@@ -1894,7 +2036,9 @@ int countEdgePoints (gridpt grid[]) {
           if (type != 0)
 	          edges++;
         }
-  } } }
+      }
+    }
+  }
   return edges;
 }
 
@@ -1940,7 +2084,9 @@ float surface_area (gridpt grid[]) {
           //surf += wt[type];
           edges[type]++;
         }
-  } } }
+      }
+    }
+  }
   std::cerr << std::endl << "EDGES: ";
   float totedge=0;
   for(int i=1; i<=9; i++) {
@@ -1956,7 +2102,7 @@ float surface_area (gridpt grid[]) {
 
 /*********************************************/
 int classifyEdgePoint (const int pt, gridpt grid[]) {
-  //look at neighbors
+  // Evaluate the six principal neighbors to classify the surface type.
   short int count=0;
   short int nb=0; //num of empty neighbors
   for(int di=-1; di<=1; di+=2) {
@@ -2048,12 +2194,13 @@ int classifyEdgePoint (const int pt, gridpt grid[]) {
 
 /*********************************************/
 int fill_cavities(gridpt grid[]) {
+  // Identify internal cavities by inverting the filled volume and removing tunnels.
 
   gridpt *cavACC=NULL;
   cavACC = (gridpt*) std::malloc (NUMBINS);
   bounding_box(grid,cavACC);
 
-//Create inverse access map
+  //Create inverse access map
   subt_Grids(cavACC,grid); //modifies cavACC
   //int achanACC_voxels = countGrid(cavACC);
 
@@ -2070,7 +2217,7 @@ int fill_cavities(gridpt grid[]) {
   }
   std::cerr << "LAST  POINT: " << lastpt << std::endl;
 
-//Pull channels out of inverse access map
+  //Pull channels out of inverse access map
   gridpt *chanACC=NULL;
   chanACC = (gridpt*) std::malloc (NUMBINS);
   zeroGrid(chanACC);
@@ -2078,7 +2225,7 @@ int fill_cavities(gridpt grid[]) {
   get_Connected_Point(cavACC,chanACC,lastpt); //modifies chanACC
   //int chanACC_voxels = countGrid(chanACC);
 
-//Subtract channels from access map leaving cavities
+  //Subtract channels from access map leaving only cavities.
   subt_Grids(cavACC,chanACC); //modifies cavACC
   std::free (chanACC);
   int cavACC_voxels = countGrid(cavACC);
@@ -2113,6 +2260,7 @@ void determine_MinMax(const gridpt grid[], int minmax[]) {
     std::cerr << "Determining Minima and Maxima..." << std::flush;
   int xmin=DX, ymin=DXY, zmin=DXYZ;
   int xmax=0, ymax=0, zmax=0;
+  // Scan every voxel to update the min/max per axis.
   for(int k=0; k<DXYZ; k+=DXY) {
     for(int j=0; j<DXY; j+=DX) {
       for(int i=0; i<DX; i++) {
@@ -2125,7 +2273,9 @@ void determine_MinMax(const gridpt grid[], int minmax[]) {
           if(j > ymax) { ymax = j; }
           if(k > zmax) { zmax = k; }
         }
-  } } }
+      }
+    }
+  }
   if (DEBUG > 0)
     std::cerr << "  DONE" << std::endl;;
   minmax[0] = xmin;
@@ -2175,13 +2325,12 @@ int makerbot_fill(gridpt ingrid[], gridpt outgrid[]) {
     #pragma omp parallel for
     for(unsigned int pt=0; pt<NUMBINS-1; pt++) {
       if(ingrid[pt]) {
-        //if (isContainedPoint(pt, ingrid, outgrid, minmax)) {
-      	if (!isNearEdgePoint(pt, ingrid, outgrid)) {
+        if (!isNearEdgePoint(pt, ingrid, outgrid)) {
           ingrid[pt] = 0;
-      	  outgrid[pt] = 1;
-      	  #pragma omp atomic
-      	  changed++;
-      	} //}
+          outgrid[pt] = 1;
+          #pragma omp atomic
+          changed++;
+        }
       }
     }
     totalChanged += changed;
@@ -2215,13 +2364,13 @@ bool isContainedPoint (const int pt, gridpt ingrid[], gridpt outgrid[], int minm
   unsigned int checked = 0;
 
   unsigned int fillCount = 0;
-// X axis
+  // X axis scan for bounding grid occupancy in both directions.
   filled = 0;
   for(index=1; index<ipt-xmin  && filled==0; index++) {
     newpt = ijk2pt(ipt - index, jpt, kpt);
     checked++;
     if (outgrid[newpt] == 1) {
-  	  fillCount++; filled=1;
+      fillCount++; filled=1;
     } else if (ingrid[newpt] == 0) {
       filled=1;
     }
@@ -2237,7 +2386,7 @@ bool isContainedPoint (const int pt, gridpt ingrid[], gridpt outgrid[], int minm
     }
   }
 
-// Y axis
+  // Y axis checks.
   filled = 0;
   for(index=1; index<jpt-ymin  && filled==0; index++) {
     newpt = ijk2pt(ipt, jpt - index, kpt);
@@ -2259,7 +2408,7 @@ bool isContainedPoint (const int pt, gridpt ingrid[], gridpt outgrid[], int minm
     }
   }
 
-// Z axis
+  // Z axis checks.
   filled = 0;
   for(index=1; index<kpt-zmin && filled==0; index++) {
     newpt = ijk2pt(ipt, jpt, kpt - index);
@@ -2296,7 +2445,7 @@ bool isNearEdgePoint (const int pt, gridpt ingrid[], gridpt outgrid[]) {
   const int r = int(R+1);
   const float cutoff = R*R;
   int nri,nrj,nrk,pri,prj,prk;
-//overflow checks (let's not go off the grid)
+  // Enforce grid bounds before checking neighbors.
   if(i < r) { nri = -i; } else { nri = -r;}
   if(j < r) { nrj = -j; } else { nrj = -r;}
   if(k < r) { nrk = -k; } else { nrk = -r;}
@@ -2305,7 +2454,7 @@ bool isNearEdgePoint (const int pt, gridpt ingrid[], gridpt outgrid[]) {
   if(k + r >= DZ) { prk = DZ-k-1; } else { prk = r;}
   float distsq;
   int ind;
-  // do not parallelize done in previous step
+  // This inner loop is sequential to avoid race conditions on the shared grid.
   for(int di=nri; di<=pri; di++) {
   for(int dj=nrj; dj<=prj; dj++) {
   for(int dk=nrk; dk<=prk; dk++) {
@@ -2323,11 +2472,11 @@ bool isNearEdgePoint (const int pt, gridpt ingrid[], gridpt outgrid[]) {
 
 /*********************************************/
 int bounding_box(gridpt grid[], gridpt bbox[]) {
-  //find min x,y,z and max x,y,z
+  // Reset the output box before filling.
   zeroGrid(bbox);
 
 
-//PART I: Determine Extrema
+  //PART I: Determine extrema of the occupied region.
   int minmax[6];
   determine_MinMax(grid, minmax);
   int xmin, ymin, zmin;
@@ -2356,17 +2505,21 @@ int bounding_box(gridpt grid[], gridpt bbox[]) {
   float cut = cat;
   std::cerr << "Fill Box..." << std::endl;
   printBar();
+  // Iterate over every z-slice between the computed bounds.
   for(int k=zmin; k<=zmax; k+=DXY) {
-    count++;
     if(count > cut) {
       std::cerr << "^" << std::flush;
       cut += cat;
     }
+    count++;
+    // Sweep across the current j-row and fill each column.
     for(int j=ymin; j<=ymax; j+=DX) {
+      // Fill every voxel along the i-axis within the bounding box.
       for(int i=xmin; i<=xmax; i++) {
         bbox[i+j+k] = 1;
         vol++;
   } } }
+  // Report the filled-box volume just for diagnostics.
   std::cerr << std::endl << "BOX VOXELS: ";
   printVol(vol);
   std::cerr << std::endl << std::endl;

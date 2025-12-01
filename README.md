@@ -165,6 +165,11 @@ To get started with the Voss Volume Voxelator tools, follow these steps:
    ```
    Alternatively, download Chimera from: http://www.cgl.ucsf.edu/chimera/
 
+## Utility Function Reference
+
+- The helper routines behind the grids, volumes, and exclusions live together in `src/utils-main.cpp`.
+- A grouped catalog of every helper, including inputs/outputs and responsibilities, now lives in [`UTILS.md`](./UTILS.md) for quick lookup before refactoring or porting.
+
 ## Program Descriptions
 
 ### Primary Programs
