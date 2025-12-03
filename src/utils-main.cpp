@@ -683,6 +683,9 @@ int get_ExcludeGrid_fromArray (int numatoms, const float probe,
   if (ACCgrid==NULL) { std::cerr << "GRID IS NULL" << std::endl; exit (1); }
   fill_AccessGrid_fromArray(numatoms,probe,buffer,ACCgrid);
 
+  int voxels_acc = countGrid(ACCgrid);
+  std::cerr << "Accessible voxels: " << voxels_acc << std::endl;
+
   // Contract that accessible map into the excluded volume.
   trun_ExcludeGrid_fast(probe, ACCgrid, EXCgrid);
 

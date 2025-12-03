@@ -153,6 +153,9 @@ void processGrid(double probe,
   int voxels = (probe > 0.0) ? get_ExcludeGrid_fromArray(numatoms, probe, buffer, EXCgrid.get())
                              : fill_AccessGrid_fromArray(numatoms, 0.0f, buffer, EXCgrid.get());
 
+  int voxels_exc = countGrid(EXCgrid.get());
+  std::cerr << "Excluded voxels after contraction: " << voxels_exc << std::endl;
+
   long double surf = surface_area(EXCgrid.get());
 
   std::cerr << "\nSummary of Results:\n"
