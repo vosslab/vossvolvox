@@ -153,18 +153,18 @@ void processGrid(double probe,
   int voxels = (probe > 0.0) ? get_ExcludeGrid_fromArray(numatoms, probe, buffer, EXCgrid.get())
                              : fill_AccessGrid_fromArray(numatoms, 0.0f, buffer, EXCgrid.get());
 
-  int voxels_exc = countGrid(EXCgrid.get());
-  std::cerr << "Excluded voxels after contraction: " << voxels_exc << std::endl;
-
   long double surf = surface_area(EXCgrid.get());
 
   std::cerr << "\nSummary of Results:\n"
             << "Probe Radius:       " << probe << " A\n"
             << "Grid Spacing:       " << GRID << " A\n"
+            << "Voxel Volume:       " << GRIDVOL << " A\n"
             << "Total Voxels:       " << voxels << "\n"
+            << "Volume:             " << voxels*GRIDVOL << "\n"
             << "Surface Area:       " << surf << " A^2\n"
             << "Number of Atoms:    " << numatoms << "\n"
-            << "Input File:         " << inputFile << "\n";
+            << "Input File:         " << inputFile << "\n"
+            << "\n";
 
   if (!mrcFile.empty()) {
     writeMRCFile(EXCgrid.get(), const_cast<char*>(mrcFile.c_str()));
