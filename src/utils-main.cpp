@@ -23,6 +23,7 @@
 
 // Logging helpers via std::cerr and std::cout.
 #include <iostream>
+#include <iomanip>
 
 // Project-specific definitions such as gridpt and DEBUG.
 #include "utils.h"
@@ -1908,78 +1909,18 @@ void printBar () {
 };
 
 /*********************************************/
-void printVol (int vox) {
-  // Print the voxel volume with thousands separators for readability.
-  float tenp;
-  tenp = 1000000.0;
-  if(float(vox)*GRIDVOL > tenp) {
-    int cut = int((float(vox)/tenp)*GRIDVOL);
-      std::cerr << cut << "," << std::flush;
-    vox = vox - int(cut*tenp/GRIDVOL);
-  }
-  tenp = 1000.0;
-  if(float(vox)*GRIDVOL > tenp) {
-    int cut = int((float(vox)/tenp)*GRIDVOL);
-    if(cut >= 100) {
-      std::cerr << cut << "," << std::flush;
-    } else if(cut >= 10) {
-      std::cerr << "0" << cut << "," << std::flush;
-    } else if(cut >= 1) {
-      std::cerr << "00" << cut << std::flush;
-    } else {
-      std::cerr << "000" << std::flush;
-    }
-    vox = vox - int(cut*tenp/GRIDVOL);
-  }
-  double cut = float(vox)*GRIDVOL;
-  if(cut >= 100) {
-    std::cerr << cut << std::flush;
-  } else if(cut >= 10) {
-    std::cerr << "0" << cut << std::flush;
-  } else if(cut >= 1) {
-    std::cerr << "00" << cut << std::flush;
-  } else {
-    std::cerr << "000" << std::flush;
-  }
+void printVol(int vox) {
+  // Print the voxel volume to stderr with fixed precision.
+  long double vol = static_cast<long double>(vox) * static_cast<long double>(GRIDVOL);
+  std::cerr << std::fixed << std::setprecision(3) << vol << std::flush;
   return;
 };
 
 /*********************************************/
-void printVolCout (int vox) {
-  // Same as printVol but writes to stdout and tabs the output.
-  long double vol = float(vox)*GRIDVOL;
-  long double tenp;
-  tenp = 1000000.0; //Millions
-  if(float(vox)*GRIDVOL > tenp) {
-    int cut = int((float(vox)/tenp)*GRIDVOL);
-      std::cout << cut << std::flush;
-    vox = vox - int(cut*tenp/GRIDVOL);
-  }
-  tenp = 1000.0; //Thousands
-  if(float(vox)*GRIDVOL > tenp) {
-    int cut = int((float(vox)/tenp)*GRIDVOL);
-    if(cut >= 100 || vol < 100000) {
-      std::cout << cut << std::flush;
-    } else if(cut >= 10) {
-      std::cout << "0" << cut << std::flush;
-    } else if(cut >= 1) {
-      std::cout << "00" << cut << std::flush;
-    } else {
-      std::cout << "000" << std::flush;
-    }
-    vox = vox - int(cut*tenp/GRIDVOL);
-  }
-  double cut = float(vox)*GRIDVOL;
-  if(cut >= 100 || vol < 1000) {
-    std::cout << cut << std::flush;
-  } else if(cut >= 10) {
-    std::cout << "0" << cut << std::flush;
-  } else if(cut >= 1) {
-    std::cout << "00" << cut << std::flush;
-  } else {
-    std::cout << "000" << std::flush;
-  }
-  std::cout << "\t" << std::flush;
+void printVolCout(int vox) {
+  // Same as printVol but writes to stdout and adds a trailing tab.
+  long double vol = static_cast<long double>(vox) * static_cast<long double>(GRIDVOL);
+  std::cout << std::fixed << std::setprecision(3) << vol << "\t" << std::flush;
   return;
 };
 
