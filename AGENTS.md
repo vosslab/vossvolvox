@@ -21,3 +21,8 @@ Follow the observed Conventional Commit style (`feat:`, `chore:`, `meta:`). Each
 
 ## Security & Configuration Tips
 `pdb_to_xyzr` auto-detects Gemmi headers; keep the dependency patched (`pip install --upgrade gemmi`) and rebuild. Avoid hardcoding atmtypenumbers paths—include them via `atmtypenumbers_data.h` to keep builds reproducible. When adding new options, ensure `ArgumentParser` exposes quiet-aware banners so `-q/--quiet` suppresses identifying text across binaries.
+See Python coding style in docs/PYTHON_STYLE.md.
+See Markdown style in docs/MARKDOWN_STYLE.md.
+See repo style in docs/REPO_STYLE.md.
+When making edits, document them in docs/CHANGELOG.md.
+Agents may run programs in the tests folder, including smoke tests and pyflakes/mypy runner scripts.
