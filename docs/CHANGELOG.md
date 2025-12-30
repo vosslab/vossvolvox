@@ -59,6 +59,8 @@ OpenAI Codex
 - Moved command-line capture helpers into `src/lib/argument_helper.*`.
 - Removed the `volume_reference` build target; `Volume-1.0.exe` must be supplied
   externally.
+- Added `tests/clean_up_test_files.sh` to remove cached test artifacts.
+- Set `VERSION` to `26.01b2`.
 - Renamed `src/volume_original.cpp` to `src/volume-legacy.cpp` and marked legacy
   sources as no-edit in `AGENTS.md`.
 - Updated `tests/test_volume.sh` to validate HETATM-only counts and MD5s instead
