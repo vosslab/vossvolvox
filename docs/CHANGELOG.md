@@ -5,6 +5,12 @@ Chronological record of user-facing and maintenance changes.
 ## 2025-12-30
 OpenAI Codex
 - Converted `docs/CHANGELOG.md` to Markdown headings and bullet lists.
+- Reformatted `docs/INSTALL.md`, `docs/QUICKSTART.md`, `docs/TODO.md`, and
+  `docs/RELEASE_HISTORY.md` into Markdown-first layouts.
+- Collapsed `VERSION` to a single `26.01b6` entry and merged prior history into
+  `docs/RELEASE_HISTORY.md`.
+- Linked all `docs/*.md` files from `README.md` and refreshed the Quickstart and
+  utilities references.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

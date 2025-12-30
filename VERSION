@@ -1,12 +1,1 @@
-2.0.0-beta5	Nov 29, 2025 In-memory XYZR buffers, direct PDB/mmCIF input, and shared filtering flags across Volume.exe
-2.0.0-beta4	Nov 28, 2025 Grid padding fixes, python regression harness (YAML suite), new reference build target
-2.0.0-beta3	Nov 28, 2025 Shared CLI helper (C++17) with Volume.exe migration
-2.0.0-beta2	Nov 28, 2025 Native converters with filtering and new test tooling
-2.0.0-beta1	Nov 14, 2024 Codebase modernization and groundwork for new converters
-1.2	Jun 02, 2009 Added MRC ability
-1.1	Oct 24, 2006 Minimal updates
-1.0	Jun 20, 2006 Initial Public Release
-
-
-you can always get the latest version from subversion:
- svn co http://vossvolvox.svn.sourceforge.net/svnroot/vossvolvox vossvolvox 
+26.01b6

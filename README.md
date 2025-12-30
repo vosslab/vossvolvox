@@ -2,6 +2,18 @@
 
 This repository provides a set of command-line tools for analyzing molecular structures, focusing on extracting channels, cavities, calculating solvent-excluded volumes, and analyzing ribosomal tunnels. These tools are invaluable for researchers in structural biology and molecular biophysics.
 
+## Documentation
+
+- [docs/AUTHORS.md](docs/AUTHORS.md)
+- [docs/CHANGELOG.md](docs/CHANGELOG.md)
+- [docs/INSTALL.md](docs/INSTALL.md)
+- [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md)
+- [docs/QUICKSTART.md](docs/QUICKSTART.md)
+- [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md)
+- [docs/REPO_STYLE.md](docs/REPO_STYLE.md)
+- [docs/TODO.md](docs/TODO.md)
+- [docs/UTILS.md](docs/UTILS.md)
+
 ## Citation
 
 If you use these tools in your research, please cite:
@@ -75,7 +87,7 @@ To install the Voss Volume Voxelator package, follow these steps:
 - Install Gemmi via your preferred package manager (e.g., `pip install gemmi` or `brew install gemmi`) before running `make`. The build automatically detects the headers via `__has_include`.
 - **Security updates:** because Gemmi is header-only, periodically update the installed package (`pip install --upgrade gemmi` or `brew upgrade gemmi`) and rebuild `pdb_to_xyzr.exe` to pick up upstream fixes.
 
-For more details, see the `QUICKSTART` section below.
+For more details, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
 ### Testing and Regression Harness
 
@@ -168,7 +180,8 @@ To get started with the Voss Volume Voxelator tools, follow these steps:
 ## Utility Function Reference
 
 - The helper routines behind the grids, volumes, and exclusions live together in `src/utils-main.cpp`.
-- A grouped catalog of every helper, including inputs/outputs and responsibilities, now lives in [`UTILS.md`](./UTILS.md) for quick lookup before refactoring or porting.
+- A grouped catalog of every helper, including inputs/outputs and responsibilities, now lives in
+  [docs/UTILS.md](docs/UTILS.md) for quick lookup before refactoring or porting.
 
 ## Program Descriptions
 

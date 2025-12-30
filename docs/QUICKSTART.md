@@ -1,34 +1,58 @@
-# QUICKSTART Guide for Voss Volvox Tools
+# Quickstart
 
-# Step 1: Get the PDB of Hemoglobin (1A01)
+Run an end-to-end example from PDB input to volume outputs. Commands assume you are
+at the repository root.
+
+## 1. Download the example PDB (1A01)
+
+```sh
 wget -c "http://www.rcsb.org/pdb/cgi/export.cgi/1A01.pdb.gz?format=PDB&pdbId=1A01&compression=gz" -O 1A01.pdb.gz
 gunzip 1A01.pdb.gz
+```
 
-# Step 2: Convert to XYZR with the native converter (filter ions/water directly)
+## 2. Convert to XYZR (native converter)
+
+```sh
 ./bin/pdb_to_xyzr.exe --exclude-ions --exclude-water 1A01.pdb > 1a01-filtered.xyzr
-# (Alternatively: python3 xyzr/pdb_to_xyzr.py ...)
-#   or skip the intermediate file entirely and let Volume.exe read the PDB:
-# ./bin/Volume.exe -i 1A01.pdb --exclude-ions --exclude-water -p 1.5 -g 0.5 -o 1a01-excluded.pdb
+```
 
-# Step 3: Compile the Program
-# Navigate to the source directory and build the 'vol' program
+Alternative: run the Python converter.
+
+```sh
+python3 xyzr/pdb_to_xyzr.py --exclude-ions --exclude-water 1A01.pdb > 1a01-filtered.xyzr
+```
+
+Alternative: skip XYZR and let Volume.exe read the PDB directly.
+
+```sh
+./bin/Volume.exe -i 1A01.pdb --exclude-ions --exclude-water -p 1.5 -g 0.5 -o 1a01-excluded.pdb
+```
+
+## 3. Build the volume tool
+
+```sh
 cd src
 make vol
 cd ..
+```
 
-# Step 4: Calculate Solvent Excluded Volume
-# Run the Volume.exe tool with the desired input and parameters (XYZR or raw PDB)
+## 4. Compute solvent-excluded volume
+
+```sh
 bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5
-# or
-# bin/Volume.exe -i 1A01.pdb --exclude-ions --exclude-water -p 1.5 -g 0.5
+```
 
-# Step 5: Output to PDB (Visualize with RasMol or another molecular viewer)
+## 5. Output to PDB and MRC
+
+```sh
 bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5 -o 1a01-excluded.pdb
-
-# Step 6: Output to MRC format for visualization (e.g., in UCSF Chimera)
 bin/Volume.exe -i 1a01-filtered.xyzr -p 1.5 -g 0.5 -m 1a01-excluded.mrc
+```
 
-# Step 7: View MRC file in UCSF Chimera
-# If you have UCSF Chimera installed, use the following command:
+## 6. View the MRC in Chimera
+
+```sh
 chimera 1a01-excluded.mrc
-# Alternatively, download Chimera from: http://www.cgl.ucsf.edu/chimera/
+```
+
+Download Chimera from [UCSF Chimera](http://www.cgl.ucsf.edu/chimera/).
