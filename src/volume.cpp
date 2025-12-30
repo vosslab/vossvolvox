@@ -11,23 +11,11 @@
 #include "xyzr_cli_helpers.h"
 
 // Globals
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
-extern int DX, DY, DZ;
-extern int DXY, DXYZ;
-extern unsigned int NUMBINS;
-extern float MAXPROBE;
 extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
 
 // Function prototypes
 void processGrid(double probe,
-                 const std::string& ezdFile,
-                 const std::string& pdbFile,
-                 const std::string& mrcFile,
+                 const vossvolvox::OutputSettings& outputs,
                  const std::string& inputFile,
                  const XYZRBuffer& xyzr_buffer,
                  int numatoms);
@@ -39,6 +27,7 @@ int main(int argc, char* argv[]) {
   // Initialize variables
   std::string inputFile;
   vossvolvox::OutputSettings outputs;
+  vossvolvox::DebugSettings debug;
   double probe = 10.0;
   float grid = GRID;  // Use global GRID value initially
   vossvolvox::FilterSettings filters;
@@ -51,6 +40,7 @@ int main(int argc, char* argv[]) {
   parser.add_option("-g", "--grid", grid, GRID, "Grid spacing in Angstroms.", "<grid spacing>");
   vossvolvox::add_output_options(parser, outputs);
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example(std::string(argv[0]) + " -i sample.xyzr -p 1.5 -g 0.5 -o surface.pdb");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -63,6 +53,9 @@ int main(int argc, char* argv[]) {
   if (!vossvolvox::ensure_input_present(inputFile, parser)) {
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(inputFile, &outputs);
 
   if (!vossvolvox::quiet_mode()) {
     printCompileInfo(argv[0]);
@@ -93,13 +86,7 @@ int main(int argc, char* argv[]) {
   const int numatoms = grid_result.total_atoms;
 
   // Process the grid for volume and surface calculations
-  processGrid(probe,
-              outputs.ezdFile,
-              outputs.pdbFile,
-              outputs.mrcFile,
-              inputFile,
-              xyzr_buffer,
-              numatoms);
+  processGrid(probe, outputs, inputFile, xyzr_buffer, numatoms);
 
   // Program completed successfully
   std::cerr << "\nProgram Completed Successfully\n\n";
@@ -108,46 +95,26 @@ int main(int argc, char* argv[]) {
 
 // Process the grid for volume and surface calculations
 void processGrid(double probe,
-                 const std::string& ezdFile,
-                 const std::string& pdbFile,
-                 const std::string& mrcFile,
+                 const vossvolvox::OutputSettings& outputs,
                  const std::string& inputFile,
                  const XYZRBuffer& xyzr_buffer,
                  int numatoms) {
   // Allocate memory for the excluded grid
-  auto EXCgrid = std::make_unique<gridpt[]>(NUMBINS);
-  if (!EXCgrid) {
-    std::cerr << "Error: Grid allocation failed.\n";
-    exit(1);
-  }
-  zeroGrid(EXCgrid.get());
+  auto EXCgrid = make_zeroed_grid();
 
   // Populate the grid based on the probe radius
-  int voxels = (probe > 0.0) ? get_ExcludeGrid_fromArray(numatoms, probe, xyzr_buffer, EXCgrid.get())
-                             : fill_AccessGrid_fromArray(numatoms, 0.0f, xyzr_buffer, EXCgrid.get());
+  int voxels = get_ExcludeGrid_fromArray(numatoms, probe, xyzr_buffer, EXCgrid.get());
 
   long double surf = surface_area(EXCgrid.get());
 
   std::cerr << "\nSummary of Results:\n"
-            << "Probe Radius:       " << probe << " A\n"
-            << "Grid Spacing:       " << GRID << " A\n"
-            << "Voxel Volume:       " << GRIDVOL << " A\n"
-            << "Total Voxels:       " << voxels << "\n"
-            << "Volume:             " << voxels*GRIDVOL << "\n"
-            << "Surface Area:       " << surf << " A^2\n"
-            << "Number of Atoms:    " << numatoms << "\n"
+            << "Probe Radius:       " << probe << " A\n";
+  report_grid_metrics(std::cerr, voxels, surf);
+  std::cerr << "Number of Atoms:    " << numatoms << "\n"
             << "Input File:         " << inputFile << "\n"
             << "\n";
 
-  if (!mrcFile.empty()) {
-    writeMRCFile(EXCgrid.get(), const_cast<char*>(mrcFile.c_str()));
-  }
-  if (!ezdFile.empty()) {
-    write_HalfEZD(EXCgrid.get(), const_cast<char*>(ezdFile.c_str()));
-  }
-  if (!pdbFile.empty()) {
-    write_SurfPDB(EXCgrid.get(), const_cast<char*>(pdbFile.c_str()));
-  }
+  write_output_files(EXCgrid.get(), outputs);
 
   // Output results to `std::cout` (batch processing)
   std::cout << probe << "\t" << GRID << "\t";

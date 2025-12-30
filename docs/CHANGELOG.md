@@ -76,7 +76,15 @@ OpenAI Codex
   executables.
 - Added common CLI settings helpers for filter/output options and centralized
   conversion option mapping.
-- Closed Phase 5 cleanup (kept `finalGridDims()` wrapper, no debug hooks added).
+- Closed Phase 5 cleanup (kept `finalGridDims()` wrapper).
+- Added a unified `--debug` flag to report filters, inputs/outputs, grid state,
+  and timing.
+- Centralized common output-file writes into `write_output_files()` for modern
+  tools using `OutputSettings`.
+- Added an `OutputSettings.use_small_mrc` toggle so tools can select
+  `writeSmallMRCFile` without per-call flags.
+- Added `report_grid_metrics()` helper for consistent grid summary output.
+- Added `make_zeroed_grid()` helper to combine allocation and zeroing.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

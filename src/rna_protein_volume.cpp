@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
   double PROBE = 10.0;
   float grid = GRID;
   vossvolvox::FilterSettings filters;
+  vossvolvox::DebugSettings debug;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -88,6 +89,7 @@ int main(int argc, char *argv[]) {
                     "Grid spacing in Angstroms.",
                     "<grid>");
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example("./Custom.exe -r rna.xyzr -a protein.xyzr -p 10 -g 0.8");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -102,6 +104,9 @@ int main(int argc, char *argv[]) {
     parser.print_help();
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(rna_file + "," + amino_file, nullptr);
 
   GRID = grid;
 

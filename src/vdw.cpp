@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
 
   std::string input_path;
   vossvolvox::OutputSettings outputs;
+  vossvolvox::DebugSettings debug;
   double PROBE = 0.0;
   float grid = GRID;
   vossvolvox::FilterSettings filters;
@@ -45,6 +46,7 @@ int main(int argc, char *argv[]) {
                     "<grid spacing>");
   vossvolvox::add_output_options(parser, outputs);
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example("./VDW.exe -i 1a01.xyzr -g 0.5 -o vdw_surface.pdb");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -57,6 +59,9 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::ensure_input_present(input_path, parser)) {
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(input_path, &outputs);
 
   GRID = grid;
 
@@ -103,15 +108,7 @@ int main(int argc, char *argv[]) {
   long double surf;
   surf = surface_area(EXCgrid);
 
-  if(!outputs.ezdFile.empty()) {
-    write_HalfEZD(EXCgrid, const_cast<char*>(outputs.ezdFile.c_str()));
-  }
-  if(!outputs.pdbFile.empty()) {
-    write_SurfPDB(EXCgrid, const_cast<char*>(outputs.pdbFile.c_str()));
-  }
-  if(!outputs.mrcFile.empty()) {
-    writeMRCFile(EXCgrid, const_cast<char*>(outputs.mrcFile.c_str()));
-  }
+  write_output_files(EXCgrid, outputs);
 
 //RELEASE TEMPGRID
   std::free (EXCgrid);

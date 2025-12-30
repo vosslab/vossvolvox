@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
   double TRIMPROBE = 1.5;
   float grid = GRID;
   vossvolvox::FilterSettings filters;
+  vossvolvox::DebugSettings debug;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -62,6 +63,7 @@ int main(int argc, char *argv[]) {
                     "Grid spacing in Angstroms.",
                     "<grid>");
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example("./FsvCalc.exe -i sample.xyzr -b 10 -s 0.25 -t 1.5 -g 0.8");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -74,6 +76,9 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::ensure_input_present(input_path, parser)) {
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(input_path, nullptr);
 
   GRID = grid;
 

@@ -40,12 +40,14 @@ int main(int argc, char** argv) {
     std::ios::sync_with_stdio(false);
     std::string input_file;
     vossvolvox::FilterSettings filters;
+    vossvolvox::DebugSettings debug;
 
     vossvolvox::ArgumentParser parser(
         argv[0],
         "Convert structural inputs (PDB/mmCIF/PDBML/XYZR) to XYZR format.");
     vossvolvox::add_input_option(parser, input_file);
     vossvolvox::add_filter_options(parser, filters);
+    vossvolvox::add_debug_option(parser, debug);
     parser.add_example(std::string(argv[0]) +
                        " -i 1A01.pdb --exclude-ions --exclude-water > 1a01-filtered.xyzr");
     parser.add_example(std::string(argv[0]) + " -i - --exclude-water < 1a01.pdb > 1a01.xyzr");
@@ -111,6 +113,9 @@ int main(int argc, char** argv) {
     if (input_file.empty() && !positional_input.empty()) {
         input_file = positional_input;
     }
+
+    vossvolvox::enable_debug(debug);
+    vossvolvox::debug_report_cli(input_file, nullptr);
 
     if (!vossvolvox::quiet_mode()) {
         print_compile_info(argv[0]);

@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
 
   std::string input_path;
   vossvolvox::OutputSettings outputs;
+  vossvolvox::DebugSettings debug;
   double BIGPROBE = 9.0;
   double SMPROBE = 1.5;
   double TRIMPROBE = 4.0;
@@ -80,6 +81,7 @@ int main(int argc, char *argv[]) {
                     "<fraction>");
   vossvolvox::add_output_options(parser, outputs);
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example(
       "./AllChannelExc.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -g 0.5 -t 4.0 -v 5000 -p 0.01");
 
@@ -93,6 +95,9 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::ensure_input_present(input_path, parser)) {
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(input_path, &outputs);
 
   GRID = grid;
 

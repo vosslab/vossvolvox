@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
 
   std::string input_path;
   vossvolvox::OutputSettings outputs;
+  vossvolvox::DebugSettings debug;
   double BIGPROBE = 9.0;
   double SMPROBE = 1.5;
   double TRIMPROBE = 4.0;
@@ -85,8 +86,10 @@ int main(int argc, char *argv[]) {
                     1000.0,
                     "Seed Z coordinate for channel selection.",
                     "<z>");
+  outputs.use_small_mrc = true;
   vossvolvox::add_output_options(parser, outputs);
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example(
       "./Channel.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -t 4.0 -x -10 -y 5 -z 0 -o channel.pdb");
 
@@ -100,6 +103,9 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::ensure_input_present(input_path, parser)) {
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(input_path, &outputs);
 
   GRID = grid;
 
@@ -215,15 +221,7 @@ int main(int argc, char *argv[]) {
     cout << "\t" << surf << "\t" << flush;
     printVolCout(channelACCvol);
     cout << "\t#" << input_path << endl;
-    if(!outputs.pdbFile.empty()) {
-      write_SurfPDB(channelEXC, const_cast<char*>(outputs.pdbFile.c_str()));
-    }
-    if(!outputs.ezdFile.empty()) {
-      write_HalfEZD(channelEXC, const_cast<char*>(outputs.ezdFile.c_str()));
-    }
-    if(!outputs.mrcFile.empty()) {
-      writeSmallMRCFile(channelEXC, const_cast<char*>(outputs.mrcFile.c_str()));
-    }
+    write_output_files(channelEXC, outputs);
 
 //RELEASE TEMPGRID
     std::free (channelEXC);

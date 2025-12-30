@@ -6,6 +6,7 @@
 
 #include <fstream>                    // for ifstream, ofstream
 #include <iostream>                   // for char_traits, cerr, cout
+#include <memory>                     // for unique_ptr
 #include <string>                     // for string
 #include <vector>                     // for vector
 
@@ -188,8 +189,12 @@ int makerbot_fill(gridpt ingrid[], gridpt outgrid[]);
 //void ijk2pdb (char line[], int i, int j, int k, int n);
 std::string ijk2pdb(int i, int j, int k, int n);
 //output PDB functions (in utils-output.cpp)
+namespace vossvolvox {
+struct OutputSettings;
+}
 void write_PDB (const gridpt grid[], const char outfile[]);
 void write_SurfPDB (const gridpt grid[], const char outfile[]);
+void report_grid_metrics(std::ostream& out, int voxels, long double surface_area);
 //output EZD functions (in utils-output.cpp)
 float computeBlurredValue(const gridpt grid[], int voxelIndex);
 void write_BinnedEZD(const gridpt grid[], const char outfile[], int binFactor, bool blur);
@@ -204,5 +209,8 @@ void write_BlurEZD (const gridpt grid[], const char outfile[]);
 **************************************************/
 int writeMRCFile(const gridpt data[], const char filename[] );
 int writeSmallMRCFile(const gridpt data[], const char filename[] );
+void write_output_files(const gridpt grid[],
+                        const vossvolvox::OutputSettings& outputs);
+std::unique_ptr<gridpt[]> make_zeroed_grid();
 
 #endif // UTILS_H

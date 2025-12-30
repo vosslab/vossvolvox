@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
   unsigned int fill = 0;
   float grid = GRID;
   vossvolvox::FilterSettings filters;
+  vossvolvox::DebugSettings debug;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -104,6 +105,7 @@ int main(int argc, char *argv[]) {
                     "Fill mode for MakerBot adjustment (0=none, 1=vol2->vol1, 2=vol1->vol2).",
                     "<0|1|2>");
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example("./TwoVol.exe -i1 prot.xyzr -i2 lig.xyzr -p1 1.5 -p2 3 -g 0.6 -m1 prot.mrc -m2 lig.mrc");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -118,6 +120,9 @@ int main(int argc, char *argv[]) {
     parser.print_help();
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(file1 + "," + file2, nullptr);
 
   GRID = grid;
 

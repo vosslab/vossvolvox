@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
 
   std::string input_path;
   vossvolvox::OutputSettings outputs;
+  vossvolvox::DebugSettings debug;
   double shell_rad = 10.0;
   double tunnel_prb = 3.0;
   double trim_prb = 3.0;
@@ -69,8 +70,10 @@ int main(int argc, char *argv[]) {
                     GRID,
                     "Grid spacing in Angstroms.",
                     "<grid>");
+  outputs.use_small_mrc = true;
   vossvolvox::add_output_options(parser, outputs);
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example("./Tunnel.exe -i 1jj2.xyzr -b 12 -s 3 -t 4 -g 0.6 -o tunnel.pdb");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -83,6 +86,9 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::ensure_input_present(input_path, parser)) {
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(input_path, &outputs);
 
   GRID = grid;
 
@@ -199,15 +205,7 @@ int main(int argc, char *argv[]) {
   float surfEXC = surface_area(tunnEXC);
 
 //Output
-  if(!outputs.pdbFile.empty()) {
-    write_SurfPDB(tunnEXC, const_cast<char*>(outputs.pdbFile.c_str()));
-  }
-  if(!outputs.ezdFile.empty()) {
-    write_HalfEZD(tunnEXC, const_cast<char*>(outputs.ezdFile.c_str()));
-  }
-  if(!outputs.mrcFile.empty()) {
-    writeSmallMRCFile(tunnEXC, const_cast<char*>(outputs.mrcFile.c_str()));
-  }
+  write_output_files(tunnEXC, outputs);
 
   std::free (tunnEXC);
 

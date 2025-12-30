@@ -12,6 +12,7 @@
 #include <vector>
 #include "argument_helper.h"
 #include "utils.h"    // for GRID, endl, DX, DXY, gridpt
+#include "vossvolvox_cli_common.hpp"
 
 /*********************************************
 **********************************************
@@ -247,6 +248,31 @@ float computeBlurredValue(const gridpt grid[], int voxelIndex) {
 
   // Return the computed and normalized/thresholded value
   return value;
+}
+
+void report_grid_metrics(std::ostream& out, int voxels, long double surface_area) {
+  out << "Grid Spacing:       " << GRID << " A\n"
+      << "Voxel Volume:       " << GRIDVOL << " A\n"
+      << "Total Voxels:       " << voxels << "\n"
+      << "Volume:             " << voxels * GRIDVOL << "\n"
+      << "Surface Area:       " << surface_area << " A^2\n";
+}
+
+void write_output_files(const gridpt grid[],
+                        const vossvolvox::OutputSettings& outputs) {
+  if (!outputs.mrcFile.empty()) {
+    if (outputs.use_small_mrc) {
+      writeSmallMRCFile(grid, const_cast<char*>(outputs.mrcFile.c_str()));
+    } else {
+      writeMRCFile(grid, const_cast<char*>(outputs.mrcFile.c_str()));
+    }
+  }
+  if (!outputs.ezdFile.empty()) {
+    write_HalfEZD(grid, const_cast<char*>(outputs.ezdFile.c_str()));
+  }
+  if (!outputs.pdbFile.empty()) {
+    write_SurfPDB(grid, const_cast<char*>(outputs.pdbFile.c_str()));
+  }
 }
 
 /*********************************************

@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
   double grid_end = 0.8;
   double grid_steps = 10.0;
   vossvolvox::FilterSettings filters;
+  vossvolvox::DebugSettings debug;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -63,6 +64,7 @@ int main(int argc, char *argv[]) {
                     "Number of grid steps between g1 and g2.",
                     "<steps>");
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example("./FracDim.exe -i sample.xyzr -p 1.5 -g1 0.4 -g2 0.8 -gn 8");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -75,6 +77,9 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::ensure_input_present(input_path, parser)) {
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(input_path, nullptr);
 
   if (!vossvolvox::quiet_mode()) {
     printCompileInfo(argv[0]);

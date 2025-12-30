@@ -29,9 +29,7 @@ int getCavitiesBothMeth(const float probe,
                         const int natoms,
                         const XYZRBuffer& xyzr_buffer,
                         const std::string& input_label,
-                        char ezdfile[],
-                        char pdbfile[],
-                        char mrcfile[]);
+                        const vossvolvox::OutputSettings& outputs);
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -39,6 +37,7 @@ int main(int argc, char *argv[]) {
 
   std::string input_path;
   vossvolvox::OutputSettings outputs;
+  vossvolvox::DebugSettings debug;
   double shell_rad = 10.0;
   double probe_rad = 3.0;
   double trim_rad = 3.0;
@@ -75,6 +74,7 @@ int main(int argc, char *argv[]) {
                     "<grid spacing>");
   vossvolvox::add_output_options(parser, outputs);
   vossvolvox::add_filter_options(parser, filters);
+  vossvolvox::add_debug_option(parser, debug);
   parser.add_example("./Cavities.exe -i 1a01.xyzr -b 10 -s 3 -t 3 -g 0.5 -o cavities.pdb");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -87,6 +87,9 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::ensure_input_present(input_path, parser)) {
     return 1;
   }
+
+  vossvolvox::enable_debug(debug);
+  vossvolvox::debug_report_cli(input_path, &outputs);
 
   GRID = grid;
 
@@ -140,9 +143,7 @@ int main(int argc, char *argv[]) {
                       numatoms,
                       xyzr_buffer,
                       input_path,
-                      const_cast<char*>(outputs.ezdFile.c_str()),
-                      const_cast<char*>(outputs.pdbFile.c_str()),
-                      const_cast<char*>(outputs.mrcFile.c_str()));
+                      outputs);
 
 // ****************************************************
 // CLEAN UP AND QUIT
@@ -161,9 +162,7 @@ int getCavitiesBothMeth(const float probe,
                         const int natoms,
                         const XYZRBuffer& xyzr_buffer,
                         const std::string& input_label,
-                        char ezdfile[],
-                        char pdbfile[],
-                        char mrcfile[])
+                        const vossvolvox::OutputSettings& outputs)
 {
 /* THIS USES THE ACCESSIBLE SHELL AS THE BIG SURFACE */
 /*******************************************************
@@ -276,15 +275,7 @@ Excluded Process
   int cavEXC_voxels = countGrid(cavEXC);
 
 //Write out exclude cavities
-  if(pdbfile[0] != '\0') {
-    write_SurfPDB(cavEXC,pdbfile);
-  }
-  if(ezdfile[0] != '\0') {
-    write_HalfEZD(cavEXC,ezdfile);
-  }
-  if(mrcfile[0] != '\0') {
-    writeMRCFile(cavEXC, mrcfile);
-  }
+  write_output_files(cavEXC, outputs);
   //float surfEXC = surface_area(cavEXC);
   std::free (cavEXC);
 
