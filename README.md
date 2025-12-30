@@ -4,17 +4,17 @@ This repository provides a set of command-line tools for analyzing molecular str
 
 ## Documentation
 
-- [docs/AUTHORS.md](docs/AUTHORS.md)
-- [docs/CHANGELOG.md](docs/CHANGELOG.md)
-- [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md)
-- [docs/INSTALL.md](docs/INSTALL.md)
-- [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md)
-- [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md)
-- [docs/QUICKSTART.md](docs/QUICKSTART.md)
-- [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md)
-- [docs/REPO_STYLE.md](docs/REPO_STYLE.md)
-- [docs/TODO.md](docs/TODO.md)
-- [docs/UTILS.md](docs/UTILS.md)
+- [docs/AUTHORS.md](docs/AUTHORS.md): maintainers and contributor credits.
+- [docs/CHANGELOG.md](docs/CHANGELOG.md): chronological record of changes.
+- [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md): high-level system design and data flow.
+- [docs/INSTALL.md](docs/INSTALL.md): setup steps and build requirements.
+- [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md): directory map and generated assets.
+- [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md): documentation formatting rules.
+- [docs/QUICKSTART.md](docs/QUICKSTART.md): end-to-end usage walkthrough.
+- [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md): released versions and highlights.
+- [docs/REPO_STYLE.md](docs/REPO_STYLE.md): repo organization and naming conventions.
+- [docs/TODO.md](docs/TODO.md): backlog items and legacy work notes.
+- [docs/UTILS.md](docs/UTILS.md): reference for `src/utils-main.cpp` helpers.
 
 ## Citation
 
@@ -93,29 +93,29 @@ For more details, see [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
 ### Testing and Regression Harness
 
-- Run `python3 test/test_volumes.py` to regenerate filtered XYZR files, execute `Volume.exe`, `Volume-legacy.exe`, and the archival `Volume-1.0.exe`, and store the resulting PDB/MRC pairs under `test/volume_results/<PDBID>/`.
+- Run `python3 tests/test_volumes.py` to regenerate filtered XYZR files, execute `Volume.exe`, `Volume-legacy.exe`, and the archival `Volume-1.0.exe`, and store the resulting PDB/MRC pairs under `tests/volume_results/<PDBID>/`.
 - The script accepts `--pdb-id`, `--probe-radius`, and `--grid-spacing` so you can sweep different structures and parameters. Pass `--skip-build` once the binaries are up to date.
 - We now ship two convenience targets: `make volume_original` produces `bin/Volume-legacy.exe` (stand-alone legacy build) and `make volume_reference` rebuilds the historical `bin/Volume-1.0.exe` so it picks up the latest safety fixes.
 - Use the output tables from `test_volumes.py` to confirm volumes, surfaces, line counts, and sanitized MD5 sums remain stable after changes.
-- Run `python3 test/test_suite.py` to execute the YAML-driven regression suite defined in `test/test_suite.yml`. The runner auto-resolves binaries from `bin/`, reuses cached inputs, prints color-coded pass/fail lines with per-test runtimes, and surfaces MD5/volume mismatches immediately. Install [PyYAML](https://pyyaml.org/) (`pip install pyyaml`) before running the suite.
+- Run `python3 tests/test_suite.py` to execute the YAML-driven regression suite defined in `tests/test_suite.yml`. The runner auto-resolves binaries from `bin/`, reuses cached inputs, prints color-coded pass/fail lines with per-test runtimes, and surfaces MD5/volume mismatches immediately. Install [PyYAML](https://pyyaml.org/) (`pip install pyyaml`) before running the suite.
 - The suite exercises both traditional `.xyzr` pipelines and the new direct-PDB path (`volume_pdb_input_2LYZ`), ensuring the embedded converter stays in lockstep with the standalone script.
-- Use `python3 test/test_suite.py --list` to see all scenarios; add a YAML block whenever you fix a bug or add a feature so coverage grows with the codebase.
+- Use `python3 tests/test_suite.py --list` to see all scenarios; add a YAML block whenever you fix a bug or add a feature so coverage grows with the codebase.
 
 ### What's new in 2.0.0-beta5
 
 - **In-memory XYZR buffers:** `pdb_io.*` now exposes a converter library that every executable can call. Programs no longer need temporary `.xyzr` files just to populate grids.
 - **Direct structure input:** Volume.exe, Solvent.exe, and the other grid-based tools now accept `.pdb`, `.mmcif`, `.pdbml`, or `.xyzr` transparently and expose the same `-H/--hydrogens` and `--exclude-*` filtering flags as `pdb_to_xyzr`.
 - **Cleaner CLIs:** `argument_helper` gained reusable option bundles (`add_output_file_options`, `add_xyzr_filter_flags`), giving each executable the same help layout and spacing.
-- **Regression coverage:** `test/test_suite.yml` now includes `volume_pdb_input_2LYZ` so the embedded converter stays in sync with the standalone script even when reading raw PDB/mmCIF files.
+- **Regression coverage:** `tests/test_suite.yml` now includes `volume_pdb_input_2LYZ` so the embedded converter stays in sync with the standalone script even when reading raw PDB/mmCIF files.
 
 #### YAML test-suite reference
 
-Each test block in `test/test_suite.yml` contains the following keys:
+Each test block in `tests/test_suite.yml` contains the following keys:
 
 - `name`, `description`: human-friendly identifiers that show up in the CLI log.
-- `workdir`: directory (relative to `test/`) where artifacts and downloads will be staged. Results for different programs can share the same workspace to avoid redundant downloads, and cached files are reused across runs.
+- `workdir`: directory (relative to `tests/`) where artifacts and downloads will be staged. Results for different programs can share the same workspace to avoid redundant downloads, and cached files are reused across runs.
 - `prerequisites`: ordered actions the harness performs before invoking the binary. Available actions today are:
-  - `download_pdb`: fetches `<pdb_id>.pdb` (gz cache supported) into an arbitrary `dest`, preferring existing copies under `test/volume_results/<PDBID>/` before contacting the RCSB servers.
+  - `download_pdb`: fetches `<pdb_id>.pdb` (gz cache supported) into an arbitrary `dest`, preferring existing copies under `tests/volume_results/<PDBID>/` before contacting the RCSB servers.
   - `convert_xyzr`: calls `bin/pdb_to_xyzr.exe` with the provided `filters` (e.g., `["--exclude-ions", "--exclude-water"]`). Use `overwrite: true` to force regeneration.
   - `ensure_dir`: creates a directory tree, handy for deposit locations.
   - `remove`: deletes a path if it exists (useful when you want programs to recreate outputs).
@@ -126,7 +126,7 @@ Each test block in `test/test_suite.yml` contains the following keys:
   - `pdb`: path plus optional `lines` and `md5` (sanitized by stripping `REMARK Date`). Leave off `lines`/`md5` if the file is optional.
   - `stdout_contains`: substring that must appear in stdout.
 
-You can provide an alternate YAML via `python3 test/test_suite.py --config custom.yml`, and the script prints timing totals and highlights failures in red to speed up debugging.
+You can provide an alternate YAML via `python3 tests/test_suite.py --config custom.yml`, and the script prints timing totals and highlights failures in red to speed up debugging.
 
 ## Quickstart
 

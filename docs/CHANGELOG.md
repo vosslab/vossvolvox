@@ -13,6 +13,9 @@ OpenAI Codex
   utilities references.
 - Added `docs/FILE_STRUCTURE.md` and `docs/CODE_ARCHITECTURE.md` and linked them
   from `README.md`.
+- Updated documentation references from `test/` to `tests/` after the directory
+  move.
+- Added short descriptions to the `README.md` documentation links.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

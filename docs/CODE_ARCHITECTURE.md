@@ -18,8 +18,8 @@ helpers so behavior and flags stay consistent across executables.
 - Executables: tool-specific entry points (for example `Volume.exe`,
   `Channel.exe`, `Cavities.exe`, `Solvent.exe`, `Tunnel.exe`, `VDW.exe`) that
   orchestrate input parsing, grid construction, and output emission.
-- Test harnesses: shell scripts in `test/` and Python runners in `test/` and
-  `python/` validate converter parity and volume stability.
+- Test harnesses: shell scripts and Python runners in `tests/` and `python/`
+  validate converter parity and volume stability.
 
 ## Data flow
 1. Input selection: the tool accepts `.xyzr` or raw structure formats
@@ -41,6 +41,6 @@ helpers so behavior and flags stay consistent across executables.
 - XYZR helpers are used to avoid ad-hoc parsing differences across tools.
 
 ## Testing and verification
-- `test/test_volume.sh` validates volume outputs and cached artifacts.
-- `test/test_pdb_to_xyzr.sh` compares C++/Python/shell converter outputs and MD5s.
+- `tests/test_volume.sh` validates volume outputs and cached artifacts.
+- `tests/test_pdb_to_xyzr.sh` compares C++/Python/shell converter outputs and MD5s.
 - Python harnesses exercise YAML-defined suites and reference builds.
