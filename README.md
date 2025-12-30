@@ -14,7 +14,7 @@ This repository provides a set of command-line tools for analyzing molecular str
 - [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md): released versions and highlights.
 - [docs/REPO_STYLE.md](docs/REPO_STYLE.md): repo organization and naming conventions.
 - [docs/TODO.md](docs/TODO.md): backlog items and legacy work notes.
-- [docs/UTILS.md](docs/UTILS.md): reference for `src/utils-main.cpp` helpers.
+- [docs/UTILS.md](docs/UTILS.md): reference for `src/lib/utils-main.cpp` helpers.
 
 ## Citation
 
@@ -181,7 +181,7 @@ To get started with the Voss Volume Voxelator tools, follow these steps:
 
 ## Utility Function Reference
 
-- The helper routines behind the grids, volumes, and exclusions live together in `src/utils-main.cpp`.
+- The helper routines behind the grids, volumes, and exclusions live together in `src/lib/utils-main.cpp`.
 - A grouped catalog of every helper, including inputs/outputs and responsibilities, now lives in
   [docs/UTILS.md](docs/UTILS.md) for quick lookup before refactoring or porting.
 
