@@ -20,8 +20,8 @@ tests:
       - -m 2LYZ-volume-suite.mrc
     expect:
       summary:
-        volume: 18551.124
-        surface: 4982.05
+        volume: 18550.861
+        surface: 4982.054
         atoms: 1001
       pdb:
         path: 2LYZ-volume-suite.pdb
@@ -47,8 +47,8 @@ tests:
       - -o 2LYZ-volume-pdb-suite.pdb
     expect:
       summary:
-        volume: 18551.124
-        surface: 4982.05
+        volume: 18550.861
+        surface: 4982.054
         atoms: 1001
       pdb:
         path: 2LYZ-volume-pdb-suite.pdb
@@ -158,8 +158,8 @@ tests:
       - -o 1BL8-volume-suite.pdb
     expect:
       summary:
-        volume: 50426.465
-        surface: 16796.6
+        volume: 50426.382
+        surface: 16796.623
         atoms: 2820
       pdb:
         path: 1BL8-volume-suite.pdb

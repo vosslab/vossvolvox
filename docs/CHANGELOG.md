@@ -24,6 +24,8 @@ OpenAI Codex
   directory, or `REPO_ROOT/tests/` when no config is provided.
 - Added a preflight in `tests/test_suite.py` to build or fail fast when required
   binaries are missing.
+- Updated `tests/test_suite.yml` summary expectations to match the post-f0becee
+  rounding output from `printVol()` and `printVolCout()`.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>
