@@ -11,6 +11,8 @@ OpenAI Codex
   `docs/RELEASE_HISTORY.md`.
 - Linked all `docs/*.md` files from `README.md` and refreshed the Quickstart and
   utilities references.
+- Added `docs/FILE_STRUCTURE.md` and `docs/CODE_ARCHITECTURE.md` and linked them
+  from `README.md`.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

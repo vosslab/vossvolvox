@@ -6,7 +6,9 @@ This repository provides a set of command-line tools for analyzing molecular str
 
 - [docs/AUTHORS.md](docs/AUTHORS.md)
 - [docs/CHANGELOG.md](docs/CHANGELOG.md)
+- [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md)
 - [docs/INSTALL.md](docs/INSTALL.md)
+- [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md)
 - [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md)
 - [docs/QUICKSTART.md](docs/QUICKSTART.md)
 - [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md)
