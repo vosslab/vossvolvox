@@ -6,6 +6,12 @@ Language Model guide to Neil python3 programming
 
 * I like using one of the latest versions of python, but not the latest, of python3, currently **3.12**.
 
+## FILENAMES
+* Prefer snake_case for Python filenames and module names.
+* Avoid CamelCase in filenames. Reserve CamelCase for class names.
+* Keep filenames descriptive, and consistent with the primary thing the file provides.
+* Use only lowercase letters, numbers, and underscores in filenames.
+
 ## USE TABS
 
 * Always use tabs for indentation in python3 code, never spaces!
@@ -34,6 +40,26 @@ Language Model guide to Neil python3 programming
 * Use double quotes on the outside with single quotes inside.
 * Or use single quotes on the outside with double quotes inside.
 * This is especially useful for HTML like "<span style='...'>text</span>".
+
+## LAMBDA FUNCTIONS
+* Be conservative with lambda. Prefer def for anything more than a simple key or one-liner callback.
+* lambda is allowed when used as key= for sorted(), .sort(), min(), or max() and the expression is short and obvious.
+* Avoid lambda bodies that call major helper functions or hide important logic. If the lambda is doing real work, name it with def so it is readable, commentable, and testable.
+* If the lambda expression would be hard to understand without a comment, replace it with a named function.
+
+Allowed:
+gel_set = sorted(gel_set, key=lambda k: k["MW"])
+i = max(range(n), key=lambda k: values[k])
+villages_sorted = sorted(villages, key=lambda v: totals[v])
+
+Avoid:
+choices = sorted(choices, key=lambda k: -compare_sequence(k, consensus_sequence))
+
+Preferred rewrite:
+def score_choice(choice: str) -> int:
+score = -compare_sequence(choice, consensus_sequence)
+return score
+choices = sorted(choices, key=score_choice)
 
 ## HTML UNITS IN MONOSPACE
 * When generating HTML for lab problems, render numeric values and their units in monospace for readability and alignment.
@@ -132,6 +158,19 @@ assert test_entry['Final Score'] == '10.00'
 result = make_key({'ID': 12, 'Name': 'JoHN  '}, ('ID', 'Name'))
 assert result == '12 john'
 ```
+
+## PYTEST
+* Prefer pytest for automated tests when a repo has more than a few simple asserts.
+* Store tests in tests/ with files named test_*.py.
+* Test functions should be named test_* and should use plain assert.
+* Keep tests small and deterministic. Avoid network calls, random behavior, and time based logic unless mocked.
+* Prefer fixtures for setup and shared resources. Use built in fixtures like tmp_path instead of custom temp directories.
+* Avoid complex logic inside tests. If test logic needs comments, move the logic into helper functions and test those helpers.
+* Basic commands:
+* pytest run all tests
+* pytest -q quiet
+* pytest -k name run tests matching a substring
+* pytest -x stop on first failure
 
 ## TYPE HINTING
 * Use the python3-style explicit variable type hinting. I think it is good practice. Very little of my code uses it now, but I want to change that. For example,
@@ -244,6 +283,7 @@ pyexiftool  # Python wrapper for exiftool metadata extraction and editing
 pyflakes  # Static analysis to find unused imports and simple errors
 pygame  # SDL based multimedia and simple game framework
 pytesseract  # Python wrapper for Tesseract OCR
+pytest
 python-bricklink-api  # BrickLink API client for LEGO parts and orders
 pyyaml  # YAML parsing and serialization
 qrcode  # QR code generation
