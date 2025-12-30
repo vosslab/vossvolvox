@@ -6,14 +6,11 @@ tests:
       - action: download_pdb
         pdb_id: 2LYZ
         dest: 2LYZ.pdb
-      - action: convert_xyzr
-        pdb: 2LYZ.pdb
-        output: 2LYZ-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
     program: Volume.exe
     args:
-      - -i 2LYZ-modern-suite.xyzr
+      - -i 2LYZ.pdb
+      - --exclude-ions
+      - --exclude-water
       - -p 2.1
       - -g 0.9
       - -o 2LYZ-volume-suite.pdb
@@ -62,14 +59,11 @@ tests:
       - action: download_pdb
         pdb_id: 2LYZ
         dest: 2LYZ.pdb
-      - action: convert_xyzr
-        pdb: 2LYZ.pdb
-        output: 2LYZ-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
     program: Channel.exe
     args:
-      - -i 2LYZ-modern-suite.xyzr
+      - -i 2LYZ.pdb
+      - --exclude-ions
+      - --exclude-water
       - -b 2.5
       - -s 1.5
       - -t 2.0
@@ -92,16 +86,13 @@ tests:
       - action: download_pdb
         pdb_id: 2LYZ
         dest: 2LYZ.pdb
-      - action: convert_xyzr
-        pdb: 2LYZ.pdb
-        output: 2LYZ-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
       - action: remove
         path: 2LYZ-cavities-suite.pdb
     program: Cavities.exe
     args:
-      - -i 2LYZ-modern-suite.xyzr
+      - -i 2LYZ.pdb
+      - --exclude-ions
+      - --exclude-water
       - -b 10
       - -s 3
       - -t 3
@@ -119,16 +110,13 @@ tests:
       - action: download_pdb
         pdb_id: 2LYZ
         dest: 2LYZ.pdb
-      - action: convert_xyzr
-        pdb: 2LYZ.pdb
-        output: 2LYZ-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
       - action: remove
         path: 2LYZ-volnocav-suite.pdb
     program: VolumeNoCav.exe
     args:
-      - -i 2LYZ-modern-suite.xyzr
+      - -i 2LYZ.pdb
+      - --exclude-ions
+      - --exclude-water
       - -p 2.1
       - -g 0.9
       - -o 2LYZ-volnocav-suite.pdb
@@ -145,14 +133,11 @@ tests:
       - action: download_pdb
         pdb_id: 1BL8
         dest: 1BL8.pdb
-      - action: convert_xyzr
-        pdb: 1BL8.pdb
-        output: 1BL8-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
     program: Volume.exe
     args:
-      - -i 1BL8-modern-suite.xyzr
+      - -i 1BL8.pdb
+      - --exclude-ions
+      - --exclude-water
       - -p 1.0
       - -g 0.9
       - -o 1BL8-volume-suite.pdb
@@ -173,14 +158,11 @@ tests:
       - action: download_pdb
         pdb_id: 1BL8
         dest: 1BL8.pdb
-      - action: convert_xyzr
-        pdb: 1BL8.pdb
-        output: 1BL8-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
     program: VolumeNoCav.exe
     args:
-      - -i 1BL8-modern-suite.xyzr
+      - -i 1BL8.pdb
+      - --exclude-ions
+      - --exclude-water
       - -p 1.0
       - -g 0.9
       - -o 1BL8-volnocav-suite.pdb
@@ -197,16 +179,13 @@ tests:
       - action: download_pdb
         pdb_id: 2LYZ
         dest: 2LYZ.pdb
-      - action: convert_xyzr
-        pdb: 2LYZ.pdb
-        output: 2LYZ-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
       - action: remove
         path: 2LYZ-vdw-suite.pdb
     program: VDW.exe
     args:
-      - -i 2LYZ-modern-suite.xyzr
+      - -i 2LYZ.pdb
+      - --exclude-ions
+      - --exclude-water
       - -g 0.9
       - -o 2LYZ-vdw-suite.pdb
     expect:
@@ -222,16 +201,13 @@ tests:
       - action: download_pdb
         pdb_id: 1BL8
         dest: 1BL8.pdb
-      - action: convert_xyzr
-        pdb: 1BL8.pdb
-        output: 1BL8-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
       - action: remove
         path: 1BL8-solvent-suite.pdb
     program: Solvent.exe
     args:
-      - -i 1BL8-modern-suite.xyzr
+      - -i 1BL8.pdb
+      - --exclude-ions
+      - --exclude-water
       - -s 1.5
       - -b 5.0
       - -t 2.0
@@ -251,11 +227,6 @@ tests:
       - action: download_pdb
         pdb_id: 1BL8
         dest: 1BL8.pdb
-      - action: convert_xyzr
-        pdb: 1BL8.pdb
-        output: 1BL8-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
       - action: remove
         path: channel-001.mrc
       - action: remove
@@ -268,7 +239,9 @@ tests:
         path: channel-005.mrc
     program: AllChannel.exe
     args:
-      - -i 1BL8-modern-suite.xyzr
+      - -i 1BL8.pdb
+      - --exclude-ions
+      - --exclude-water
       - -b 5.0
       - -s 1.0
       - -g 0.8
@@ -286,11 +259,6 @@ tests:
       - action: download_pdb
         pdb_id: 1BL8
         dest: 1BL8.pdb
-      - action: convert_xyzr
-        pdb: 1BL8.pdb
-        output: 1BL8-modern-suite.xyzr
-        filters: ["--exclude-ions", "--exclude-water"]
-        overwrite: true
       - action: remove
         path: 1BL8-allchannelexc-suite.mrc
       - action: remove
@@ -305,7 +273,9 @@ tests:
         path: channel-005.mrc
     program: AllChannelExc.exe
     args:
-      - -i 1BL8-modern-suite.xyzr
+      - -i 1BL8.pdb
+      - --exclude-ions
+      - --exclude-water
       - -b 5.0
       - -s 1.0
       - -g 0.8

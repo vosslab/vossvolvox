@@ -1,9 +1,11 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 
 #include "argument_helper.h"
+#include "pdb_io.h"
 #include "utils.h"                    // for endl, cerr, countGrid, gridpt
 
 // ****************************************************
@@ -23,8 +25,14 @@ extern float WATER_RES;
 extern float CUTOFF;
 extern char XYZRFILE[256];
 
-int getCavitiesBothMeth(const float probe, gridpt shellACC[], gridpt shellEXC[],
-	const int natoms, char file[], char ezdfile[], char pdbfile[], char mrcfile[]);
+int getCavitiesBothMeth(const float probe,
+                        gridpt shellACC[],
+                        gridpt shellEXC[],
+                        const int natoms,
+                        const XYZRBuffer& xyzr_buffer,
+                        char ezdfile[],
+                        char pdbfile[],
+                        char mrcfile[]);
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -35,6 +43,13 @@ int main(int argc, char *argv[]) {
   std::string mrc_file;
   double PROBE = 1.5;
   float grid = GRID;
+  bool use_hydrogens = false;
+  bool exclude_ions = false;
+  bool exclude_ligands = false;
+  bool exclude_hetatm = false;
+  bool exclude_water = false;
+  bool exclude_nucleic = false;
+  bool exclude_amino = false;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -53,6 +68,14 @@ int main(int argc, char *argv[]) {
                     "Grid spacing in Angstroms.",
                     "<grid>");
   vossvolvox::add_output_file_options(parser, pdb_file, ezd_file, mrc_file);
+  vossvolvox::add_xyzr_filter_flags(parser,
+                                    use_hydrogens,
+                                    exclude_ions,
+                                    exclude_ligands,
+                                    exclude_hetatm,
+                                    exclude_water,
+                                    exclude_nucleic,
+                                    exclude_amino);
   parser.add_example("./VolumeNoCav.exe -i sample.xyzr -p 1.5 -g 0.8 -o filled.pdb");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -73,6 +96,33 @@ int main(int argc, char *argv[]) {
     printCitation();
   }
 
+  vossvolvox::pdbio::ConversionOptions convert_options;
+  convert_options.use_united = !use_hydrogens;
+  convert_options.filters.exclude_ions = exclude_ions;
+  convert_options.filters.exclude_ligands = exclude_ligands;
+  convert_options.filters.exclude_hetatm = exclude_hetatm;
+  convert_options.filters.exclude_water = exclude_water;
+  convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
+  convert_options.filters.exclude_amino_acids = exclude_amino;
+  vossvolvox::pdbio::XyzrData xyzr_data;
+  if (!vossvolvox::pdbio::ReadFileToXyzr(input_path, convert_options, xyzr_data)) {
+    std::cerr << "Error: unable to load XYZR data from '" << input_path << "'\n";
+    return 1;
+  }
+  XYZRBuffer xyzr_buffer;
+  xyzr_buffer.atoms.reserve(xyzr_data.atoms.size());
+  for (const auto& atom : xyzr_data.atoms) {
+    xyzr_buffer.atoms.push_back(
+        XYZRAtom{static_cast<float>(atom.x),
+                 static_cast<float>(atom.y),
+                 static_cast<float>(atom.z),
+                 static_cast<float>(atom.radius)});
+  }
+  if (!XYZRFILE[0]) {
+    std::strncpy(XYZRFILE, input_path.c_str(), sizeof(XYZRFILE));
+    XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
+  }
+
 // ****************************************************
 // INITIALIZATION
 // ****************************************************
@@ -85,7 +135,7 @@ int main(int argc, char *argv[]) {
   cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file:   " << input_path << endl;
 //FIRST PASS, MINMAX
-  int numatoms = read_NumAtoms(const_cast<char*>(input_path.c_str()));
+  int numatoms = read_NumAtoms_from_array(xyzr_buffer);
 //CHECK LIMITS & SIZE
   assignLimits();
 
@@ -96,7 +146,7 @@ int main(int argc, char *argv[]) {
 
   gridpt *shellACC=NULL;
   shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromFile(numatoms,PROBE,const_cast<char*>(input_path.c_str()),shellACC);
+  fill_AccessGrid_fromArray(numatoms, PROBE, xyzr_buffer, shellACC);
   int voxels1 = countGrid(shellACC);
   fill_cavities(shellACC);
   int voxels2 = countGrid(shellACC);

@@ -26,7 +26,7 @@ void processGrid(double probe,
                  const std::string& pdbFile,
                  const std::string& mrcFile,
                  const std::string& inputFile,
-                 const XYZRBuffer& buffer,
+                 const XYZRBuffer& xyzr_buffer,
                  int numatoms);
 
 int main(int argc, char* argv[]) {
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
   vossvolvox::ArgumentParser parser(
       argv[0],
       "Calculate molecular volume and surface area for a given probe radius.");
-  parser.add_option("-i", "--input", inputFile, std::string(), "Input XYZR file (required).", "<XYZR file>");
+  vossvolvox::add_input_option(parser, inputFile);
   parser.add_option("-p", "--probe", probe, 10.0, "Probe radius in Angstroms (default 10.0).", "<probe radius>");
   parser.add_option("-g", "--grid", grid, GRID, "Grid spacing in Angstroms.", "<grid spacing>");
   vossvolvox::add_output_file_options(parser, pdbFile, ezdFile, mrcFile);
@@ -71,9 +71,7 @@ int main(int argc, char* argv[]) {
   if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
     return 1;
   }
-  if (inputFile.empty()) {
-    std::cerr << "Error: input file not specified. Use -i <file>.\n";
-    parser.print_help();
+  if (!vossvolvox::ensure_input_present(inputFile, parser)) {
     return 1;
   }
 
@@ -109,10 +107,10 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  XYZRBuffer buffer;
-  buffer.atoms.reserve(xyzr_data.atoms.size());
+  XYZRBuffer xyzr_buffer;
+  xyzr_buffer.atoms.reserve(xyzr_data.atoms.size());
   for (const auto& atom : xyzr_data.atoms) {
-    buffer.atoms.push_back(
+    xyzr_buffer.atoms.push_back(
         XYZRAtom{static_cast<float>(atom.x),
                  static_cast<float>(atom.y),
                  static_cast<float>(atom.z),
@@ -122,11 +120,11 @@ int main(int argc, char* argv[]) {
   std::strncpy(XYZRFILE, inputFile.c_str(), sizeof(XYZRFILE));
   XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
 
-  int numatoms = read_NumAtoms_from_array(buffer);
+  int numatoms = read_NumAtoms_from_array(xyzr_buffer);
   assignLimits();
 
   // Process the grid for volume and surface calculations
-  processGrid(probe, ezdFile, pdbFile, mrcFile, inputFile, buffer, numatoms);
+  processGrid(probe, ezdFile, pdbFile, mrcFile, inputFile, xyzr_buffer, numatoms);
 
   // Program completed successfully
   std::cerr << "\nProgram Completed Successfully\n\n";
@@ -139,7 +137,7 @@ void processGrid(double probe,
                  const std::string& pdbFile,
                  const std::string& mrcFile,
                  const std::string& inputFile,
-                 const XYZRBuffer& buffer,
+                 const XYZRBuffer& xyzr_buffer,
                  int numatoms) {
   // Allocate memory for the excluded grid
   auto EXCgrid = std::make_unique<gridpt[]>(NUMBINS);
@@ -150,8 +148,8 @@ void processGrid(double probe,
   zeroGrid(EXCgrid.get());
 
   // Populate the grid based on the probe radius
-  int voxels = (probe > 0.0) ? get_ExcludeGrid_fromArray(numatoms, probe, buffer, EXCgrid.get())
-                             : fill_AccessGrid_fromArray(numatoms, 0.0f, buffer, EXCgrid.get());
+  int voxels = (probe > 0.0) ? get_ExcludeGrid_fromArray(numatoms, probe, xyzr_buffer, EXCgrid.get())
+                             : fill_AccessGrid_fromArray(numatoms, 0.0f, xyzr_buffer, EXCgrid.get());
 
   long double surf = surface_area(EXCgrid.get());
 

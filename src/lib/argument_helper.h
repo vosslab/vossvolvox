@@ -97,8 +97,8 @@ inline void add_input_option(ArgumentParser& parser, std::string& target) {
                     "--input",
                     target,
                     std::string(),
-                    "Input XYZR file (required).",
-                    "<XYZR file>");
+                    "Input structure file (XYZR, PDB, mmCIF, PDBML).",
+                    "<input file>");
 }
 
 inline void add_pdb_option(ArgumentParser& parser, std::string& target) {
@@ -187,7 +187,7 @@ inline bool ensure_input_present(const std::string& input, const ArgumentParser&
     return true;
   }
   parser.print_help();
-  std::cerr << "Error: input XYZR file not specified. Use -i <XYZR file>.\n";
+  std::cerr << "Error: input file not specified. Use -i <input file>.\n";
   return false;
 }
 

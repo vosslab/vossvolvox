@@ -26,6 +26,11 @@ OpenAI Codex
   binaries are missing.
 - Updated `tests/test_suite.yml` summary expectations to match the post-f0becee
   rounding output from `printVol()` and `printVolCout()`.
+- Standardized CLI input handling across C++ executables (except `Volume-legacy.exe`)
+  to use shared XYZR filter flags and PDB-aware loading.
+- Renamed in-memory XYZR buffer variables to `xyzr_buffer*` for clarity.
+- Shortened `README.md` by pointing detailed sections to the docs directory.
+- Renamed `src/customvolume.cpp` to `src/rna_protein_volume.cpp` for clarity.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

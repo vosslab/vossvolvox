@@ -151,8 +151,8 @@ twovol: $(OBJS) twovolnocav.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/TwoVol.exe $(OBJS) twovolnocav.cpp
 	@chmod +x $(BIN_DIR)/TwoVol.exe
 
-cust: $(OBJS) customvolume.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Custom.exe $(OBJS) customvolume.cpp
+cust: $(OBJS) rna_protein_volume.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Custom.exe $(OBJS) rna_protein_volume.cpp
 	@chmod +x $(BIN_DIR)/Custom.exe
 
 frac: $(OBJS) fracDim.cpp

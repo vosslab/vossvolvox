@@ -4,6 +4,7 @@ Chronological list of released versions and notable changes.
 
 ## 2025-12-30 - 26.01b6
 - Switch to CalVer-style version strings (for example `26.01b6`).
+- Standardized C++ tool CLIs to share XYZR filter flags and PDB-aware input handling.
 
 ## 2025-11-29 - 2.0.0-beta5
 - In-memory XYZR buffers, direct PDB/mmCIF/PDBML input, and shared filtering flags

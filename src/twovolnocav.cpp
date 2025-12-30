@@ -1,9 +1,11 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 
 #include "argument_helper.h"
+#include "pdb_io.h"
 #include "utils.h"                    // for endl, cerr, gridpt, countGrid
 
 // ****************************************************
@@ -38,6 +40,13 @@ int main(int argc, char *argv[]) {
   unsigned int merge = 0;
   unsigned int fill = 0;
   float grid = GRID;
+  bool use_hydrogens = false;
+  bool exclude_ions = false;
+  bool exclude_ligands = false;
+  bool exclude_hetatm = false;
+  bool exclude_water = false;
+  bool exclude_nucleic = false;
+  bool exclude_amino = false;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -46,14 +55,14 @@ int main(int argc, char *argv[]) {
                     "--input1",
                     file1,
                     std::string(),
-                    "First input XYZR file (required).",
-                    "<file1>");
+                    "First input structure file (XYZR, PDB, mmCIF, PDBML).",
+                    "<input1>");
   parser.add_option("-i2",
                     "--input2",
                     file2,
                     std::string(),
-                    "Second input XYZR file (required).",
-                    "<file2>");
+                    "Second input structure file (XYZR, PDB, mmCIF, PDBML).",
+                    "<input2>");
   parser.add_option("-p1",
                     "--probe1",
                     PROBE1,
@@ -96,6 +105,14 @@ int main(int argc, char *argv[]) {
                     0u,
                     "Fill mode for MakerBot adjustment (0=none, 1=vol2->vol1, 2=vol1->vol2).",
                     "<0|1|2>");
+  vossvolvox::add_xyzr_filter_flags(parser,
+                                    use_hydrogens,
+                                    exclude_ions,
+                                    exclude_ligands,
+                                    exclude_hetatm,
+                                    exclude_water,
+                                    exclude_nucleic,
+                                    exclude_amino);
   parser.add_example("./TwoVol.exe -i1 prot.xyzr -i2 lig.xyzr -p1 1.5 -p2 3 -g 0.6 -m1 prot.mrc -m2 lig.mrc");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -116,6 +133,50 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::quiet_mode()) {
     printCompileInfo(argv[0]);
     printCitation();
+  }
+
+  vossvolvox::pdbio::ConversionOptions convert_options;
+  convert_options.use_united = !use_hydrogens;
+  convert_options.filters.exclude_ions = exclude_ions;
+  convert_options.filters.exclude_ligands = exclude_ligands;
+  convert_options.filters.exclude_hetatm = exclude_hetatm;
+  convert_options.filters.exclude_water = exclude_water;
+  convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
+  convert_options.filters.exclude_amino_acids = exclude_amino;
+
+  vossvolvox::pdbio::XyzrData xyzr_data1;
+  if (!vossvolvox::pdbio::ReadFileToXyzr(file1, convert_options, xyzr_data1)) {
+    std::cerr << "Error: unable to load XYZR data from '" << file1 << "'\n";
+    return 1;
+  }
+  XYZRBuffer xyzr_buffer1;
+  xyzr_buffer1.atoms.reserve(xyzr_data1.atoms.size());
+  for (const auto& atom : xyzr_data1.atoms) {
+    xyzr_buffer1.atoms.push_back(
+        XYZRAtom{static_cast<float>(atom.x),
+                 static_cast<float>(atom.y),
+                 static_cast<float>(atom.z),
+                 static_cast<float>(atom.radius)});
+  }
+
+  vossvolvox::pdbio::XyzrData xyzr_data2;
+  if (!vossvolvox::pdbio::ReadFileToXyzr(file2, convert_options, xyzr_data2)) {
+    std::cerr << "Error: unable to load XYZR data from '" << file2 << "'\n";
+    return 1;
+  }
+  XYZRBuffer xyzr_buffer2;
+  xyzr_buffer2.atoms.reserve(xyzr_data2.atoms.size());
+  for (const auto& atom : xyzr_data2.atoms) {
+    xyzr_buffer2.atoms.push_back(
+        XYZRAtom{static_cast<float>(atom.x),
+                 static_cast<float>(atom.y),
+                 static_cast<float>(atom.z),
+                 static_cast<float>(atom.radius)});
+  }
+
+  if (!XYZRFILE[0]) {
+    std::strncpy(XYZRFILE, file1.c_str(), sizeof(XYZRFILE));
+    XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
   }
   
   if (PROBE1 < 0 && PROBE2 > 0) {
@@ -150,8 +211,8 @@ int main(int argc, char *argv[]) {
   cerr << "DIMENSIONS:   " << DX << ", " << DY << ", " << DZ << endl;
 
 //FIRST PASS, MINMAX
-  int numatoms1 = read_NumAtoms(const_cast<char*>(file1.c_str()));
-  int numatoms2 = read_NumAtoms(const_cast<char*>(file2.c_str()));
+  int numatoms1 = read_NumAtoms_from_array(xyzr_buffer1);
+  int numatoms2 = read_NumAtoms_from_array(xyzr_buffer2);
 
 //CHECK LIMITS & SIZE
   assignLimits();
@@ -164,10 +225,10 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 
   shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromFile(numatoms1,PROBE1,const_cast<char*>(file1.c_str()),shellACC);
+  fill_AccessGrid_fromArray(numatoms1, PROBE1, xyzr_buffer1, shellACC);
   if(merge == 1) {
     shellACC2 = (gridpt*) std::malloc (NUMBINS);
-    fill_AccessGrid_fromFile(numatoms2,minPROBE,const_cast<char*>(file2.c_str()),shellACC2);
+    fill_AccessGrid_fromArray(numatoms2, minPROBE, xyzr_buffer2, shellACC2);
     cerr << "Merge Volumes 1->2" << endl;
     merge_Grids(shellACC, shellACC2);
     std::free (shellACC2);
@@ -187,10 +248,10 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 
   shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromFile(numatoms2,PROBE2,const_cast<char*>(file2.c_str()),shellACC);
+  fill_AccessGrid_fromArray(numatoms2, PROBE2, xyzr_buffer2, shellACC);
   if(merge == 2) {
     shellACC2 = (gridpt*) std::malloc (NUMBINS);
-    fill_AccessGrid_fromFile(numatoms2,minPROBE,const_cast<char*>(file1.c_str()),shellACC2);
+    fill_AccessGrid_fromArray(numatoms2, minPROBE, xyzr_buffer1, shellACC2);
     cerr << "Merge Volumes 2->1" << endl;
     merge_Grids(shellACC, shellACC2);
     std::free (shellACC2);
