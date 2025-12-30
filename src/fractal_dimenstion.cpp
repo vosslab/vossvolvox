@@ -8,6 +8,7 @@
 #include "argument_helper.h"
 #include "pdb_io.h"
 #include "utils.h"
+#include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.h"
 
 extern float XMIN, YMIN, ZMIN;
@@ -31,13 +32,7 @@ int main(int argc, char *argv[]) {
   double grid_start = 0.4;
   double grid_end = 0.8;
   double grid_steps = 10.0;
-  bool use_hydrogens = false;
-  bool exclude_ions = false;
-  bool exclude_ligands = false;
-  bool exclude_hetatm = false;
-  bool exclude_water = false;
-  bool exclude_nucleic = false;
-  bool exclude_amino = false;
+  vossvolvox::FilterSettings filters;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -67,14 +62,7 @@ int main(int argc, char *argv[]) {
                     10.0,
                     "Number of grid steps between g1 and g2.",
                     "<steps>");
-  vossvolvox::add_xyzr_filter_flags(parser,
-                                    use_hydrogens,
-                                    exclude_ions,
-                                    exclude_ligands,
-                                    exclude_hetatm,
-                                    exclude_water,
-                                    exclude_nucleic,
-                                    exclude_amino);
+  vossvolvox::add_filter_options(parser, filters);
   parser.add_example("./FracDim.exe -i sample.xyzr -p 1.5 -g1 0.4 -g2 0.8 -gn 8");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -93,14 +81,7 @@ int main(int argc, char *argv[]) {
     printCitation();
   }
 
-  vossvolvox::pdbio::ConversionOptions convert_options;
-  convert_options.use_united = !use_hydrogens;
-  convert_options.filters.exclude_ions = exclude_ions;
-  convert_options.filters.exclude_ligands = exclude_ligands;
-  convert_options.filters.exclude_hetatm = exclude_hetatm;
-  convert_options.filters.exclude_water = exclude_water;
-  convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
-  convert_options.filters.exclude_amino_acids = exclude_amino;
+  const auto convert_options = vossvolvox::make_conversion_options(filters);
   XYZRBuffer xyzr_buffer;
   if (!vossvolvox::load_xyzr_or_exit(input_path, convert_options, xyzr_buffer)) {
     return 1;

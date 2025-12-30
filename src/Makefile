@@ -37,7 +37,7 @@ $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 # Object files used in all programs
-OBJS = $(OBJ_DIR)/utils-main.o $(OBJ_DIR)/utils-output.o $(OBJ_DIR)/utils-mrc.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/xyzr_cli_helpers.o
+OBJS = $(OBJ_DIR)/utils-main.o $(OBJ_DIR)/utils-output.o $(OBJ_DIR)/utils-mrc.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/xyzr_cli_helpers.o $(OBJ_DIR)/vossvolvox_cli_common.o
 LEGACY_OBJS = $(OBJ_DIR)/utils-main-legacy.o $(OBJ_DIR)/utils-output-legacy.o $(OBJ_DIR)/utils-mrc-legacy.o
 
 # Ensure the object directory exists before building object files
@@ -98,6 +98,9 @@ $(OBJ_DIR)/pdb_io.o: lib/pdb_io.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
 
 $(OBJ_DIR)/xyzr_cli_helpers.o: lib/xyzr_cli_helpers.cpp lib/xyzr_cli_helpers.h
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/xyzr_cli_helpers.o lib/xyzr_cli_helpers.cpp
+
+$(OBJ_DIR)/vossvolvox_cli_common.o: lib/vossvolvox_cli_common.cpp lib/vossvolvox_cli_common.hpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/vossvolvox_cli_common.o lib/vossvolvox_cli_common.cpp
 
 # Individual program targets
 cav: $(OBJS) cavities.cpp
@@ -163,6 +166,6 @@ frac: $(OBJS) fractal_dimenstion.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FracDim.exe $(OBJS) fractal_dimenstion.cpp
 	@chmod +x $(BIN_DIR)/FracDim.exe
 
-pdbxyzr: $(BIN_DIR) $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/argument_helper.o pdb_to_xyzr.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/pdb_to_xyzr.exe $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/argument_helper.o pdb_to_xyzr.cpp
+pdbxyzr: $(BIN_DIR) $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/vossvolvox_cli_common.o pdb_to_xyzr.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/pdb_to_xyzr.exe $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/vossvolvox_cli_common.o pdb_to_xyzr.cpp
 	@chmod +x $(BIN_DIR)/pdb_to_xyzr.exe

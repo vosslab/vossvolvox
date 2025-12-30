@@ -7,6 +7,7 @@
 #include "argument_helper.h"
 #include "pdb_io.h"
 #include "utils.h"
+#include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.h"
 
 // Globals
@@ -37,18 +38,10 @@ int main(int argc, char* argv[]) {
 
   // Initialize variables
   std::string inputFile;
-  std::string ezdFile;
-  std::string pdbFile;
-  std::string mrcFile;
+  vossvolvox::OutputSettings outputs;
   double probe = 10.0;
   float grid = GRID;  // Use global GRID value initially
-  bool use_hydrogens = false;
-  bool exclude_ions = false;
-  bool exclude_ligands = false;
-  bool exclude_hetatm = false;
-  bool exclude_water = false;
-  bool exclude_nucleic = false;
-  bool exclude_amino = false;
+  vossvolvox::FilterSettings filters;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -56,15 +49,8 @@ int main(int argc, char* argv[]) {
   vossvolvox::add_input_option(parser, inputFile);
   parser.add_option("-p", "--probe", probe, 10.0, "Probe radius in Angstroms (default 10.0).", "<probe radius>");
   parser.add_option("-g", "--grid", grid, GRID, "Grid spacing in Angstroms.", "<grid spacing>");
-  vossvolvox::add_output_file_options(parser, pdbFile, ezdFile, mrcFile);
-  vossvolvox::add_xyzr_filter_flags(parser,
-                                    use_hydrogens,
-                                    exclude_ions,
-                                    exclude_ligands,
-                                    exclude_hetatm,
-                                    exclude_water,
-                                    exclude_nucleic,
-                                    exclude_amino);
+  vossvolvox::add_output_options(parser, outputs);
+  vossvolvox::add_filter_options(parser, filters);
   parser.add_example(std::string(argv[0]) + " -i sample.xyzr -p 1.5 -g 0.5 -o surface.pdb");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -92,14 +78,7 @@ int main(int argc, char* argv[]) {
             << "Input File:         " << inputFile << "\n";
 
   // Load atoms into memory and compute bounds
-  vossvolvox::pdbio::ConversionOptions convert_options;
-  convert_options.use_united = !use_hydrogens;
-  convert_options.filters.exclude_ions = exclude_ions;
-  convert_options.filters.exclude_ligands = exclude_ligands;
-  convert_options.filters.exclude_hetatm = exclude_hetatm;
-  convert_options.filters.exclude_water = exclude_water;
-  convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
-  convert_options.filters.exclude_amino_acids = exclude_amino;
+  const auto convert_options = vossvolvox::make_conversion_options(filters);
   XYZRBuffer xyzr_buffer;
   if (!vossvolvox::load_xyzr_or_exit(inputFile, convert_options, xyzr_buffer)) {
     return 1;
@@ -114,7 +93,13 @@ int main(int argc, char* argv[]) {
   const int numatoms = grid_result.total_atoms;
 
   // Process the grid for volume and surface calculations
-  processGrid(probe, ezdFile, pdbFile, mrcFile, inputFile, xyzr_buffer, numatoms);
+  processGrid(probe,
+              outputs.ezdFile,
+              outputs.pdbFile,
+              outputs.mrcFile,
+              inputFile,
+              xyzr_buffer,
+              numatoms);
 
   // Program completed successfully
   std::cerr << "\nProgram Completed Successfully\n\n";

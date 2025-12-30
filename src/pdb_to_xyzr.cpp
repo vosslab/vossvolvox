@@ -5,6 +5,7 @@
 
 #include "argument_helper.h"
 #include "pdb_io.h"
+#include "vossvolvox_cli_common.hpp"
 
 namespace {
 
@@ -38,26 +39,13 @@ void print_citation() {
 int main(int argc, char** argv) {
     std::ios::sync_with_stdio(false);
     std::string input_file;
-    bool use_hydrogens = false;
-    bool exclude_ions = false;
-    bool exclude_ligands = false;
-    bool exclude_hetatm = false;
-    bool exclude_water = false;
-    bool exclude_nucleic = false;
-    bool exclude_amino = false;
+    vossvolvox::FilterSettings filters;
 
     vossvolvox::ArgumentParser parser(
         argv[0],
         "Convert structural inputs (PDB/mmCIF/PDBML/XYZR) to XYZR format.");
     vossvolvox::add_input_option(parser, input_file);
-    vossvolvox::add_xyzr_filter_flags(parser,
-                                      use_hydrogens,
-                                      exclude_ions,
-                                      exclude_ligands,
-                                      exclude_hetatm,
-                                      exclude_water,
-                                      exclude_nucleic,
-                                      exclude_amino);
+    vossvolvox::add_filter_options(parser, filters);
     parser.add_example(std::string(argv[0]) +
                        " -i 1A01.pdb --exclude-ions --exclude-water > 1a01-filtered.xyzr");
     parser.add_example(std::string(argv[0]) + " -i - --exclude-water < 1a01.pdb > 1a01.xyzr");
@@ -129,14 +117,7 @@ int main(int argc, char** argv) {
         print_citation();
     }
 
-    vossvolvox::pdbio::ConversionOptions convert_options;
-    convert_options.use_united = !use_hydrogens;
-    convert_options.filters.exclude_ions = exclude_ions;
-    convert_options.filters.exclude_ligands = exclude_ligands;
-    convert_options.filters.exclude_hetatm = exclude_hetatm;
-    convert_options.filters.exclude_water = exclude_water;
-    convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
-    convert_options.filters.exclude_amino_acids = exclude_amino;
+    const auto convert_options = vossvolvox::make_conversion_options(filters);
 
     const bool use_stdin = input_file.empty() || input_file == "-";
     if (!use_stdin) {

@@ -8,6 +8,7 @@
 #include "argument_helper.h"
 #include "pdb_io.h"
 #include "utils.h"
+#include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.h"
 
 extern float XMIN, YMIN, ZMIN;
@@ -27,9 +28,7 @@ int main(int argc, char *argv[]) {
   vossvolvox::set_command_line(argc, argv);
 
   std::string input_path;
-  std::string pdb_file;
-  std::string ezd_file;
-  std::string mrc_file;
+  vossvolvox::OutputSettings outputs;
   double BIGPROBE = 9.0;
   double SMPROBE = 1.5;
   double TRIMPROBE = 4.0;
@@ -37,13 +36,7 @@ int main(int argc, char *argv[]) {
   double minvol = 0.0;
   double minperc = 0.0;
   float grid = GRID;
-  bool use_hydrogens = false;
-  bool exclude_ions = false;
-  bool exclude_ligands = false;
-  bool exclude_hetatm = false;
-  bool exclude_water = false;
-  bool exclude_nucleic = false;
-  bool exclude_amino = false;
+  vossvolvox::FilterSettings filters;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -85,15 +78,8 @@ int main(int argc, char *argv[]) {
                     0.0,
                     "Minimum percentage of volume for inclusion (e.g., 0.01 for 1%).",
                     "<fraction>");
-  vossvolvox::add_output_file_options(parser, pdb_file, ezd_file, mrc_file);
-  vossvolvox::add_xyzr_filter_flags(parser,
-                                    use_hydrogens,
-                                    exclude_ions,
-                                    exclude_ligands,
-                                    exclude_hetatm,
-                                    exclude_water,
-                                    exclude_nucleic,
-                                    exclude_amino);
+  vossvolvox::add_output_options(parser, outputs);
+  vossvolvox::add_filter_options(parser, filters);
   parser.add_example(
       "./AllChannelExc.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -g 0.5 -t 4.0 -v 5000 -p 0.01");
 
@@ -114,18 +100,11 @@ int main(int argc, char *argv[]) {
     printCompileInfo(argv[0]);
     printCitation();
   }
-  if (!pdb_file.empty() || !ezd_file.empty()) {
+  if (!outputs.pdbFile.empty() || !outputs.ezdFile.empty()) {
     std::cerr << "Warning: PDB/EZD outputs are not supported for this tool; ignoring.\n";
   }
 
-  vossvolvox::pdbio::ConversionOptions convert_options;
-  convert_options.use_united = !use_hydrogens;
-  convert_options.filters.exclude_ions = exclude_ions;
-  convert_options.filters.exclude_ligands = exclude_ligands;
-  convert_options.filters.exclude_hetatm = exclude_hetatm;
-  convert_options.filters.exclude_water = exclude_water;
-  convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
-  convert_options.filters.exclude_amino_acids = exclude_amino;
+  const auto convert_options = vossvolvox::make_conversion_options(filters);
   XYZRBuffer xyzr_buffer;
   if (!vossvolvox::load_xyzr_or_exit(input_path, convert_options, xyzr_buffer)) {
     return 1;
@@ -217,7 +196,7 @@ int main(int argc, char *argv[]) {
   if (solventEXC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
   grow_ExcludeGrid(SMPROBE, solventACC, solventEXC);
   intersect_Grids(solventEXC, trimgrid); //modifies solventEXC
-  const std::string solvent_output = mrc_file.empty() ? "allsolvent.mrc" : mrc_file;
+  const std::string solvent_output = outputs.mrcFile.empty() ? "allsolvent.mrc" : outputs.mrcFile;
   writeMRCFile(solventEXC, const_cast<char*>(solvent_output.c_str()));
   std::free (solventACC);
 

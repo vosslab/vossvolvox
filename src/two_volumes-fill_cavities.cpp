@@ -8,6 +8,7 @@
 #include "argument_helper.h"
 #include "pdb_io.h"
 #include "utils.h"                    // for endl, cerr, gridpt, countGrid
+#include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.h"
 
 // ****************************************************
@@ -43,13 +44,7 @@ int main(int argc, char *argv[]) {
   unsigned int merge = 0;
   unsigned int fill = 0;
   float grid = GRID;
-  bool use_hydrogens = false;
-  bool exclude_ions = false;
-  bool exclude_ligands = false;
-  bool exclude_hetatm = false;
-  bool exclude_water = false;
-  bool exclude_nucleic = false;
-  bool exclude_amino = false;
+  vossvolvox::FilterSettings filters;
 
   vossvolvox::ArgumentParser parser(
       argv[0],
@@ -108,14 +103,7 @@ int main(int argc, char *argv[]) {
                     0u,
                     "Fill mode for MakerBot adjustment (0=none, 1=vol2->vol1, 2=vol1->vol2).",
                     "<0|1|2>");
-  vossvolvox::add_xyzr_filter_flags(parser,
-                                    use_hydrogens,
-                                    exclude_ions,
-                                    exclude_ligands,
-                                    exclude_hetatm,
-                                    exclude_water,
-                                    exclude_nucleic,
-                                    exclude_amino);
+  vossvolvox::add_filter_options(parser, filters);
   parser.add_example("./TwoVol.exe -i1 prot.xyzr -i2 lig.xyzr -p1 1.5 -p2 3 -g 0.6 -m1 prot.mrc -m2 lig.mrc");
 
   const auto parse_result = parser.parse(argc, argv);
@@ -138,14 +126,7 @@ int main(int argc, char *argv[]) {
     printCitation();
   }
 
-  vossvolvox::pdbio::ConversionOptions convert_options;
-  convert_options.use_united = !use_hydrogens;
-  convert_options.filters.exclude_ions = exclude_ions;
-  convert_options.filters.exclude_ligands = exclude_ligands;
-  convert_options.filters.exclude_hetatm = exclude_hetatm;
-  convert_options.filters.exclude_water = exclude_water;
-  convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
-  convert_options.filters.exclude_amino_acids = exclude_amino;
+  const auto convert_options = vossvolvox::make_conversion_options(filters);
 
   XYZRBuffer xyzr_buffer1;
   if (!vossvolvox::load_xyzr_or_exit(file1, convert_options, xyzr_buffer1)) {

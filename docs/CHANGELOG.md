@@ -74,6 +74,9 @@ OpenAI Codex
   outputs via the test suite.
 - Rolled the shared XYZR/grid helper refactor out to the remaining modern
   executables.
+- Added common CLI settings helpers for filter/output options and centralized
+  conversion option mapping.
+- Closed Phase 5 cleanup (kept `finalGridDims()` wrapper, no debug hooks added).
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>
