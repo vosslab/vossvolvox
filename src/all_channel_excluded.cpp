@@ -1,6 +1,4 @@
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,7 +11,6 @@
 
 // Globals
 extern float GRID, GRIDVOL;
-extern unsigned int NUMBINS;
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -212,18 +209,18 @@ int main(int argc, char *argv[]) {
     // ***************************************************
     // GETTING CONTACT CHANNEL
     // ***************************************************
-    int channelEXCvol = countGrid(channelEXC.get()); // initialize channelEXC volume
-    if (channelEXCvol > maxvox)
-      maxvox = channelEXCvol;
-    if (channelEXCvol < minvox and channelEXCvol > 0)
-      minvox = channelEXCvol;
-    if (channelEXCvol <= MINSIZE) {
+    int chanEXC_voxels = countGrid(channelEXC.get()); // initialize channelEXC volume
+    if (chanEXC_voxels > maxvox)
+      maxvox = chanEXC_voxels;
+    if (chanEXC_voxels < minvox and chanEXC_voxels > 0)
+      minvox = chanEXC_voxels;
+    if (chanEXC_voxels <= MINSIZE) {
       cerr << "SKIPPING CHANNEL" << endl;
       cerr << "---------------------------------------------" << endl;
       continue;
     }
-    if (channelEXCvol < goodminvox)
-      goodminvox = channelEXCvol;
+    if (chanEXC_voxels < goodminvox)
+      goodminvox = chanEXC_voxels;
 
     numchannels++;
 
@@ -231,7 +228,7 @@ int main(int argc, char *argv[]) {
     // OUTPUT RESULTS
     // ***************************************************
     cout << BIGPROBE << "\t" << SMPROBE << "\t" << GRID << "\t" << flush;
-    printVolCout(channelEXCvol);
+    printVolCout(chanEXC_voxels);
     long double surf = surface_area(channelEXC.get());
     cout << "\t" << surf << "\t" << flush;
     cout << "\t#" << input_path << endl;

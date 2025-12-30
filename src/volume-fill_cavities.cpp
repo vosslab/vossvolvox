@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -18,7 +15,6 @@
 
 // Globals
 extern float GRID, GRIDVOL;
-extern unsigned int NUMBINS;
 
 int getCavitiesBothMeth(const float probe,
                         gridpt shellACC[],
@@ -102,13 +98,10 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 //HEADER CHECK
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file:   " << input_path << endl;
 // ****************************************************
 // STARTING FILE READ-IN
 // ****************************************************
-
 
   auto shellACC = make_zeroed_grid();
   fill_AccessGrid_fromArray(numatoms, PROBE, xyzr_buffer, shellACC.get());
@@ -123,10 +116,10 @@ int main(int argc, char *argv[]) {
   shellACC.reset();
   int voxels = countGrid(EXCgrid.get());
 
-
-
   long double surf;
   surf = surface_area(EXCgrid.get());
+
+  report_grid_metrics(std::cerr, voxels, surf);
 
   write_output_files(EXCgrid.get(), outputs);
 

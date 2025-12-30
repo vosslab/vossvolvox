@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <cstring>   // For std::strlen, std::strcpy, std::strrchr
 #include <iostream>  // For std::cerr
 #include <cstdio>    // For std::snprintf
@@ -13,7 +12,6 @@
 
 // Globals
 extern float GRID, GRIDVOL;
-extern unsigned int NUMBINS;
 
 // Function to get the directory name from a given file path
 //

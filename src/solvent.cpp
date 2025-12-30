@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,7 +10,6 @@
 
 // Globals
 extern float GRID, GRIDVOL;
-extern unsigned int NUMBINS;
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -103,8 +99,6 @@ int main(int argc, char *argv[]) {
   cerr << "Trim  Probe Radius: " << TRIMPROBE << endl;
   cerr << "Grid Spacing: " << GRID << endl;
   cerr << "Input file:   " << input_path << endl;
-  cerr << "Resolution:   " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:   " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
 
 
 // ****************************************************
@@ -171,6 +165,7 @@ int main(int argc, char *argv[]) {
     cout << "\t" << surf << "\t" << flush;
     //printVolCout(solventACCvol);
     cout << input_path << endl;
+    report_grid_metrics(std::cerr, solventEXCvol, surf);
     write_output_files(solventEXC.get(), outputs);
 
   cerr << endl << "Program Completed Sucessfully" << endl << endl;

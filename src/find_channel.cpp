@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -14,7 +11,6 @@
 
 // Globals
 extern float GRID, GRIDVOL;
-extern unsigned int NUMBINS;
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -123,8 +119,6 @@ int main(int argc, char *argv[]) {
 //HEADER CHECK
   cerr << "Probe Radius: " << BIGPROBE << endl;
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file:   " << input_path << endl;
 
 // ****************************************************
@@ -191,12 +185,13 @@ int main(int argc, char *argv[]) {
 // OUTPUT RESULTS
 // ***************************************************
     cout << BIGPROBE << "\t" << SMPROBE << "\t" << GRID << "\t" << flush;
-    int channelEXCvol = countGrid(channelEXC.get());
-    printVolCout(channelEXCvol);
+    int chanEXC_voxels = countGrid(channelEXC.get());
+    printVolCout(chanEXC_voxels);
     long double surf = surface_area(channelEXC.get());
     cout << "\t" << surf << "\t" << flush;
     printVolCout(channelACCvol);
     cout << "\t#" << input_path << endl;
+    report_grid_metrics(std::cerr, chanEXC_voxels, surf);
     write_output_files(channelEXC.get(), outputs);
 
     cerr << endl;

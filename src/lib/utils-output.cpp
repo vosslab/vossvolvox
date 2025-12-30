@@ -253,6 +253,8 @@ float computeBlurredValue(const gridpt grid[], int voxelIndex) {
 void report_grid_metrics(std::ostream& out, int voxels, long double surface_area) {
   out << "Grid Spacing:       " << GRID << " A\n"
       << "Voxel Volume:       " << GRIDVOL << " A\n"
+      << "Resolution:         " << int(1000.0 / float(GRIDVOL)) / 1000.0 << " voxels per A^3\n"
+      << "Resolution:         " << int(11494.0 / float(GRIDVOL)) / 1000.0 << " voxels per water molecule\n"
       << "Total Voxels:       " << voxels << "\n"
       << "Volume:             " << voxels * GRIDVOL << "\n"
       << "Surface Area:       " << surface_area << " A^2\n";

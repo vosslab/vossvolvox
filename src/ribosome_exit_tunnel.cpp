@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,7 +10,6 @@
 
 // Globals
 extern float GRID, GRIDVOL;
-extern unsigned int NUMBINS;
 
 void printTun(const float probe, 
 	const float surfEXC, const int tunnEXC_voxels, const int chanEXC_voxels,
@@ -105,8 +101,6 @@ int main(int argc, char *argv[]) {
 
 //HEADER CHECK
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file:   " << input_path << endl;
 
 // ****************************************************
@@ -187,6 +181,7 @@ int main(int argc, char *argv[]) {
   float surfEXC = surface_area(tunnEXC.get());
 
 //Output
+  report_grid_metrics(std::cerr, tunnEXC_voxels, static_cast<long double>(surfEXC));
   write_output_files(tunnEXC.get(), outputs);
 
   printTun(trim_prb,

@@ -1,6 +1,4 @@
 #include <cmath>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,7 +11,6 @@
 
 // Globals
 extern float GRID;
-extern unsigned int NUMBINS;
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;

@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,7 +10,6 @@
 
 // Globals
 extern float GRID, GRIDVOL;
-extern unsigned int NUMBINS;
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -22,7 +18,6 @@ int main(int argc, char *argv[]) {
   std::string input_path;
   vossvolvox::OutputSettings outputs;
   vossvolvox::DebugSettings debug;
-  double PROBE = 0.0;
   float grid = GRID;
   vossvolvox::FilterSettings filters;
 
@@ -71,16 +66,14 @@ int main(int argc, char *argv[]) {
   const auto grid_result = vossvolvox::prepare_grid_from_xyzr(
       buffers,
       grid,
-      static_cast<float>(PROBE),
+      0.0f,
       input_path,
       false);
   const int numatoms = grid_result.total_atoms;
 
 //HEADER CHECK
-  cerr << "Probe Radius: " << PROBE << endl;
+  cerr << "Probe Radius: 0" << endl;
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file:   " << input_path << endl;
 
 // ****************************************************
@@ -88,18 +81,15 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 //READ FILE INTO SASGRID
   auto EXCgrid = make_zeroed_grid();
-  int voxels;
-  if (PROBE > 0.0) {
-    voxels = get_ExcludeGrid_fromArray(numatoms, PROBE, xyzr_buffer, EXCgrid.get());
-  } else {
-    voxels = fill_AccessGrid_fromArray(numatoms, 0.0f, xyzr_buffer, EXCgrid.get());
-  }
+  int voxels = fill_AccessGrid_fromArray(numatoms, 0.0f, xyzr_buffer, EXCgrid.get());
   long double surf;
   surf = surface_area(EXCgrid.get());
 
+  report_grid_metrics(std::cerr, voxels, surf);
+
   write_output_files(EXCgrid.get(), outputs);
 
-  cout << PROBE << "\t" << GRID << "\t" << flush;
+  cout << 0.0 << "\t" << GRID << "\t" << flush;
   printVolCout(voxels);
   cout << "\t" << surf << "\t#" << input_path << endl;
 

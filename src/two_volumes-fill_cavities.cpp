@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -18,8 +15,6 @@
 
 // Globals
 extern float GRID, GRIDVOL;
-extern int DX, DY, DZ;
-extern unsigned int NUMBINS;
 
 int getCavitiesBothMeth(const float probe, gridpt shellACC[], gridpt shellEXC[],
 	const int natoms, char file1[], char file2[], char mrcfile1[], char mrcfile2[]);
@@ -30,8 +25,8 @@ int main(int argc, char *argv[]) {
 
   std::string file1;
   std::string file2;
-  std::string mrcfile1;
-  std::string mrcfile2;
+  vossvolvox::OutputSettings outputs1;
+  vossvolvox::OutputSettings outputs2;
   double PROBE1 = -1;
   double PROBE2 = -1;
   unsigned int merge = 0;
@@ -75,13 +70,13 @@ int main(int argc, char *argv[]) {
                     "<grid>");
   parser.add_option("-m1",
                     "--mrc-output1",
-                    mrcfile1,
+                    outputs1.mrcFile,
                     std::string(),
                     "Output MRC file for the first volume.",
                     "<mrc1>");
   parser.add_option("-m2",
                     "--mrc-output2",
-                    mrcfile2,
+                    outputs2.mrcFile,
                     std::string(),
                     "Output MRC file for the second volume.",
                     "<mrc2>");
@@ -115,7 +110,8 @@ int main(int argc, char *argv[]) {
   }
 
   vossvolvox::enable_debug(debug);
-  vossvolvox::debug_report_cli(file1 + "," + file2, nullptr);
+  vossvolvox::debug_report_cli(file1, &outputs1);
+  vossvolvox::debug_report_cli(file2, &outputs2);
 
   GRID = grid;
 
@@ -134,7 +130,7 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::load_xyzr_or_exit(file2, convert_options, xyzr_buffer2)) {
     return 1;
   }
-  
+
   if (PROBE1 < 0 && PROBE2 > 0) {
   	PROBE1 = PROBE2;
   } else if (PROBE2 < 0 && PROBE1 > 0) {
@@ -142,7 +138,7 @@ int main(int argc, char *argv[]) {
   } else if (PROBE1 < 0 && PROBE2 < 0) {
   	  cerr << "Error please define a probe radius, example: -p1 1.5" << endl;
       cerr << endl;
-      return 1;    
+      return 1;
   }
   double maxPROBE, minPROBE;
   if (PROBE1 > PROBE2) {
@@ -176,7 +172,6 @@ int main(int argc, char *argv[]) {
   cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file 1:   " << file1 << endl;
   cerr << "Input file 2:   " << file2 << endl;
-  cerr << "DIMENSIONS:   " << DX << ", " << DY << ", " << DZ << endl;
 
   int voxels1, voxels2;
 
@@ -201,7 +196,7 @@ int main(int argc, char *argv[]) {
   trun_ExcludeGrid(PROBE1, shellACC.get(), EXCgrid1.get());
 
   shellACC.reset();
-  
+
 // ****************************************************
 // STARTING FILE 2 READ-IN
 // ****************************************************
@@ -213,7 +208,7 @@ int main(int argc, char *argv[]) {
     fill_AccessGrid_fromArray(numatoms2, minPROBE, xyzr_buffer1, shellACC2.get());
     cerr << "Merge Volumes 2->1" << endl;
     merge_Grids(shellACC.get(), shellACC2.get());
-  }  
+  }
   voxels1 = countGrid(shellACC.get());
   fill_cavities(shellACC.get());
   voxels2 = countGrid(shellACC.get());
@@ -223,7 +218,7 @@ int main(int argc, char *argv[]) {
   trun_ExcludeGrid(PROBE2, shellACC.get(), EXCgrid2.get());
 
   shellACC.reset();
-  
+
 // ****************************************************
 // SUBTRACT AND SAVE
 // ****************************************************
@@ -236,7 +231,7 @@ int main(int argc, char *argv[]) {
   } else {
     subt_Grids(EXCgrid2.get(), EXCgrid1.get()); //modifies first grid
   }
-  
+
   cerr << "makerbot fill" << endl;
   if(fill == 1) {
   	makerbot_fill(EXCgrid2.get(), EXCgrid1.get());
@@ -245,22 +240,22 @@ int main(int argc, char *argv[]) {
   } else {
   	cerr << "no fill" << endl;
   }
-  /* 
+  /*
   ** makerbot_fill()
-  ** Since you cannot see inside a 3D print, 
+  ** Since you cannot see inside a 3D print,
   ** points that are invisible in ingrid are
   ** converted to outgrid points
-  ** This way the printer does not have switch 
+  ** This way the printer does not have switch
   ** colors on the invisible (internal) parts of the model
   ** So outgrid gets bigger
   */
 
-  if(!mrcfile1.empty()) {
-    writeMRCFile(EXCgrid1.get(), const_cast<char*>(mrcfile1.c_str()));
+  if(!outputs1.mrcFile.empty()) {
+    writeMRCFile(EXCgrid1.get(), const_cast<char*>(outputs1.mrcFile.c_str()));
   }
 
-  if(!mrcfile2.empty()) {
-    writeMRCFile(EXCgrid2.get(), const_cast<char*>(mrcfile2.c_str()));
+  if(!outputs2.mrcFile.empty()) {
+    writeMRCFile(EXCgrid2.get(), const_cast<char*>(outputs2.mrcFile.c_str()));
   }
 
   //cout << PROBE1 << "\t" << PROBE2 << "\t" << GRID << "\t" << endl;

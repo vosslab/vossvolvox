@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -117,6 +114,8 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::load_xyzr_or_exit(amino_file, convert_options, amino_xyzr_buffer)) {
     return 1;
   }
+  // Build a single shared grid from both inputs so RNA and protein grids align
+  // (same origin, dimensions, NUMBINS). This keeps subtraction well-defined.
   const std::vector<const XYZRBuffer*> buffers = {&rna_xyzr_buffer, &amino_xyzr_buffer};
   const auto grid_result = vossvolvox::prepare_grid_from_xyzr(
       buffers,

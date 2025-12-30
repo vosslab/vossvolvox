@@ -88,6 +88,20 @@ OpenAI Codex
 - Updated C++ includes to use renamed `.hpp` headers and refreshed build refs.
 - Trimmed unused global extern declarations across modern executables.
 - Modernized `rna_protein_volume.cpp` grid allocations to use `make_zeroed_grid()`.
+- Converted modern executables to `make_zeroed_grid()` and removed manual
+  `malloc`/`free` calls in those tools.
+- Added `report_grid_metrics()` output to additional tools (`vdw`, `solvent`,
+  `find_channel`, `volume-fill_cavities`, `ribosome_exit_tunnel`).
+- Expanded `report_grid_metrics()` to include resolution lines and removed
+  duplicated resolution prints from tools that already call it.
+- Simplified `vdw.cpp` to use a fixed probe radius of 0 (no probe branch).
+- Split `two_volumes-fill_cavities.cpp` outputs into two `OutputSettings` sets.
+- Cleaned unused C headers from modern executables.
+- Trimmed unused `extern` declarations (including redundant `NUMBINS`) in
+  modern executables.
+- Renamed `channelEXCvol` to `chanEXC_voxels` for clarity.
+- Documented the shared-grid setup in `rna_protein_volume.cpp` to make the
+  aligned subtraction behavior explicit.
 - Dropped the planned `--debug-limits` hook from the refactor plan.
 
 ## 2025-11-29
