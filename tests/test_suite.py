@@ -35,8 +35,9 @@ def get_git_root() -> Path:
 
 
 REPO_ROOT = get_git_root()
-TEST_DIR = REPO_ROOT / "test"
+TEST_DIR = REPO_ROOT / "tests"
 BIN_DIR = REPO_ROOT / "bin"
+SRC_DIR = REPO_ROOT / "src"
 
 def _color(code: str, text: str) -> str:
     if sys.stdout.isatty():
@@ -298,13 +299,69 @@ def load_tests(path: Path) -> List[Dict[str, Any]]:
     return data.get("tests", [])
 
 
+def resolve_config_path(config_value: str) -> Path:
+    candidate = Path(config_value)
+    if candidate.is_absolute():
+        return candidate
+    return (Path.cwd() / candidate).resolve()
+
+
+def find_default_config() -> Path:
+    candidates = [
+        Path.cwd() / "test_suite.yml",
+        Path(__file__).resolve().parent / "test_suite.yml",
+        REPO_ROOT / "tests" / "test_suite.yml",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0].resolve()
+
+def collect_required_binaries(tests: List[Dict[str, Any]]) -> List[Path]:
+    required = set()
+    for test in tests:
+        program = test.get("program")
+        if program:
+            required.add(BIN_DIR / program)
+        for prereq in test.get("prerequisites", []):
+            if prereq.get("action") == "convert_xyzr":
+                required.add(BIN_DIR / "pdb_to_xyzr.exe")
+    return sorted(required)
+
+
+def find_missing_binaries(required: List[Path]) -> List[Path]:
+    return [path for path in required if not path.exists()]
+
+
+def build_binaries(target: str = "all") -> None:
+    result = subprocess.run(
+        ["make", target],
+        cwd=str(SRC_DIR),
+        check=False,
+    )
+    if result.returncode != 0:
+        raise TestFailure(f"`make {target}` failed with exit code {result.returncode}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="test_suite.yml", help="YAML file describing the tests.")
     parser.add_argument("--list", action="store_true", help="List tests without running them.")
+    parser.add_argument(
+        "--build-missing",
+        choices=("all", "none"),
+        default="all",
+        help="Build missing binaries before running tests (default: all).",
+    )
     args = parser.parse_args()
 
-    config_path = (TEST_DIR / args.config).resolve()
+    if args.config == "test_suite.yml":
+        config_path = find_default_config()
+    else:
+        config_path = resolve_config_path(args.config)
+    if not config_path.exists():
+        error(f"Test config not found: {config_path}")
+        sys.exit(1)
     tests = load_tests(config_path)
     if not tests:
         error("No tests found.")
@@ -314,6 +371,23 @@ def main() -> None:
         for test in tests:
             print(test["name"])
         return
+
+    required = collect_required_binaries(tests)
+    missing = find_missing_binaries(required)
+    if missing:
+        if args.build_missing == "all":
+            info("Missing binaries detected; running `make all`.")
+            try:
+                build_binaries("all")
+            except TestFailure as exc:
+                error(str(exc))
+                sys.exit(1)
+            missing = find_missing_binaries(required)
+        if missing:
+            error("Missing binaries:")
+            for path in missing:
+                error(f"- {path}")
+            sys.exit(1)
 
     failures = []
     durations = []

@@ -20,6 +20,10 @@ OpenAI Codex
 - Ensured `src/Makefile` creates `bin/` before building legacy objects.
 - Fixed Python lint issues in `python/` and `tests/` (unused imports, regex escapes,
   and local module references).
+- Updated `tests/test_suite.py` to locate `test_suite.yml` from CWD, script
+  directory, or `REPO_ROOT/tests/` when no config is provided.
+- Added a preflight in `tests/test_suite.py` to build or fail fast when required
+  binaries are missing.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>
