@@ -9,7 +9,7 @@
 #include "xyzr_cli_helpers.hpp"
 
 // Globals
-extern float GRID, GRIDVOL;
+extern float GRID;
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;

@@ -14,7 +14,7 @@
 // ****************************************************
 
 // Globals
-extern float GRID, GRIDVOL;
+extern float GRID;
 
 int getCavitiesBothMeth(const float probe,
                         gridpt shellACC[],

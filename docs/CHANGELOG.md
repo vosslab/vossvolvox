@@ -94,6 +94,8 @@ OpenAI Codex
   `find_channel`, `volume-fill_cavities`, `ribosome_exit_tunnel`).
 - Expanded `report_grid_metrics()` to include resolution lines and removed
   duplicated resolution prints from tools that already call it.
+- Eliminated direct `GRIDVOL` usage in several modern executables by relying on
+  `report_grid_metrics()` for resolution output.
 - Simplified `vdw.cpp` to use a fixed probe radius of 0 (no probe branch).
 - Split `two_volumes-fill_cavities.cpp` outputs into two `OutputSettings` sets.
 - Cleaned unused C headers from modern executables.

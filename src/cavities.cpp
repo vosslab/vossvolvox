@@ -9,7 +9,7 @@
 #include "xyzr_cli_helpers.hpp"
 
 // Globals
-extern float GRID, GRIDVOL;
+extern float GRID;
 extern unsigned int NUMBINS;
 
 int getCavitiesBothMeth(const float probe,
@@ -106,8 +106,6 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 //HEADER CHECK
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file:   " << input_path << endl;
 // ****************************************************
 // STARTING FILE READ-IN
@@ -249,8 +247,9 @@ Excluded Process
   int cavEXC_voxels = countGrid(cavEXC.get());
 
 //Write out exclude cavities
+  long double surfEXC = surface_area(cavEXC.get());
+  report_grid_metrics(std::cerr, cavEXC_voxels, surfEXC);
   write_output_files(cavEXC.get(), outputs);
-  //float surfEXC = surface_area(cavEXC);
   cavEXC.reset();
 
   cerr << endl;

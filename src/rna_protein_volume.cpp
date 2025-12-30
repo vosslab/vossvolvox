@@ -9,7 +9,7 @@
 #include "xyzr_cli_helpers.hpp"
 
 // Globals
-extern float GRID, GRIDVOL;
+extern float GRID;
 extern unsigned int NUMBINS;
 
 
@@ -133,8 +133,6 @@ int main(int argc, char *argv[]) {
 //HEADER CHECK
   cerr << "Probe Radius: " << PROBE << endl;
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:   " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:   " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "RNA file:     " << rna_file << endl;
   cerr << "Amino file:   " << amino_file << endl;
 
@@ -154,6 +152,14 @@ int main(int argc, char *argv[]) {
 
   trimYAxis(AminoGrid.get());
   trimYAxis(RNAgrid.get());
+
+  int rna_voxels = countGrid(RNAgrid.get());
+  long double rna_surf = surface_area(RNAgrid.get());
+  report_grid_metrics(std::cerr, rna_voxels, rna_surf);
+
+  int amino_voxels = countGrid(AminoGrid.get());
+  long double amino_surf = surface_area(AminoGrid.get());
+  report_grid_metrics(std::cerr, amino_voxels, amino_surf);
 
   const char* rnafilename = "rna.mrc";
   writeMRCFile(RNAgrid.get(), rnafilename);

@@ -14,7 +14,7 @@
 // ****************************************************
 
 // Globals
-extern float GRID, GRIDVOL;
+extern float GRID;
 
 int getCavitiesBothMeth(const float probe, gridpt shellACC[], gridpt shellEXC[],
 	const int natoms, char file1[], char file2[], char mrcfile1[], char mrcfile2[]);
@@ -168,8 +168,6 @@ int main(int argc, char *argv[]) {
   }
 //HEADER CHECK
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file 1:   " << file1 << endl;
   cerr << "Input file 2:   " << file2 << endl;
 
@@ -250,10 +248,16 @@ int main(int argc, char *argv[]) {
   ** So outgrid gets bigger
   */
 
+  int voxels_out1 = countGrid(EXCgrid1.get());
+  long double surf_out1 = surface_area(EXCgrid1.get());
+  report_grid_metrics(std::cerr, voxels_out1, surf_out1);
   if(!outputs1.mrcFile.empty()) {
     writeMRCFile(EXCgrid1.get(), const_cast<char*>(outputs1.mrcFile.c_str()));
   }
 
+  int voxels_out2 = countGrid(EXCgrid2.get());
+  long double surf_out2 = surface_area(EXCgrid2.get());
+  report_grid_metrics(std::cerr, voxels_out2, surf_out2);
   if(!outputs2.mrcFile.empty()) {
     writeMRCFile(EXCgrid2.get(), const_cast<char*>(outputs2.mrcFile.c_str()));
   }
