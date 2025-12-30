@@ -5,11 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "argument_helper.h"
-#include "pdb_io.h"
-#include "utils.h"   // For custom utility functions
+#include "argument_helper.hpp"
+#include "pdb_io.hpp"
+#include "utils.hpp"   // For custom utility functions
 #include "vossvolvox_cli_common.hpp"
-#include "xyzr_cli_helpers.h"
+#include "xyzr_cli_helpers.hpp"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;

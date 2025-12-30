@@ -85,6 +85,7 @@ OpenAI Codex
   `writeSmallMRCFile` without per-call flags.
 - Added `report_grid_metrics()` helper for consistent grid summary output.
 - Added `make_zeroed_grid()` helper to combine allocation and zeroing.
+- Updated C++ includes to use renamed `.hpp` headers and refreshed build refs.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

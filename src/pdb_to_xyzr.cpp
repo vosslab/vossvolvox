@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "argument_helper.h"
-#include "pdb_io.h"
+#include "argument_helper.hpp"
+#include "pdb_io.hpp"
 #include "vossvolvox_cli_common.hpp"
 
 namespace {

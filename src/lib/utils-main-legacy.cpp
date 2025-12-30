@@ -2,7 +2,7 @@
 ** utils.cpp
 */
 #include <cmath>
-#include "utils.h"
+#include "utils.hpp"
 
 float XMIN, YMIN, ZMIN;
 float XMAX, YMAX, ZMAX;

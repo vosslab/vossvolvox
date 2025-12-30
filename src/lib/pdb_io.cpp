@@ -1,4 +1,4 @@
-#include "pdb_io.h"
+#include "pdb_io.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -15,7 +15,7 @@
 #include <utility>
 #include <vector>
 
-#include "atmtypenumbers_data.h"
+#include "atmtypenumbers_data.hpp"
 
 #if VOSS_HAVE_GEMMI
 #include <gemmi/mmcif.hpp>

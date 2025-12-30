@@ -1,6 +1,6 @@
 #include <cstdlib>                   // for std::free, std::malloc, NULL
 #include <iostream>                   // for char_traits, cerr, cout
-#include "utils.h"                    // for endl, cerr, cout, assignLimits
+#include "utils.hpp"                    // for endl, cerr, cout, assignLimits
 #include <cstdio>                   // for snprintf
 
 

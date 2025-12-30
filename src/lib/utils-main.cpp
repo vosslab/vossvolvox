@@ -26,7 +26,7 @@
 #include <iomanip>
 
 // Project-specific definitions such as gridpt and DEBUG.
-#include "utils.h"
+#include "utils.hpp"
 
 // Enables assert-based invariants when debugging.
 #include <cassert>

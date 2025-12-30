@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "pdb_io.h"
-#include "utils.h"
+#include "pdb_io.hpp"
+#include "utils.hpp"
 
 namespace vossvolvox {
 

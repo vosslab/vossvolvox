@@ -10,8 +10,8 @@
 #include <algorithm>
 #include <string>     // for char_traits, allocator, basic_string
 #include <vector>
-#include "argument_helper.h"
-#include "utils.h"    // for GRID, endl, DX, DXY, gridpt
+#include "argument_helper.hpp"
+#include "utils.hpp"    // for GRID, endl, DX, DXY, gridpt
 #include "vossvolvox_cli_common.hpp"
 
 /*********************************************

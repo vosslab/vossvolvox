@@ -6,7 +6,7 @@
 #include <cstdint>     // for int16_t, int32_t, int8_t, uint16_t
 #include <cstdlib>     // for std::free, std::malloc
 #include <iostream>    // for cerr, endl
-#include "utils.h"     // for cerr, endl, DEBUG, gridpt, countGrid
+#include "utils.hpp"     // for cerr, endl, DEBUG, gridpt, countGrid
 
 #define MRC_MODE_BYTE            0
 #define MRC_MODE_SHORT           1

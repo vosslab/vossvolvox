@@ -1,8 +1,8 @@
-#include "xyzr_cli_helpers.h"
+#include "xyzr_cli_helpers.hpp"
 
 #include "vossvolvox_cli_common.hpp"
 
-#include "utils.h"
+#include "utils.hpp"
 
 #include <cstring>
 #include <iostream>

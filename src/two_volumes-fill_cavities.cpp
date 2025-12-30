@@ -5,11 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "argument_helper.h"
-#include "pdb_io.h"
-#include "utils.h"                    // for endl, cerr, gridpt, countGrid
+#include "argument_helper.hpp"
+#include "pdb_io.hpp"
+#include "utils.hpp"                    // for endl, cerr, gridpt, countGrid
 #include "vossvolvox_cli_common.hpp"
-#include "xyzr_cli_helpers.h"
+#include "xyzr_cli_helpers.hpp"
 
 // ****************************************************
 // CALCULATE EXCLUDED VOLUME, BUT FILL ANY CAVITIES
