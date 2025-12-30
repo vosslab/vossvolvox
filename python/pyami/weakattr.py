@@ -1,3 +1,7 @@
+
+from builtins import str
+from builtins import range
+from builtins import object
 #!/usr/bin/env python
 import weakref
 import threading
@@ -40,9 +44,9 @@ def get(obj, attrname):
 		threadlock.release()
 
 def debug():
-	print 'KEYOBJECT', len(keyobject)
-	print 'KEYVALUE', len(keyvalue)
-	print 'KEYLOOKUP', len(keylookup)
+	print('KEYOBJECT', len(keyobject))
+	print('KEYVALUE', len(keyvalue))
+	print('KEYLOOKUP', len(keylookup))
 
 if __name__ == '__main__':
 	class MyThing(object):
@@ -52,5 +56,5 @@ if __name__ == '__main__':
 	for i in range(45):
 		a = MyThing()
 		set(a, 'asdf', i)
-		print 'ASDF', get(a, 'asdf')
+		print('ASDF', get(a, 'asdf'))
 		debug()

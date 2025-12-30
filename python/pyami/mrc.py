@@ -11,20 +11,25 @@ MRC I/O functions:
 		Read MRC file into a numpy ndarray object.
       filename - the MRC filename
 
-  mmap(filename)  
+  mmap(filename)
     Open MRC as a memory mapped file.  This is the most efficient way
     to read data if you only need to access part of a large MRC file.
     Only the parts you actually access are read from the disk into memory.
 			filename - the MRC filename
 '''
 
+
+
+from builtins import zip
+from builtins import map
+from builtins import str
+from builtins import range
+
 import numpy
 import sys
-import arraystats
-import weakattr
-import weakref
-import resultcache
-import types
+from pyami import arraystats
+from pyami import weakattr
+from pyami import resultcache
 
 cache_enabled = False
 # 10 * 4kx4k float images = 640 MB
@@ -44,6 +49,7 @@ mrc2numpy = {
 	5: numpy.uint8,		# UCSF Image uint8
 
 	6: numpy.uint16,    # according to UCSF
+	101: numpy.uint8,		# SerialEM 4-bit int format for K2/K3 counting
 }
 
 # mapping of image/volume type
@@ -61,30 +67,35 @@ mrcmaptype = {
 numpy2mrc = {
 	## convert these to int8
 	numpy.int8: 0,
-	numpy.bool: 0,
 	numpy.bool_: 0,
 
 	## convert these to int16
 	numpy.int16: 1,
-	numpy.uint8: 1, # Do not want to convert to mode 5
+	numpy.uint8: 1, # Do not want to convert to mode 5 nor 101
 
 	## convert these to float32
 	numpy.float32: 2,
 	numpy.float64: 2,
 	numpy.int32: 2,
 	numpy.int64: 2,
-	numpy.int: 2,
+	numpy.int_: 2,
 	numpy.uint32: 2,
 	numpy.uint64: 2,
 
 	## convert these to complex64
-	numpy.complex: 4,
 	numpy.complex64: 4,
 	numpy.complex128: 4,
 
 	## convert these to uint16
 	numpy.uint16: 6,
 }
+try:
+	# numpy 2.0 deprecated data type
+	numpy2mrc.update(
+		{numpy.complex_: 4,}
+	)
+except:
+	pass
 
 ## structure of the image 2000 MRC header
 ## This is a sequence of fields where each field is defined by a sequence:
@@ -118,7 +129,7 @@ header_fields = (
 	('ispg', 'int32'),
 	('nsymbt', 'int32'),
 	('extra1', 'string', 8),
-	('exttyp', 'string', 4),
+	('exttype', 'string', 4),
 	('nversion', 'int32'),
 	('extra2', 'string', 84),
 	('xorigin', 'float32'),
@@ -216,14 +227,13 @@ def printHeader(headerdict):
 	for field in header_fields:
 		name = field[0]
 		value = headerdict[name]
-		print '%-10s:  %s' % (name, value)
+		print('%-10s:  %s' % (name, value))
 
 def zeros(n):
 	'''
-Create n bytes of data initialized to zeros, returned as a python string.
+Create n bytes of data initialized to zeros, returned as a python bytes.
 	'''
-	a = numpy.zeros(n, dtype=int8dtype)
-	return a.tostring()
+	return bytes(n)
 
 def newHeader(header_fields=header_fields):
 	'''
@@ -233,8 +243,8 @@ All fields are initialized to zeros.
 	header = {}
 	for field in header_fields:
 		name = field[0]
-		type = field[1]
-		if type == 'string':
+		ftype = field[1]
+		if ftype == 'string':
 			length = field[2]
 			header[name] = zeros(length)
 		else:
@@ -242,14 +252,14 @@ All fields are initialized to zeros.
 	return header
 
 intbyteorder = {
-	'\x11\x11\x00\x00': 'big',
-	'\x44\x41\x00\x00': 'little',
-	'\x44\x44\x00\x00': 'little',  # compatible with badly written files
-	'\x00\x00\x44\x44': 'little',  # compatible with badly written files
+	b'\x11\x11\x00\x00': 'big',
+	b'\x44\x41\x00\x00': 'little',
+	b'\x44\x44\x00\x00': 'little',  # compatible with badly written files
+	b'\x00\x00\x44\x44': 'little',  # compatible with badly written files
 }
 byteorderstr = {
-	'big': '\x11\x11\x00\x00',
-	'little': '\x44\x41\x00\x00',
+	'big': b'\x11\x11\x00\x00',
+	'little': b'\x44\x41\x00\x00',
 }
 
 def isSwapped(headerbytes):
@@ -260,7 +270,7 @@ the header data.
 	### check for a valid machine stamp in header, with or without byteswap
 	stampswapped = None
 	machstamp = headerbytes[212:216]
-	machstamp = numpy.fromstring(machstamp, dtype='Int32', count=1)
+	machstamp = numpy.frombuffer(machstamp, dtype='int32', count=1)
 	machstampint = machstamp[0]
 	if machstampint in intbyteorder:
 		stampswapped = False
@@ -272,7 +282,7 @@ the header data.
 
 	### check for valid mode, with or without byteswap
 	mode = headerbytes[12:16]
-	mode = numpy.fromstring(mode, dtype='Int32', count=1)
+	mode = numpy.frombuffer(mode, dtype='int32', count=1)
 	modeint = mode[0]
 	modeswapped = None
 	if modeint in mrc2numpy:
@@ -298,9 +308,9 @@ def parseHeader(headerbytes):
 	'''
 	Parse the 1024 byte MRC header into a header dictionary.
 	'''
-	## header is comprised of Int32, Float32, and text labels.
-	itype = numpy.dtype('Int32')
-	ftype = numpy.dtype('Float32')
+	## header is comprised of int32, float32, and text labels.
+	itype = numpy.dtype('int32')
+	ftype = numpy.dtype('float32')
 
 	## check if data needs to be byte swapped
 	swapped = isSwapped(headerbytes)
@@ -314,29 +324,38 @@ def parseHeader(headerbytes):
 	## remainder of data are text labels
 	## ** should use numpy.frombuffer or http://construct.wikispaces.com/
 	headerarray = {}
-	headerarray['float32'] = numpy.fromstring(headerbytes, dtype=ftype, count=224)
-	headerarray['int32'] = numpy.fromstring(headerbytes, dtype=itype, count=224)
+	try:
+		headerarray['float32'] = numpy.frombuffer(headerbytes, dtype=ftype, count=224)
+		headerarray['int32'] = numpy.frombuffer(headerbytes, dtype=itype, count=224)
+	except:
+		headerarray['float32'] = numpy.fromfile(headerbytes, dtype=ftype, count=224)
+		headerarray['int32'] = numpy.fromfile(headerbytes, dtype=itype, count=224)
 
 	## fill in header dictionary with all the info
 	newheader = {}
 	pos = 0
 	for field in header_fields:
 		name = field[0]
-		type = field[1]
-		if type == 'string':
+		ftype = field[1]
+		if ftype == 'string':
 			length = field[2]
-			# remove trailing zeros(1) to make the string more readable
 			full_string = headerbytes[pos:pos+length]
-			first_zeros = full_string.find(zeros(1))
-			newheader[name] = ''
-			if first_zeros > 0:
-				newheader[name] = full_string[:first_zeros]
-			elif first_zeros < 0:
-				newheader[name] = full_string
+			newheader[name] = full_string
+			# refs #4547 need to keep trailing zeros in other strings such as
+			# machine stamp to keep it from scrambled when written.
+			if 'label' in name:
+				# remove trailing zeros(1) to make the label string more readable
+				full_string = headerbytes[pos:pos+length]
+				first_zeros = full_string.find(zeros(1))
+				newheader[name] = ''
+				if first_zeros > 0:
+					newheader[name] = full_string[:first_zeros]
+				elif first_zeros < 0:
+					newheader[name] = full_string
 		else:
 			length = 4
-			word = pos/4
-			newheader[name] = headerarray[type][word]
+			word = pos//4
+			newheader[name] = headerarray[ftype][word]
 		pos += length
 
 	## Save some numpy specific info (not directly related to MRC).
@@ -346,8 +365,8 @@ def parseHeader(headerbytes):
 	## header, which may be invalid.  This allows the data to be read
 	## properly.  Also figure out the numpy shape of the data from dimensions.
 	dtype = numpy.dtype(mrc2numpy[newheader['mode']])
-	if swapped:
-		dtype = dtype.newbyteorder()
+	# if swapped:
+	# 	dtype = dtype.newbyteorder()
 	newheader['dtype'] = dtype
 	if newheader['nz'] > 1:
 		## 3D data
@@ -369,14 +388,14 @@ def updateHeaderDefaults(header):
 	header['mapc'] = 1
 	header['mapr'] = 2
 	header['maps'] = 3
-	header['map'] = 'MAP '
+	header['map'] = b'MAP '
 	header['byteorder'] = byteorderstr[sys.byteorder]
 	header['amin'] = 0.0
 	header['amax'] = 0.0
 	header['amean'] = 0.0
 	header['rms'] = 0.0
 	header['nversion'] = 20140
-	header['exttyp'] = 'MRCO'
+	header['exttype'] = b'MRCO'
 
 def updateHeaderUsingArray(header, a, calc_stats=True, reset_origin=True, mz=None):
 	'''
@@ -421,7 +440,7 @@ def updateHeaderUsingArray(header, a, calc_stats=True, reset_origin=True, mz=Non
 		header['rms'] = stats['std']
 
 	if reset_origin is True:
-		### changed next lines to be equivalent to proc3d origin=0,0,0
+		### changed next lines to be equivalent to legacy origin=0,0,0 handling
 		header['xorigin'] = 0
 		header['yorigin'] = 0
 		header['zorigin'] = 0
@@ -429,33 +448,33 @@ def updateHeaderUsingArray(header, a, calc_stats=True, reset_origin=True, mz=Non
 		header['nxstart'] = 0
 		header['nystart'] = 0
 		header['nzstart'] = 0
-	else:	
-		header['nxstart'] = nx / -2
-		header['nystart'] = ny / -2
-		header['nzstart'] = nz / -2
+	else:
+		header['nxstart'] = (nx// -2)
+		header['nystart'] = (ny// -2)
+		header['nzstart'] = (nz// -2)
 
-int32dtype = numpy.dtype('Int32')
-uint16dtype = numpy.dtype('UInt16')
-float32dtype = numpy.dtype('Float32')
-int8dtype = numpy.dtype('Int8')
+int32dtype = numpy.dtype('int32')
+uint16dtype = numpy.dtype('uint16')
+float32dtype = numpy.dtype('float32')
+int8dtype = numpy.dtype('int8')
 def valueToFloat(value):
 	'''
 return the string representation of a float value
 	'''
 	a = numpy.array(value, dtype=float32dtype)
-	return a.tostring()
+	return a.tobytes()
 def valueToInt(value):
 	'''
 return the string representation of an int value
 	'''
 	a = numpy.array(value, dtype=int32dtype)
-	return a.tostring()
+	return a.tobytes()
 def valueToUInt16(value):
 	'''
 return the string representation of an int value
 	'''
 	a = numpy.array(value, dtype=uint16dtype)
-	return a.tostring()
+	return a.tobytes()
 
 def makeHeaderData(h, header_fields=header_fields):
 	'''
@@ -464,25 +483,30 @@ Create a 1024 byte header string from a header dictionary.
 	fields = []
 	for field in header_fields:
 		name = field[0]
-		type = field[1]
+		ftype = field[1]
 		if name in h:
 			value = h[name]
 		else:
 			value = 0
-		if type == 'string':
+		if ftype == 'string':
 			length = field[2]
-			s = str(value)
-			nzeros = length - len(s)
-			fullfield = s + zeros(nzeros)
+			nzeros = length - len(value)
+			if value:
+				if type(value) == str:
+					value = value.encode()
+				fullfield = value + zeros(nzeros)
+			else:
+				# empty string remains as str type and can not __add__ to bytes in python3
+				fullfield = zeros(nzeros)
 			fields.append(fullfield)
-		elif type == 'int32':
+		elif ftype == 'int32':
 			fields.append(valueToInt(value))
-		elif type == 'float32':
+		elif ftype == 'float32':
 			fields.append(valueToFloat(value))
-		elif type == 'uint16':
+		elif ftype == 'uint16':
 			fields.append(valueToUInt16(value))
 
-	headerbytes = ''.join(fields)
+	headerbytes = b''.join(fields)
 	return headerbytes
 
 def asMRCtype(a):
@@ -518,8 +542,19 @@ def readDataFromFile(fobj, headerdict, zslice=None):
 		start = header_bytes + zslice * framesize
 		shape = headerdict['shape'][-2:]  # only a 2-D slice
 	datalen = numpy.prod(shape)
+	if headerdict['mode'] == 101:
+		# 4 bit uint format
+		# read half count of eventual datalen
+		datalen /= 2
 	fobj.seek(start)
 	a = numpy.fromfile(fobj, dtype=headerdict['dtype'], count=datalen)
+	if headerdict['mode'] == 101:
+		# 4 bit uint format
+		a=numpy.repeat(a,2)
+		# odd
+		a[1::2] //= 16
+		# even
+		a[::2] %= 16
 	a.shape = shape
 	return a
 
@@ -549,7 +584,7 @@ Always saves in the native byte order.
 		h.update(header)
 
 	headerbytes = makeHeaderData(h)
-	if isinstance(f, types.StringTypes):
+	if isinstance(f, str):
 		fobj = open(f, 'wb')
 		close = True
 	elif hasattr(f, 'write'):
@@ -571,7 +606,7 @@ def mainStackHeader(oneheader, z):
 	newheader['zlen'] = z
 	newheader['zorigin'] = z/2.0
 	newheader['nsymbt'] = z * 88
-	newheader['exttyp'] = 'IMOD'
+	newheader['exttype'] = 'IMOD'
 	newheader['nintegers'] = 0
 	newheader['nfloats'] = 22
 	return newheader
@@ -584,34 +619,53 @@ def extendedHeader(tilt):
 	return newheader
 
 def stack(inputfiles, tilts, outputfile):
+	'''
+	Stack single 2D image files into stack. if tilts is None, it
+	creates MRCO stack. Otherwise, tilts is a list of tilt and must
+	match the number of inputfiles. The tilt values are put into extended
+	header in IMOD style.
+	'''
 	# read first image to use as main header
 	firstheader = readHeaderFromFile(inputfiles[0])
-	newheader = mainStackHeader(firstheader, len(tilts))
+	newheader = mainStackHeader(firstheader, len(inputfiles))
 
 	# mrc2014 convention
-	newheader['mz'] = 1
+	if not newheader['mz']:
+		# In case mz is not defined
+		newheader['mz'] = newheader['nz']
 	newheader['zlen'] = newheader['zlen'] * newheader['mz'] / newheader['nz']
 
 	# write main header
-	headerbytes = makeHeaderData(newheader, header_fields=header_fields_stack)
+	if tilts:
+		headerbytes = makeHeaderData(newheader, header_fields=header_fields_stack)
+	else:
+		# no extended header
+		newheader['nsymbt']=0
+		newheader['exttype'] = b'MRCO'
+		headerbytes = makeHeaderData(newheader, header_fields=header_fields)
 	f = open(outputfile, 'wb')
 	f.write(headerbytes)
 
-	# write zeros for all extended headers
-	extended_length = len(tilts) * 88
-	f.write(zeros(extended_length))
+	if tilts:
+		# write zeros for all extended headers
+		extended_length = len(tilts) * 88
+		f.write(zeros(extended_length))
 
-	# write extended headers and data
-	extheaderpos = 1024
-	for inputfile, tilt in zip(inputfiles, tilts):
-		data = read(inputfile)
+		# write extended headers and data
+		extheaderpos = 1024
+		for inputfile, tilt in zip(inputfiles, tilts):
+			data = read(inputfile)
 
-		f.seek(extheaderpos)
-		extheaderpos += 88
-		newheader = extendedHeader(tilt)
-		headerbytes = makeHeaderData(newheader, header_fields=header_fields_extended)
-		f.write(headerbytes)
-		appendArray(data, f)
+			f.seek(extheaderpos)
+			extheaderpos += 88
+			newheader = extendedHeader(tilt)
+			headerbytes = makeHeaderData(newheader, header_fields=header_fields_extended)
+			f.write(headerbytes)
+			appendArray(data, f)
+	else:
+		for inputfile in inputfiles:
+			data = read(inputfile)
+			appendArray(data, f)
 	f.close()
 
 def appendArray(a, f):
@@ -630,16 +684,16 @@ def appendArray(a, f):
 	## windows to a samba share will fail if image is too large.
 	smallersize = 16 * 1024 * 1024
 	b = a.ravel()
-	items_per_write = int(smallersize / a.itemsize)
+	items_per_write = int(smallersize/a.itemsize)
 	for start in range(0, b.size, items_per_write):
 		end = start + items_per_write
 		b[start:end].tofile(f)
 
-def substackFromMRCStack(mrcstack, outfile, listfile):
-	''' 
-	f=/path/to/stack.mrc, list=EMAN-style list, numbering starts with 0, writes output mrc stack 
+def substackFromMRCStack(mrcstack, outfile, listfile, excludeList=False):
 	'''
-	# read list, EMAN-style, one line per integer, numbersing starts with 0
+f=/path/to/stack.mrc, list=legacy style list, numbering starts with 0, writes output mrc stack
+	'''
+	# read list, legacy style, one line per integer, numbering starts with 0
 	l = open(listfile, "r")
 	llines = l.readlines()
 	locs = [int(line.strip()) for line in llines]
@@ -649,23 +703,34 @@ def substackFromMRCStack(mrcstack, outfile, listfile):
 	# get number of particles
 	header = read_file_header(mrcstack)
 	npart = header['shape'][0]
-	print npart
+	print(npart)
+
+	# decide whether included or excluded
+	if excludeList is True:
+		### arrange list
+		included = []
+		for j in range(npart):
+			if j not in locs:
+				included.append(j)
+	else:
+		included = locs
 
 	# read each individual particle and append to new mrc
 	i = 0
-	for loc in locs:
+	for include in included:
 		if i == 0:
-			a = read(mrcstack, zslice=loc)
+			a = read(mrcstack, zslice=include)
 			write(a, outfile)
 		else:
-			a = read(mrcstack, zslice=loc)
+			a = read(mrcstack, zslice=include)
 			append(a, outfile)
 		if i % 1000 == 0:
-			print "written %d images to stack" % i 
+			print("written %d images to stack" % i)
 		i+=1
 
+
 def invert(in_mrc, out_mrc):
-	''' 
+	'''
 	invert an mrc image, puts image into memory, so use wisely if image is a large stack
 	'''
 	a = read(in_mrc)
@@ -684,10 +749,11 @@ def update_file_header(filename, headerdict):
 	headerbytes = makeHeaderData(oldheader)
 	f.seek(0)
 	f.write(headerbytes)
+	f.close()
 
 def read_file_header(filename):
 	'''get MRC header from a file in the form of a dict'''
-	f = open(filename, 'r')
+	f = open(filename, 'rb')
 	headerbytes = f.read(1024)
 	header = parseHeader(headerbytes)
 	return header
@@ -722,7 +788,7 @@ def append(a, filename, calc_stats=True):
 	if calc_stats:
 		for key in ('amin', 'amax', 'amean', 'rms'):
 			oldheader[key] = sliceheader[key]
-	
+
 	headerbytes = makeHeaderData(oldheader)
 	f.seek(0)
 	f.write(headerbytes)
@@ -737,15 +803,15 @@ Read the X,Y,Z coordinates for the origin
 	'''
 	h = readHeaderFromFile(filename)
 	origin = {
-		'xorigin': h['xorigin'], 
-		'yorigin': h['yorigin'], 
+		'xorigin': h['xorigin'],
+		'yorigin': h['yorigin'],
 		'zorigin': h['zorigin'],
 	}
 	return origin
 
 def read(filename, zslice=None):
 	'''
-Read the MRC file given by filename, return numpy ndarray object
+	Read the MRC file given by filename, return numpy ndarray object
 	'''
 	a = read_cache.get(filename)
 	if a is None:
@@ -753,7 +819,7 @@ Read the MRC file given by filename, return numpy ndarray object
 		headerbytes = f.read(1024)
 		headerdict = parseHeader(headerbytes)
 		a = readDataFromFile(f, headerdict, zslice)
-
+		f.close()
 		## store keep header with image
 		setHeader(a, headerdict)
 		## cache
@@ -793,7 +859,7 @@ def getHeaderBytesFromFile(filename):
 	return h['nsymbt'] + 1024
 
 def readHeaderFromFile(filename):
-	f = open(filename)
+	f = open(filename, 'rb')
 	h = f.read(1024)
 	f.close()
 	h = parseHeader(h)
@@ -820,10 +886,9 @@ def averageStack(filename,dtype=numpy.float32):
 	for i in range(nslices):
 		if i == 0:
 			a = read(filename,i)
-			a.astype(dtype)
 		else:
-			a = (a * i + read(filename,i)) / (i+1)
-	return a
+			a = (a * i + read(filename,i))/ (i+1)
+	return a.astype(dtype)
 
 def saveAverageStack(filename,outfile,dtype=numpy.float32):
 	a = averageStack(filename,dtype)
@@ -831,7 +896,7 @@ def saveAverageStack(filename,outfile,dtype=numpy.float32):
 
 def testHeader():
 	infilename = sys.argv[1]
-	f = open(infilename)
+	f = open(infilename, 'rb')
 	h = f.read(1024)
 	f.close()
 	h = parseHeader(h)
@@ -844,7 +909,7 @@ def updateFilePixelSize(filename,pixeldict={}):
 	in pixeldict are 'x','y','z'.
 	'''
 	h = readHeaderFromFile(filename)
-	for axis in pixeldict.keys():
+	for axis in list(pixeldict.keys()):
 		naxis = 'n%s' % (axis)
 		axislen = '%slen' % (axis)
 		h[axislen] = h[naxis] * pixeldict[axis]
@@ -863,7 +928,7 @@ def readFilePixelSize(filename):
 	for axis in keys:
 		naxis = 'n%s' % (axis)
 		axislen = '%slen' % (axis)
-		pixeldict[axis] = h[axislen] / float(h[naxis])
+		pixeldict[axis] = h[axislen]/float(h[naxis])
 	return pixeldict
 
 def testWrite():
@@ -921,8 +986,8 @@ def appendFileLabel(filename,labelstring):
 	nextlabelname = 'label%d' % nlabels
 	if nlabels == 10:
 		raise ValueError('All labels are used')
-	if h[nextlabelname]:
-		raise RunTimeError('Next label indicated by NLABL is not empty')
+		if h[nextlabelname]:
+			raise RuntimeError('Next label indicated by NLABL is not empty')
 	if len(labelstring) > 80:
 		raise ValueError('Input string too long to fit in one label. Max length=80')
 	update_file_header(filename,
@@ -930,10 +995,10 @@ def appendFileLabel(filename,labelstring):
 
 def readAllFileLabels(filename):
 	h = readHeaderFromFile(filename)
-	return map((lambda x:h['label%d' % x]),range(10))
+	return list(map((lambda x:h['label%d' % x]),list(range(10))))
 
 if __name__ == '__main__':
-	#testHeader()
+	testHeader()
 	#testWrite()
 	#testStack()
-	test_update_header()
+	#test_update_header()

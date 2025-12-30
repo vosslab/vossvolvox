@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-import re
-import os
 import sys
+import random
 import pdblib
 from optparse import OptionParser
 
@@ -40,7 +39,7 @@ class CrystalClass(object):
 		put in any additional conflicting parameters
 		"""
 		if self.params['pdbid'] is None:
-			apDisplay.printError("please specify a pdbid, --pdbid")
+			self.parser.error("please specify a pdbid, --pdbid")
 		return
 
 	#=====================
@@ -48,7 +47,7 @@ class CrystalClass(object):
 		self.parser.disable_interspersed_args()
 		(options, args) = self.parser.parse_args()
 		if len(args) > 0:
-			raise Exception, "Unknown commandline options: "+str(args)
+			raise Exception("Unknown commandline options: "+str(args))
 		if len(sys.argv) < 2:
 			self.parser.print_help()
 			self.parser.error("no options defined")
@@ -74,14 +73,14 @@ if __name__ == "__main__":
 	if 'solvent' in splitlist:
 		bioatomlist.extend(splitlist['solvent'])		
 	crystDict, scaleOp, symOps = pdblib.getSymmInfo(pdbdata)
-	print scaleOp
+	print(scaleOp)
 	atomlistSet = pdblib.makeUnitCell(bioatomlist, symOps)
 	fullatomlist = pdblib.translateUnitCell(atomlistSet, scaleOp, 
 		numCopies=cryst.params['unitcells'], maxDist=cryst.params['maxdist'])
 	pdbfile = "%s-cryst.pdb"%(cryst.params['pdbid'])
 	pdblib.writePDB(fullatomlist, pdbfile)
 
-	models = range(999)
+	models = list(range(999))
 	random.shuffle(models)
 	evens = models[0:][::2]
 	odds = models[1:][::2]

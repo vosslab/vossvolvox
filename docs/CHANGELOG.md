@@ -18,6 +18,8 @@ OpenAI Codex
 - Added short descriptions to the `README.md` documentation links.
 - Moved shared C++ helpers into `src/lib/` and updated build paths and docs.
 - Ensured `src/Makefile` creates `bin/` before building legacy objects.
+- Fixed Python lint issues in `python/` and `tests/` (unused imports, regex escapes,
+  and local module references).
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

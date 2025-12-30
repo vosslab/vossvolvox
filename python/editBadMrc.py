@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import re
 import time
 import glob
 import random
@@ -21,7 +20,7 @@ def fileSize(filename, msg=False):
 #===============
 def getImages():
 	images = glob.glob("*.mrc")
-	print "Found %d images"%(len(images))
+	print("Found %d images"%(len(images)))
 	random.shuffle(images)
 	return images
 
@@ -29,11 +28,11 @@ def getImages():
 def processImage(image, count):
 
 	if not os.path.isfile(image):
-		print count, "-- cannot find file", image
+		print(count, "-- cannot find file", image)
 		return False
 
 	if fileSize(image) != 67109888:
-		print count, "-- wrong initial size", image
+		print(count, "-- wrong initial size", image)
 		return False
 
 	inf = open(image, "rb")
@@ -41,7 +40,7 @@ def processImage(image, count):
 	inf.close()
 
 	if not str(msg).startswith('string(2) "50"'):
-		print count, "-- no string flag", image
+		print(count, "-- no string flag", image)
 		return False
 
 	#print str(msg)
@@ -49,7 +48,7 @@ def processImage(image, count):
 	newfile = "edit"+image
 
 	if os.path.isfile(newfile) and fileSize(newfile) == 67109873:
-		print count, "-- already complete"
+		print(count, "-- already complete")
 		return False
 
 	cmd = "tail -c +16 %s > %s"%(image, newfile)
@@ -57,10 +56,10 @@ def processImage(image, count):
 	proc.communicate()
 
 	if fileSize(newfile) != 67109873:
-		print count, "-- wrong final size", newfile
+		print(count, "-- wrong final size", newfile)
 		return False
 	
-	print count, "-- completed successfully -- ", newfile
+	print(count, "-- completed successfully -- ", newfile)
 	return True
 
 #===============
@@ -77,8 +76,7 @@ if __name__ == "__main__":
 			j += 1
 		#if i > 10:
 		#	break
-	print "Edited %d of %d files"%(j, i)
-
+	print("Edited %d of %d files"%(j, i))
 
 
 

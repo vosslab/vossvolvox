@@ -8,13 +8,14 @@ array values have changed, and you want to recalculate the statistic,
 then you must specify force=True.
 '''
 
-import weakattr
-import numpy
+
+
+from pyami import weakattr
 
 debug = False
 def dprint(s):
 	if debug:
-		print s
+		print(s)
 
 ## publicly available functions
 
@@ -46,10 +47,18 @@ def wrap_allstats(stat):
 		# which is unfortunate, because our simple mrc.py requires numextension
 		try:
 			import numextension
-			result = numextension.allstats(a, **kwargs)
+			if a.size < 16777216:  #4K * 4K
+				result = numextension.allstats(a, **kwargs)
+			else:
+				dec=4   # decimation factor
+				if a.size >= 67108864:  #ie >= 8k x 8k
+					dec=8
+				b = a[::dec,::dec]
+				#self.logger.info('Stats calculated on %d X decimated image' % (dec,))
+				dprint('Stats calculated on %d X decimated image' % (dec,))  # no access to logger
+				result = numextension.allstats(b, **kwargs)
 		except:
-			b = numpy.asanyarray(a, dtype=numpy.float64)
-			result = allstats(b, **kwargs)
+			result = allstats(a, **kwargs)
 		if stat != 'all':
 			result = result[stat]
 		return result
@@ -135,7 +144,7 @@ def setCachedStat(a, stat, value):
 def test():
 	import numpy
 	a = numpy.array((1,2,3,4))
-	print all(a)
+	print(all(a))
 
 if __name__ == '__main__':
 	debug = True

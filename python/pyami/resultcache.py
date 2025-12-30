@@ -1,3 +1,5 @@
+
+from builtins import object
 #!/usr/bin/env python
 
 import weakref
@@ -32,7 +34,7 @@ class ResultCache(object):
 		return self.strong_size, len(self.strong_list)
 
 	def getkeys(self):
-		return self.weakdict.keys()
+		return list(self.weakdict.keys())
 
 	def put(self, key, result):
 		if key in self.weakdict:
@@ -70,26 +72,26 @@ class ResultCache(object):
 def test():
 	import numpy
 	cache = ResultCache(100)
-	print 'KEYS', cache.weakdict.keys()
+	print('KEYS', list(cache.weakdict.keys()))
 
 	for f in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'f', 'e', 'a'):
 		a = numpy.arange(20, dtype=numpy.uint8)
-		print 'PUT', f
+		print('PUT', f)
 		cache.put(f, a)
-		print 'KEYS', [x.key for x in cache.strong_list]
-	print ''
+		print('KEYS', [x.key for x in cache.strong_list])
+	print('')
 
 	for f in ('d', 'd', 'b'):
-		print 'GET', f, cache.get(f)
-		print 'KEYS', [x.key for x in cache.strong_list]
-	print ''
+		print('GET', f, cache.get(f))
+		print('KEYS', [x.key for x in cache.strong_list])
+	print('')
 
 	for f in ('b', 'b',):
 		a = numpy.arange(20, dtype=numpy.uint8)
-		print 'PUT', f
+		print('PUT', f)
 		cache.put(f, a)
-		print 'KEYS', [x.key for x in cache.strong_list]
-	print ''
+		print('KEYS', [x.key for x in cache.strong_list])
+	print('')
 
 
 if __name__ == '__main__':

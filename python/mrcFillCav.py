@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import sys
-import math
 import numpy
 from pyami import mrc
 from scipy import ndimage
@@ -26,41 +24,41 @@ if __name__ == '__main__':
 	#del floatdata
 
 	s = numpy.ones((3,3,3))
-	print s
-	print "Median filter"
+	print(s)
+	print("Median filter")
 	floatdata = ndimage.median_filter(floatdata, size=3)
 	
-	print "Closing operation"
+	print("Closing operation")
 	booldata = numpy.array(floatdata > options.threshold, dtype=int)
 	closebooldata = ndimage.morphology.binary_closing(booldata, iterations=3)
 	floatdata = numpy.where(closebooldata > booldata, floatdata+options.threshold/1.5, floatdata)
 	mrc.write(numpy.array(closebooldata, dtype=int), "bool.mrc", header)
 
 
-	print "Cavity fill 1"
+	print("Cavity fill 1")
 	booldata = numpy.array(floatdata > options.threshold, dtype=int)	
 	labeledArray, n = ndimage.measurements.label(booldata, structure=s)
 	floatdata = numpy.where(labeledArray >= 2, options.threshold*2, floatdata)
 
-	print "Cavity fill 2"	
+	print("Cavity fill 2")	
 	booldata = numpy.array(floatdata < options.threshold, dtype=int)
 	labeledArray, n = ndimage.measurements.label(booldata, structure=s)
 	floatdata = numpy.where(labeledArray >= 2, options.threshold*2, floatdata)
 
 	#print ndimage.measurements.histogram(labeledArray, 0, labeledArray.max(), labeledArray.max())
 	#print labeledArray
-	print "shape=", booldata.shape
-	print "sum=", booldata.sum()	
-	print "Found %d cavities in original map"%(n-1)
+	print("shape=", booldata.shape)
+	print("sum=", booldata.sum())	
+	print("Found %d cavities in original map"%(n-1))
 	newbooldata = numpy.array(floatdata < options.threshold, dtype=int)
-	print "sum=", newbooldata.sum()
+	print("sum=", newbooldata.sum())
 	
 	labeledArray, n = ndimage.measurements.label(newbooldata)
-	print ndimage.measurements.histogram(labeledArray, 0, labeledArray.max(), labeledArray.max())	
-	print "Found %d cavities after fill"%(n-1)
+	print(ndimage.measurements.histogram(labeledArray, 0, labeledArray.max(), labeledArray.max()))	
+	print("Found %d cavities after fill"%(n-1))
 	
 	root = os.path.splitext(mrcfile)[0]
 	newfile = "%s-fill.mrc"%(root)
 	mrc.write(floatdata, newfile, header)
 
-	print "new data is in %s"%(newfile)
+	print("new data is in %s"%(newfile))

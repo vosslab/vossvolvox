@@ -1,9 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
-import math
-import numpy
 from pyami import mrc
 from optparse import OptionParser
 
@@ -17,7 +15,7 @@ if __name__ == "__main__":
 
 	filename = options.mrcfile
 	if filename is None or not os.path.isfile(filename):
-		print "Usage mrcBisect.py -f file.mrc <options>"
+		print("Usage mrcBisect.py -f file.mrc <options>")
 		parser.print_help()
 		sys.exit(1)
 	axes = options.axes
@@ -30,37 +28,37 @@ if __name__ == "__main__":
 
 	if 'x' in axes:
 		x_maxcrossarea = x_linedensity.max()
-		print "X-axis has max area of %d"%(x_maxcrossarea)
+		print(("X-axis has max area of %d"%(x_maxcrossarea)))
 	else:
 		x_maxcrossarea = 0
 	if 'y' in axes:
 		y_maxcrossarea = y_linedensity.max()
-		print "Y-axis has max area of %d"%(y_maxcrossarea)
+		print(("Y-axis has max area of %d"%(y_maxcrossarea)))
 	else:
 		y_maxcrossarea = 0
 	if 'z' in axes:
 		z_maxcrossarea = z_linedensity.max()
-		print "Z-axis has max area of %d"%(z_maxcrossarea)
+		print(("Z-axis has max area of %d"%(z_maxcrossarea)))
 	else:
 		z_maxcrossarea = 0
 	maxcrossarea = max(x_maxcrossarea,y_maxcrossarea,z_maxcrossarea)
 
 	if x_maxcrossarea == maxcrossarea:
-		print "Bisecting along X-axis"
+		print("Bisecting along X-axis")
 		x_index = x_linedensity.argmax()
 		cut_1 = orig.copy()
 		cut_2 = orig.copy()
 		cut_1[:x_index,:,:] = 0
 		cut_2[x_index:,:,:] = 0
 	elif y_maxcrossarea == maxcrossarea:
-		print "Bisecting along Y-axis"
+		print("Bisecting along Y-axis")
 		y_index = y_linedensity.argmax()
 		cut_1 = orig.copy()
 		cut_2 = orig.copy()
 		cut_1[:,:y_index,:] = 0
 		cut_2[:,y_index:,:] = 0
 	elif z_maxcrossarea == maxcrossarea:
-		print "Bisecting along Z-axis"
+		print("Bisecting along Z-axis")
 		z_index = z_linedensity.argmax()
 		cut_1 = orig.copy()
 		cut_2 = orig.copy()
@@ -68,11 +66,10 @@ if __name__ == "__main__":
 		cut_2[:,:,z_index:] = 0
 
 	header = mrc.readHeaderFromFile(filename)
-	print "Writing %s to file"%(rootname+"-top.mrc")
+	print(("Writing %s to file"%(rootname+"-top.mrc")))
 	mrc.write(cut_1, rootname+"-top.mrc", header)
-	print "Writing %s to file"%(rootname+"-bot.mrc")
+	print(("Writing %s to file"%(rootname+"-bot.mrc")))
 	mrc.write(cut_2, rootname+"-bot.mrc", header)
-
 
 
 

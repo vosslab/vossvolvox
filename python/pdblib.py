@@ -5,7 +5,7 @@ import os
 import sys
 import numpy
 import random
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import itertools
 import numpy.linalg
 
@@ -44,7 +44,7 @@ ligdict = dict((y,x) for x,y in enumerate(ligand))
 #==========
 def getRepresentativeModel(pdbId):
 	url = "http://www.ebi.ac.uk/pdbe/nmr/olderado/searchEntry?pdbCode="+pdbId
-	data = urllib.urlopen(url)
+	data = urllib.request.urlopen(url)
 	getNextLine = False
 	modelLine = None
 	for line in data:
@@ -55,18 +55,18 @@ def getRepresentativeModel(pdbId):
 		if '<td class="leftsubheading" >Most&nbsp;representative&nbsp;model</td>' == sline:
 			getNextLine = True
 	if modelLine is None:
-		print "ERROR: pdb id %s has no entry: %s"%(pdbId, url)
+		print("ERROR: pdb id %s has no entry: %s"%(pdbId, url))
 		return -1
 	modelLine = re.sub("<[^>]*>","\t", modelLine)
 	bits = modelLine.split()
 	modelNumber = int(bits[0])
-	print "Most representation model is #%d for %s"%(modelNumber, pdbId)
+	print("Most representation model is #%d for %s"%(modelNumber, pdbId))
 	return modelNumber
 
 #==========
 def downloadPDB(pdbId):
 	url = "http://www.rcsb.org/pdb/download/downloadFile.do?fileFormat=pdb&compression=NO&structureId="+pdbId
-	rawdata = urllib.urlopen(url)
+	rawdata = urllib.request.urlopen(url)
 	pdbdata = []
 	for line in rawdata:
 		pdbdata.append(line)
@@ -75,12 +75,12 @@ def downloadPDB(pdbId):
 #==========
 def pdb2atomdict(pdbfile):
 	if not os.path.isfile(pdbfile):
-		print "File not exist"
+		print("File not exist")
 		return None
 	f = open(pdbfile, "r")
 	atomlist = pdbData2atomdict(f)
 	f.close()
-	print ("finished %s - found %d atoms"%(pdbfile, len(atomlist)))
+	print(("finished %s - found %d atoms"%(pdbfile, len(atomlist))))
 	return atomlist
 
 #==========
@@ -91,7 +91,7 @@ def getSymmInfo(pdbdata):
 	for line in pdbdata:
 		sline = line.strip()
 		if sline.startswith("SCALE"):
-			mstr = "^SCALE([0-9]) +([\-.0-9]+) +([\-.0-9]+) +([\-.0-9]+) +([\-.0-9]+)"
+			mstr = r"^SCALE([0-9]) +([\-\.0-9]+) +([\-\.0-9]+) +([\-\.0-9]+) +([\-\.0-9]+)"
 			m = re.match(mstr, sline)
 			if m and m.groups():
 				row = int(m.groups()[0])-1
@@ -100,10 +100,10 @@ def getSymmInfo(pdbdata):
 				scaleOp[0][row, 2] = float(m.groups()[3])
 				scaleOp[1][row] = float(m.groups()[4])
 		if sline.startswith("CRYST1"):
-			mstr = "^CRYST1 +"
-			mstr += "([\-.0-9]+) +([\-.0-9]+) +([\-.0-9]+) +"
-			mstr += "([.0-9]+) +([.0-9]+) +([.0-9]+) +"
-			mstr += "([A-Za-z0-9/ ]+)"
+			mstr = r"^CRYST1 +"
+			mstr += r"([\-\.0-9]+) +([\-\.0-9]+) +([\-\.0-9]+) +"
+			mstr += r"([.0-9]+) +([.0-9]+) +([.0-9]+) +"
+			mstr += r"([A-Za-z0-9/ ]+)"
 			#print mstr
 			m = re.match(mstr, sline)
 			if m and m.groups():
@@ -120,7 +120,7 @@ def getSymmInfo(pdbdata):
 		if sline.startswith("REMARK 290"):
 			subline = sline[13:]
 			if subline.startswith("SMTRY"):
-				mstr = "^SMTRY([0-9]) +([0-9]+) +([\-.0-9]+) +([\-.0-9]+) +([\-.0-9]+) +([\-.0-9]+)"
+				mstr = r"^SMTRY([0-9]) +([0-9]+) +([\-\.0-9]+) +([\-\.0-9]+) +([\-\.0-9]+) +([\-\.0-9]+)"
 				m = re.match(mstr, subline)
 				#print subline
 				if m and m.groups():
@@ -147,17 +147,17 @@ def getSymmInfo(pdbdata):
 			symOp[0][row,:] = [symDict['rot1'], symDict['rot2'], symDict['rot3'], ]
 			symOp[1][row] = symDict['shift']
 		symOps.append(symOp)
-	print symOps
+	print(symOps)
 	return crystDict, scaleOp, symOps
 
 #==========
 def makeUnitCell(atomlist, symOps):
 	numOps = len(symOps)
 	atomlistSet = []
-	print "Original Atoms %d"%(len(atomlist))	
+	print("Original Atoms %d"%(len(atomlist)))	
 	for i in range(numOps):
 		newatomlist = []
-		print symOps[i][1]
+		print(symOps[i][1])
 		sys.stderr.write("Operation Number %d... "%(i+1))
 		for atomdict in atomlist:
 			coord = numpy.array([atomdict['x'], atomdict['y'], atomdict['z']])
@@ -174,16 +174,16 @@ def makeUnitCell(atomlist, symOps):
 #==========
 def translateUnitCell(atomlistSet, scaleOp, numCopies=4, maxDist=80):
 	model = 0
-	print
+	print()
 	fullatomlist = []
-	print "Search Distance: %d Angstroms"%(maxDist)
+	print("Search Distance: %d Angstroms"%(maxDist))
 	#print "Original Atoms %d"%(len(atomlist))
 	random.shuffle(atomlistSet)
 	atomCoordSet = []
 	for atomlist in atomlistSet:
 		atomCoords = getAtomCoords(atomlist)
 		atomCoordSet.append(atomCoords)
-	d3list = itertools.product(xrange(-numCopies, numCopies+1), repeat=3)
+	d3list = itertools.product(range(-numCopies, numCopies+1), repeat=3)
 	fillatomlist = []
 	for i,j,k in d3list:
 		random.shuffle(atomCoordSet)
@@ -242,7 +242,6 @@ def centerOfMass(atomlist):
 #==========
 def translateAtomList(atomCoords, scaleOp, shiftOp, maxDist):	
 	invScale = numpy.linalg.inv(scaleOp[0])
-	check = True
 	newAtomCoords = numpy.dot(scaleOp[0], atomCoords.T).T + shiftOp
 	fixAtomCoords = numpy.dot(invScale, newAtomCoords.T).T
 	centerCoord = fixAtomCoords.mean(0)
@@ -274,7 +273,7 @@ def pdbData2atomdict(pdbdata):
 				atomlist.append(atomdict)
 		#if count % 1000 == 0:
 		#	print ("read %d lines, found %d atoms"%(count, len(atomlist)))
-	print ("read %d lines, found %d atoms, %d models"%(count, len(atomlist), model))
+	print(("read %d lines, found %d atoms, %d models"%(count, len(atomlist), model)))
 	return atomlist
 	
 #==========		
@@ -359,7 +358,7 @@ def getModel(atomlist, modelNum):
 	for atomdict in atomlist:
 		if atomdict['model'] == modelNum:
 			modelAtomList.append(atomdict)
-	print "Selected %d of %d atoms for model %d"%(len(modelAtomList), len(atomlist), modelNum)
+	print("Selected %d of %d atoms for model %d"%(len(modelAtomList), len(atomlist), modelNum))
 	return modelAtomList
 
 #==========	
@@ -394,8 +393,8 @@ def atomdict2line(atomdict):
 	try:
 		line += " %1s"%(atomdict['restype'][:5]) #non-standard
 	except:
-		print atomdict
-		print line
+		print(atomdict)
+		print(line)
 		raise
 	return line
 	
@@ -422,7 +421,7 @@ def leftPadString(s,n=10,fill=" "):
 #==========	
 def writePDB(atomlist, pdbfile, modellist=None):
 	f = open(pdbfile, "w")
-	print "writing %d atoms to file %s"%(len(atomlist), pdbfile)
+	print("writing %d atoms to file %s"%(len(atomlist), pdbfile))
 	model = None
 	for atomdict in atomlist:
 		atommodel = atomdict['model']
@@ -446,17 +445,16 @@ if __name__ == "__main__":
 	if len(sys.argv) > 1:
 		pdbfile = sys.argv[1]
 	else:
-		print "Usage: splitPDB.py file.pdb"
+		print("Usage: splitPDB.py file.pdb")
 		sys.exit(1)
 	if not os.path.isfile(pdbfile):
 		sys.exit(1)
 		
 	root = os.path.splitext(pdbfile)[0]	
-	atomlist = pdblib.pdb2atomdict(pdbfile)
-	splitlist = pdblib.splitResTypes(atomlist)
-	for restype in splitlist.keys():
+	atomlist = pdb2atomdict(pdbfile)
+	splitlist = splitResTypes(atomlist)
+	for restype in list(splitlist.keys()):
 		newfile = "%s-%s.pdb"%(root,restype)
-		print "writing %s atoms to to %s"%(restype, newfile)
+		print("writing %s atoms to to %s"%(restype, newfile))
 		writePDB(splitlist[restype], newfile)
-
 
