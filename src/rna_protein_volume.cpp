@@ -3,10 +3,12 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "argument_helper.h"
 #include "pdb_io.h"
 #include "utils.h"
+#include "xyzr_cli_helpers.h"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -129,44 +131,27 @@ int main(int argc, char *argv[]) {
   convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
   convert_options.filters.exclude_amino_acids = exclude_amino;
 
-  vossvolvox::pdbio::XyzrData rna_data;
-  if (!vossvolvox::pdbio::ReadFileToXyzr(rna_file, convert_options, rna_data)) {
-    std::cerr << "Error: unable to load XYZR data from '" << rna_file << "'\n";
-    return 1;
-  }
   XYZRBuffer rna_xyzr_buffer;
-  rna_xyzr_buffer.atoms.reserve(rna_data.atoms.size());
-  for (const auto& atom : rna_data.atoms) {
-    rna_xyzr_buffer.atoms.push_back(
-        XYZRAtom{static_cast<float>(atom.x),
-                 static_cast<float>(atom.y),
-                 static_cast<float>(atom.z),
-                 static_cast<float>(atom.radius)});
-  }
-
-  vossvolvox::pdbio::XyzrData amino_data;
-  if (!vossvolvox::pdbio::ReadFileToXyzr(amino_file, convert_options, amino_data)) {
-    std::cerr << "Error: unable to load XYZR data from '" << amino_file << "'\n";
+  if (!vossvolvox::load_xyzr_or_exit(rna_file, convert_options, rna_xyzr_buffer)) {
     return 1;
   }
   XYZRBuffer amino_xyzr_buffer;
-  amino_xyzr_buffer.atoms.reserve(amino_data.atoms.size());
-  for (const auto& atom : amino_data.atoms) {
-    amino_xyzr_buffer.atoms.push_back(
-        XYZRAtom{static_cast<float>(atom.x),
-                 static_cast<float>(atom.y),
-                 static_cast<float>(atom.z),
-                 static_cast<float>(atom.radius)});
+  if (!vossvolvox::load_xyzr_or_exit(amino_file, convert_options, amino_xyzr_buffer)) {
+    return 1;
   }
-
-  if (!XYZRFILE[0]) {
-    std::strncpy(XYZRFILE, rna_file.c_str(), sizeof(XYZRFILE));
-    XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
+  const std::vector<const XYZRBuffer*> buffers = {&rna_xyzr_buffer, &amino_xyzr_buffer};
+  const auto grid_result = vossvolvox::prepare_grid_from_xyzr(
+      buffers,
+      grid,
+      static_cast<float>(PROBE),
+      rna_file,
+      false);
+  int rnanumatoms = 0;
+  int aminonumatoms = 0;
+  if (grid_result.per_input.size() >= 2) {
+    rnanumatoms = grid_result.per_input[0];
+    aminonumatoms = grid_result.per_input[1];
   }
-
-
-//INITIALIZE GRID
-  finalGridDims(PROBE);
 
 //HEADER CHECK
   cerr << "Probe Radius: " << PROBE << endl;
@@ -175,13 +160,6 @@ int main(int argc, char *argv[]) {
   cerr << "Resolution:   " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "RNA file:     " << rna_file << endl;
   cerr << "Amino file:   " << amino_file << endl;
-
-//FIRST PASS, MINMAX
-  int rnanumatoms = read_NumAtoms_from_array(rna_xyzr_buffer);
-  int aminonumatoms = read_NumAtoms_from_array(amino_xyzr_buffer);
-
-//CHECK LIMITS & SIZE
-  assignLimits();
 
 // ****************************************************
 // STARTING FIRST FILE

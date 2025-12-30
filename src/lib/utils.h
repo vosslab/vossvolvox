@@ -93,7 +93,8 @@ struct XYZRBuffer {
 };
 
 //init functions
-void finalGridDims (float maxprobe);
+void initGridState(float maxprobe);
+void finalGridDims(float maxprobe);
 float getIdealGrid ();
 void assignLimits ();
 void testLimits (gridpt grid[]);

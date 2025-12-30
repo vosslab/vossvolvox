@@ -61,12 +61,19 @@ OpenAI Codex
   externally.
 - Added `tests/clean_up_test_files.sh` to remove cached test artifacts.
 - Set `VERSION` to `26.01b2`.
+- Renamed modern `finalGridDims()` to `initGridState()` with a compatibility wrapper.
+- Added shared XYZR CLI helpers in `src/lib/xyzr_cli_helpers.*`.
 - Renamed `src/volume_original.cpp` to `src/volume-legacy.cpp` and marked legacy
   sources as no-edit in `AGENTS.md`.
 - Updated `tests/test_volume.sh` to validate HETATM-only counts and MD5s instead
   of full-file hashes.
 - Renamed YAML test entries in `tests/test_suite.yml` to snake_case identifiers
   aligned with the C++ source filenames.
+- Refactored pilot executables (`volume.cpp`, `volume-fill_cavities.cpp`,
+  `two_volumes-fill_cavities.cpp`) to use shared XYZR/grid helpers and validated
+  outputs via the test suite.
+- Rolled the shared XYZR/grid helper refactor out to the remaining modern
+  executables.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

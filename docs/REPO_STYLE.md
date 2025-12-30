@@ -16,10 +16,18 @@ Repo-wide conventions for this project and related repos.
 - Use `.md` for docs, `.sh` for shell, `.py` for Python.
 - Keep filenames descriptive, and consistent with the primary thing the file provides.
 
-## Git moves and renames
-- Always use `git mv` when renaming or moving files.
-- Do not use `mv` plus add/remove; do not use `git rm` unless the file is being deleted permanently.
-- This preserves file history and keeps diffs easy to review.
+## Git moves, renames, and index locks
+- Use `git mv` for all renames and moves.
+- Do not use `mv` plus add/remove as a fallback. Do not use `git rm` unless deleting a file permanently.
+- Before any index-writing Git command (including `git mv`, `git add`, `git rm`, `git checkout`, `git switch`, `git restore`, `git merge`, `git rebase`, `git reset`, `git commit`), verify `.git` is writable by the current user. If not, stop and report a permissions error.
+- If `.git/index.lock` exists:
+  - Do not modify files and do not run Git commands. Stop and report:
+    - lock owner, permissions, and age (mtime)
+    - process holding the lock, if detectable (for example, `lsof .git/index.lock`)
+  - If a process holds the lock, report an active concurrent Git operation.
+  - If no process holds the lock and the lock age is > 5 minutes, report a likely stale lock. Do not delete it automatically.
+- If any Git command fails with an index lock error (cannot create `.git/index.lock`), stop immediately. Do not retry and do not fall back to `mv`.
+- Error report must include: the command run and full stderr, plus a short next step: close other Git processes, remove a stale lock only if no process holds it, or fix `.git` permissions.
 
 ## Versioning
 - Prefer `pyproject.toml` as the single source of truth when the repo is a single Python package with a single `pyproject.toml`.

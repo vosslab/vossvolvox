@@ -71,7 +71,7 @@ char XYZRFILE[256];
 
 //init functions
 /*********************************************/
-void finalGridDims (float maxprobe) {
+void initGridState(float maxprobe) {
   // Recompute per-voxel volume in case GRID changed.
   GRIDVOL=GRID*GRID*GRID;
 
@@ -92,6 +92,11 @@ void finalGridDims (float maxprobe) {
   YMAX=-1000;
   ZMAX=-1000;
 };
+
+// Deprecated name kept for compatibility with existing tools.
+void finalGridDims(float maxprobe) {
+  initGridState(maxprobe);
+}
 
 /*********************************************/
 float getIdealGrid () {

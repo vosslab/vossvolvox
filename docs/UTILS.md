@@ -3,7 +3,8 @@
 This companion document summarizes the major helper routines defined in `src/lib/utils-main.cpp`. The functions are grouped by their responsibilities so you can look up how the grid, file, point, and utility workflows interact without hunting through the implementation.
 
 ## Initialization & Limit Management
-- `void finalGridDims(float maxprobe)` – reset derived constants (grid volume, water density), zero the tracking filename, and set wide spanning extrema before loading new input.
+- `void initGridState(float maxprobe)` – reset derived constants (grid volume, water density), zero the tracking filename, and set wide spanning extrema before loading new input.
+- `void finalGridDims(float maxprobe)` – deprecated wrapper that calls `initGridState` in the modern codepath; legacy code still uses the original name.
 - `float getIdealGrid()` – find a grid spacing that keeps `DX*DY*DZ` under the legacy 1024*512*512 voxel cap while aligning the dimensions to multiples of four.
 - `unsigned int calculateDimension(float min, float max, float grid)` – convert a world-space extent into a grid cell count padded to multiples of four for safe indexing.
 - `void assignLimits()` – pad every axis by `MAXPROBE`, compute `DX`, `DY`, `DZ`, the strides `DXY`, `DXYZ`, and `NUMBINS`, then log grid usage plus the ideal spacing.
@@ -59,5 +60,5 @@ This companion document summarizes the major helper routines defined in `src/lib
 - `void basename(char str[], char base[])` – extract the filename part from a path string.
 
 ## Notes
-- All functions rely on the global variables defined in `utils-main.cpp` (`XMIN`, `GRID`, `NUMBINS`, etc.), so run `finalGridDims()` / the reader helpers before invoking the point-based utilities.
+- All functions rely on the global variables defined in `utils-main.cpp` (`XMIN`, `GRID`, `NUMBINS`, etc.), so run `initGridState()` or `finalGridDims()` plus the reader helpers before invoking the point-based utilities.
 - The helper functions described here are not exported via headers—they live entirely in `src/lib/utils-main.cpp` and are used by the toolchain (Volume.exe, Solvent.exe, etc.). Use this file as a single reference point until you refactor the logic into separate modules.

@@ -2,10 +2,12 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "argument_helper.h"
 #include "pdb_io.h"
 #include "utils.h"
+#include "xyzr_cli_helpers.h"
 
 // Globals
 extern float XMIN, YMIN, ZMIN;
@@ -81,11 +83,7 @@ int main(int argc, char* argv[]) {
     printCitation();
   }
 
-  // Ensure the global GRID is updated to the parsed value
   GRID = grid;
-
-  // Initialize grid dimensions
-  finalGridDims(probe);
 
   // Debugging information
   std::cerr << "Initializing Calculation:\n"
@@ -102,27 +100,18 @@ int main(int argc, char* argv[]) {
   convert_options.filters.exclude_water = exclude_water;
   convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
   convert_options.filters.exclude_amino_acids = exclude_amino;
-  vossvolvox::pdbio::XyzrData xyzr_data;
-  if (!vossvolvox::pdbio::ReadFileToXyzr(inputFile, convert_options, xyzr_data)) {
-    std::cerr << "Error: unable to load XYZR data from '" << inputFile << "'\n";
+  XYZRBuffer xyzr_buffer;
+  if (!vossvolvox::load_xyzr_or_exit(inputFile, convert_options, xyzr_buffer)) {
     return 1;
   }
-
-  XYZRBuffer xyzr_buffer;
-  xyzr_buffer.atoms.reserve(xyzr_data.atoms.size());
-  for (const auto& atom : xyzr_data.atoms) {
-    xyzr_buffer.atoms.push_back(
-        XYZRAtom{static_cast<float>(atom.x),
-                 static_cast<float>(atom.y),
-                 static_cast<float>(atom.z),
-                 static_cast<float>(atom.radius)});
-  }
-
-  std::strncpy(XYZRFILE, inputFile.c_str(), sizeof(XYZRFILE));
-  XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
-
-  int numatoms = read_NumAtoms_from_array(xyzr_buffer);
-  assignLimits();
+  const std::vector<const XYZRBuffer*> buffers = {&xyzr_buffer};
+  const auto grid_result = vossvolvox::prepare_grid_from_xyzr(
+      buffers,
+      grid,
+      static_cast<float>(probe),
+      inputFile,
+      false);
+  const int numatoms = grid_result.total_atoms;
 
   // Process the grid for volume and surface calculations
   processGrid(probe, ezdFile, pdbFile, mrcFile, inputFile, xyzr_buffer, numatoms);

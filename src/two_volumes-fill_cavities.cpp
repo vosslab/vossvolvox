@@ -3,10 +3,12 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "argument_helper.h"
 #include "pdb_io.h"
 #include "utils.h"                    // for endl, cerr, gridpt, countGrid
+#include "xyzr_cli_helpers.h"
 
 // ****************************************************
 // CALCULATE EXCLUDED VOLUME, BUT FILL ANY CAVITIES
@@ -145,39 +147,13 @@ int main(int argc, char *argv[]) {
   convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
   convert_options.filters.exclude_amino_acids = exclude_amino;
 
-  vossvolvox::pdbio::XyzrData xyzr_data1;
-  if (!vossvolvox::pdbio::ReadFileToXyzr(file1, convert_options, xyzr_data1)) {
-    std::cerr << "Error: unable to load XYZR data from '" << file1 << "'\n";
-    return 1;
-  }
   XYZRBuffer xyzr_buffer1;
-  xyzr_buffer1.atoms.reserve(xyzr_data1.atoms.size());
-  for (const auto& atom : xyzr_data1.atoms) {
-    xyzr_buffer1.atoms.push_back(
-        XYZRAtom{static_cast<float>(atom.x),
-                 static_cast<float>(atom.y),
-                 static_cast<float>(atom.z),
-                 static_cast<float>(atom.radius)});
-  }
-
-  vossvolvox::pdbio::XyzrData xyzr_data2;
-  if (!vossvolvox::pdbio::ReadFileToXyzr(file2, convert_options, xyzr_data2)) {
-    std::cerr << "Error: unable to load XYZR data from '" << file2 << "'\n";
+  if (!vossvolvox::load_xyzr_or_exit(file1, convert_options, xyzr_buffer1)) {
     return 1;
   }
   XYZRBuffer xyzr_buffer2;
-  xyzr_buffer2.atoms.reserve(xyzr_data2.atoms.size());
-  for (const auto& atom : xyzr_data2.atoms) {
-    xyzr_buffer2.atoms.push_back(
-        XYZRAtom{static_cast<float>(atom.x),
-                 static_cast<float>(atom.y),
-                 static_cast<float>(atom.z),
-                 static_cast<float>(atom.radius)});
-  }
-
-  if (!XYZRFILE[0]) {
-    std::strncpy(XYZRFILE, file1.c_str(), sizeof(XYZRFILE));
-    XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
+  if (!vossvolvox::load_xyzr_or_exit(file2, convert_options, xyzr_buffer2)) {
+    return 1;
   }
   
   if (PROBE1 < 0 && PROBE2 > 0) {
@@ -202,7 +178,19 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 
 //INITIALIZE GRID
-  finalGridDims(maxPROBE*2);
+  const std::vector<const XYZRBuffer*> buffers = {&xyzr_buffer1, &xyzr_buffer2};
+  const auto grid_result = vossvolvox::prepare_grid_from_xyzr(
+      buffers,
+      grid,
+      static_cast<float>(maxPROBE * 2),
+      file1,
+      false);
+  int numatoms1 = 0;
+  int numatoms2 = 0;
+  if (grid_result.per_input.size() >= 2) {
+    numatoms1 = grid_result.per_input[0];
+    numatoms2 = grid_result.per_input[1];
+  }
 //HEADER CHECK
   cerr << "Grid Spacing: " << GRID << endl;
   cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
@@ -210,13 +198,6 @@ int main(int argc, char *argv[]) {
   cerr << "Input file 1:   " << file1 << endl;
   cerr << "Input file 2:   " << file2 << endl;
   cerr << "DIMENSIONS:   " << DX << ", " << DY << ", " << DZ << endl;
-
-//FIRST PASS, MINMAX
-  int numatoms1 = read_NumAtoms_from_array(xyzr_buffer1);
-  int numatoms2 = read_NumAtoms_from_array(xyzr_buffer2);
-
-//CHECK LIMITS & SIZE
-  assignLimits();
 
   gridpt *shellACC=NULL, *shellACC2=NULL, *EXCgrid1=NULL, *EXCgrid2=NULL;
   int voxels1, voxels2;

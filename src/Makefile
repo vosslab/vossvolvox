@@ -37,7 +37,7 @@ $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 # Object files used in all programs
-OBJS = $(OBJ_DIR)/utils-main.o $(OBJ_DIR)/utils-output.o $(OBJ_DIR)/utils-mrc.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/pdb_io.o
+OBJS = $(OBJ_DIR)/utils-main.o $(OBJ_DIR)/utils-output.o $(OBJ_DIR)/utils-mrc.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/xyzr_cli_helpers.o
 LEGACY_OBJS = $(OBJ_DIR)/utils-main-legacy.o $(OBJ_DIR)/utils-output-legacy.o $(OBJ_DIR)/utils-mrc-legacy.o
 
 # Ensure the object directory exists before building object files
@@ -95,6 +95,9 @@ $(OBJ_DIR)/argument_helper.o: lib/argument_helper.cpp
 
 $(OBJ_DIR)/pdb_io.o: lib/pdb_io.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/pdb_io.o lib/pdb_io.cpp
+
+$(OBJ_DIR)/xyzr_cli_helpers.o: lib/xyzr_cli_helpers.cpp lib/xyzr_cli_helpers.h
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/xyzr_cli_helpers.o lib/xyzr_cli_helpers.cpp
 
 # Individual program targets
 cav: $(OBJS) cavities.cpp

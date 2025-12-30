@@ -3,10 +3,12 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "argument_helper.h"
 #include "pdb_io.h"
 #include "utils.h"
+#include "xyzr_cli_helpers.h"
 
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
@@ -99,23 +101,9 @@ int main(int argc, char *argv[]) {
   convert_options.filters.exclude_water = exclude_water;
   convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
   convert_options.filters.exclude_amino_acids = exclude_amino;
-  vossvolvox::pdbio::XyzrData xyzr_data;
-  if (!vossvolvox::pdbio::ReadFileToXyzr(input_path, convert_options, xyzr_data)) {
-    std::cerr << "Error: unable to load XYZR data from '" << input_path << "'\n";
-    return 1;
-  }
   XYZRBuffer xyzr_buffer;
-  xyzr_buffer.atoms.reserve(xyzr_data.atoms.size());
-  for (const auto& atom : xyzr_data.atoms) {
-    xyzr_buffer.atoms.push_back(
-        XYZRAtom{static_cast<float>(atom.x),
-                 static_cast<float>(atom.y),
-                 static_cast<float>(atom.z),
-                 static_cast<float>(atom.radius)});
-  }
-  if (!XYZRFILE[0]) {
-    std::strncpy(XYZRFILE, input_path.c_str(), sizeof(XYZRFILE));
-    XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
+  if (!vossvolvox::load_xyzr_or_exit(input_path, convert_options, xyzr_buffer)) {
+    return 1;
   }
 
 	double xsum=0, yAsum=0, xyAsum=0, yBsum=0, xyBsum=0, x2sum=0, yA2sum=0, yB2sum=0, N=0;
@@ -134,17 +122,17 @@ int main(int argc, char *argv[]) {
 	//GRIDSTEP ^ NUMGRIDSTEP = GRID2/GRID1
 	//GRIDSTEP = [ GRID2/GRID1 ] ^ ( 1/NUMGRIDSTEP )
 	double GRIDSTEP = pow(grid_end/grid_start, 1.0/grid_steps);
+	const std::vector<const XYZRBuffer*> buffers = {&xyzr_buffer};
 	for (GRID=grid_start; GRID<=grid_end; GRID*=GRIDSTEP) {  
-		//INITIALIZE GRID
-		finalGridDims(probe);
+		const auto grid_result = vossvolvox::prepare_grid_from_xyzr(
+		    buffers,
+		    static_cast<float>(GRID),
+		    static_cast<float>(probe),
+		    input_path,
+		    false);
+		const int numatoms = grid_result.total_atoms;
 
 		cerr << "Grid Spacing: " << GRID << endl;
-
-		//FIRST PASS, MINMAX
-		int numatoms = read_NumAtoms_from_array(xyzr_buffer);
-
-		//CHECK LIMITS & SIZE
-		assignLimits();
 //SLOPE	2.99953	2.10564 0.0
 //SLOPE	2.83974	2.12005 0.5
 //SLOPE	2.93329	2.08918 1.0
