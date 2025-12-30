@@ -1,50 +1,64 @@
-2025-11-29 Neil Voss <vossman77@yahoo.com>
+# Changelog
 
-	* Added pdb_io library + XYZRBuffer helpers so all tools can share in-memory XYZR data
-	* Updated Volume.exe to auto-detect PDB/mmCIF/PDBML/XYZR inputs and expose pdb_to_xyzr filtering flags
-	* Extended README/INSTALL/QUICKSTART to describe direct PDB usage and new CLI options
-	* Expanded VERSION/NEWS for the 2.0.0-beta5 release and added YAML coverage for PDB input
+Chronological record of user-facing and maintenance changes.
 
-2025-11-28 Neil Voss <vossman77@yahoo.com>
+## 2025-12-30
+OpenAI Codex
+- Converted `docs/CHANGELOG.md` to Markdown headings and bullet lists.
 
-	* Added safety padding to assignLimits() (modern + legacy) to avoid OOB fills
-	* Introduced python test_volumes.py harness, YAML-driven test_suite.py, and volume_reference make target
-	* Removed redundant xyzr/pdb_to_xyzr_legacy.py + sort_xyzr.py in favor of the native converter
-	* Expanded README/NEWS/VERSION to describe the new workflow
+## 2025-11-29
+Neil Voss <vossman77@yahoo.com>
+- Added pdb_io library + XYZRBuffer helpers so all tools can share in-memory XYZR data.
+- Updated `Volume.exe` to auto-detect PDB/mmCIF/PDBML/XYZR inputs and expose
+  `pdb_to_xyzr` filtering flags.
+- Extended `README.md`, `INSTALL`, and `QUICKSTART.txt` to describe direct PDB usage
+  and new CLI options.
+- Expanded `VERSION` and `NEWS` for the 2.0.0-beta5 release and added YAML coverage
+  for PDB input.
 
-2025-11-28 Neil Voss <vossman77@yahoo.com>
+## 2025-11-28
+Neil Voss <vossman77@yahoo.com>
+- Added safety padding to `assignLimits()` (modern + legacy) to avoid OOB fills.
+- Introduced `test_volumes.py` harness, YAML-driven `test_suite.py`, and
+  `volume_reference` make target.
+- Removed redundant `xyzr/pdb_to_xyzr_legacy.py` + `xyzr/sort_xyzr.py` in favor of
+  the native converter.
+- Expanded `README.md`, `NEWS`, and `VERSION` to describe the new workflow.
 
-	* Introduced shared argument_helper (C++17) and migrated Volume.exe to it
-	* Set the toolchain default to C++17 for upcoming CLI modernization
+## 2025-11-28
+Neil Voss <vossman77@yahoo.com>
+- Introduced shared `argument_helper` (C++17) and migrated `Volume.exe` to it.
+- Set the toolchain default to C++17 for upcoming CLI modernization.
 
-2025-11-28 Neil Voss <vossman77@yahoo.com>
+## 2025-11-28
+Neil Voss <vossman77@yahoo.com>
+- Added native Python and C++ `pdb_to_xyzr` converters with fine-grained filters.
+- Updated documentation/tests to rely on `./bin/pdb_to_xyzr` executables.
 
-	* Added native Python and C++ pdb_to_xyzr converters with fine-grained filters
-	* Updated documentation/tests to rely on ./bin/pdb_to_xyzr executables
+## 2024-11-14
+Neil Voss <vossman77@yahoo.com>
+- Comprehensive modernization/refactor in preparation for the 2.0 beta line.
 
-2024-11-14 Neil Voss <vossman77@yahoo.com>
+## 2024-11-14
+Neil Voss <vossman77@yahoo.com>
+- Refactored some code for modern times.
 
-	* Comprehensive modernization/refactor in preparation for the 2.0 beta line
+## 2009-06-02
+Neil Voss <vossman77@yahoo.com>
+- Added ability to write to MRC files, thanks Craig.
+- Rebuilt for distribution, v1.2.
 
-2024-11-14 Neil Voss <vossman77@yahoo.com>
+## 2006-06-20
+Neil Voss <vossman77@yahoo.com>
+- Rebuilt for distribution, v1.1.
 
-	* Refactored some code for modern times
+## 2005-01-27
+Neil Voss <vossman77@yahoo.com>
+- adjusted XMIN, YMIN, ZMIN to interget multiple of grid needed to better EZD file
+  support.
+- added testLimits() function for tracking down out-of-range calls.
+- added zeroGrid(grid) function to zero out all points (cause of out-of-range calls).
 
-2009-06-02 Neil Voss <vossman77@yahoo.com>
-
-	* Added ability to write to MRC files, thanks Craig
-	* Rebuilt for distribution, v1.2
-
-2006-06-20 Neil Voss <vossman77@yahoo.com>
-
-	* Rebuilt for distribution, v1.1
-
-2005-01-27 Neil Voss <vossman77@yahoo.com>
-
-	* adjusted XMIN, YMIN, ZMIN to interget multiple of grid needed to better EZD file support
-	* added testLimits() function for tracking down out-of-range calls
-	* added zeroGrid(grid) function to zero out all points (cause of out-of-range calls)
-
-2005-01-26 Neil Voss <vossman77@yahoo.com>
-
-	* added surface area calculation
+## 2005-01-26
+Neil Voss <vossman77@yahoo.com>
+- added surface area calculation.
