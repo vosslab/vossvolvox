@@ -76,7 +76,8 @@ else
 fi
 
 if [ ! -x "${REFERENCE_BIN}" ]; then
-  echo "Reference binary ${REFERENCE_BIN} not found; cannot compare outputs." >&2
+  echo "Reference binary ${REFERENCE_BIN} not found; classic regression requires the Volume-1.0.exe binary." >&2
+  echo "Download/build the 1.0 codebase and place the binary at ${REFERENCE_BIN}, or set REFERENCE_BIN to its location." >&2
   exit 1
 fi
 

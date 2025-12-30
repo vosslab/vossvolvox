@@ -34,3 +34,7 @@ Directory map of the repository and where files belong, including generated asse
 - New converters or filters: `src/` (native) or `xyzr/` (legacy/Python).
 - New tests: `tests/` (shell and support scripts).
 - New docs: `docs/` with SCREAMING_SNAKE_CASE filenames.
+
+## Source naming
+- Use snake_case for C++ source files in `src/` (for example `all_channel_accessible.cpp`).
+- Keep executables in CamelCase with the `.exe` suffix (for example `AllChannel.exe`).

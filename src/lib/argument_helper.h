@@ -85,6 +85,9 @@ inline std::string ArgumentParser::convert_value<std::string>(const std::string&
   return token;
 }
 
+void set_command_line(int argc, char* argv[]);
+const std::vector<std::string>& command_line_args();
+
 struct XYZROptions {
   std::string input;
   std::string pdb_output;

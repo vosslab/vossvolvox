@@ -31,6 +31,40 @@ OpenAI Codex
 - Renamed in-memory XYZR buffer variables to `xyzr_buffer*` for clarity.
 - Shortened `README.md` by pointing detailed sections to the docs directory.
 - Renamed `src/customvolume.cpp` to `src/rna_protein_volume.cpp` for clarity.
+- Updated `tests/test_suite.yml` to run executables directly on PDB input with
+  filter flags and refreshed MD5 expectations accordingly.
+- Adjusted `tests/test_volume.sh` expected volume to the new rounding output.
+- Clarified `tests/test_volume_classic.sh` messaging when `Volume-1.0.exe` is
+  unavailable.
+- Updated `src/Makefile` to place shared object files under `src/lib/`.
+- Renamed C++ entry point sources to snake_case and updated build references.
+- Renamed `Custom.exe` to `ProteinRNAVolume.exe`.
+- Standardized `pdb_to_xyzr.exe` CLI handling via `ArgumentParser`, retaining
+  positional input support while documenting `-i` usage.
+- Improved `tests/test_suite.py` reporting to summarize passed checks on both
+  successes and failures.
+- Removed the input-provenance remark line from PDB outputs to keep headers
+  deterministic for test comparisons.
+- Expanded `tests/test_suite.py` failure output to list per-check pass/fail lines
+  in color with a final timing summary.
+- Linked `pdb_to_xyzr.exe` against `argument_helper` after CLI standardization.
+- Updated test fixtures and expectations after removing the PDB provenance remark
+  (line counts and MD5s in `tests/test_suite.yml`, `tests/test_volume.sh`).
+- Switched PDB output checks in `tests/test_suite.yml` to compare HETATM-only
+  counts and MD5s alongside total line counts.
+- Updated `tests/test_suite.py` sanitized MD5 helper to strip all `REMARK` lines.
+- Added deterministic PDB header remarks for creation time and command line, and
+  refreshed line-count expectations accordingly.
+- Reformatted PDB CLI remarks to emit one sorted argument per REMARK line.
+- Moved command-line capture helpers into `src/lib/argument_helper.*`.
+- Removed the `volume_reference` build target; `Volume-1.0.exe` must be supplied
+  externally.
+- Renamed `src/volume_original.cpp` to `src/volume-legacy.cpp` and marked legacy
+  sources as no-edit in `AGENTS.md`.
+- Updated `tests/test_volume.sh` to validate HETATM-only counts and MD5s instead
+  of full-file hashes.
+- Renamed YAML test entries in `tests/test_suite.yml` to snake_case identifiers
+  aligned with the C++ source filenames.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

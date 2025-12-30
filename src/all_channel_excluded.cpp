@@ -8,7 +8,6 @@
 #include "pdb_io.h"
 #include "utils.h"
 
-
 extern float XMIN, YMIN, ZMIN;
 extern float XMAX, YMAX, ZMAX;
 extern int DX, DY, DZ;
@@ -23,17 +22,18 @@ extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
+  vossvolvox::set_command_line(argc, argv);
 
   std::string input_path;
-  std::string ezd_file;
   std::string pdb_file;
+  std::string ezd_file;
   std::string mrc_file;
   double BIGPROBE = 9.0;
   double SMPROBE = 1.5;
   double TRIMPROBE = 4.0;
-  double x = 1000.0;
-  double y = 1000.0;
-  double z = 1000.0;
+  int MINSIZE = 20;
+  double minvol = 0.0;
+  double minperc = 0.0;
   float grid = GRID;
   bool use_hydrogens = false;
   bool exclude_ions = false;
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 
   vossvolvox::ArgumentParser parser(
       argv[0],
-      "Extract a particular solvent channel from a structure.");
+      "Extract all solvent channels from a structure above a cutoff.");
   vossvolvox::add_input_option(parser, input_path);
   parser.add_option("-b",
                     "--big-probe",
@@ -71,24 +71,18 @@ int main(int argc, char *argv[]) {
                     GRID,
                     "Grid spacing (default auto).",
                     "<grid spacing>");
-  parser.add_option("-x",
-                    "--x-coord",
-                    x,
-                    1000.0,
-                    "Seed X coordinate for channel selection.",
-                    "<x>");
-  parser.add_option("-y",
-                    "--y-coord",
-                    y,
-                    1000.0,
-                    "Seed Y coordinate for channel selection.",
-                    "<y>");
-  parser.add_option("-z",
-                    "--z-coord",
-                    z,
-                    1000.0,
-                    "Seed Z coordinate for channel selection.",
-                    "<z>");
+  parser.add_option("-v",
+                    "--min-volume",
+                    minvol,
+                    0.0,
+                    "Minimum channel volume in A^3.",
+                    "<min volume>");
+  parser.add_option("-p",
+                    "--min-percent",
+                    minperc,
+                    0.0,
+                    "Minimum percentage of volume for inclusion (e.g., 0.01 for 1%).",
+                    "<fraction>");
   vossvolvox::add_output_file_options(parser, pdb_file, ezd_file, mrc_file);
   vossvolvox::add_xyzr_filter_flags(parser,
                                     use_hydrogens,
@@ -99,7 +93,7 @@ int main(int argc, char *argv[]) {
                                     exclude_nucleic,
                                     exclude_amino);
   parser.add_example(
-      "./Channel.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -t 4.0 -x -10 -y 5 -z 0 -o channel.pdb");
+      "./AllChannelExc.exe -i 3hdi.xyzr -b 9.0 -s 1.5 -g 0.5 -t 4.0 -v 5000 -p 0.01");
 
   const auto parse_result = parser.parse(argc, argv);
   if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
@@ -117,6 +111,9 @@ int main(int argc, char *argv[]) {
   if (!vossvolvox::quiet_mode()) {
     printCompileInfo(argv[0]);
     printCitation();
+  }
+  if (!pdb_file.empty() || !ezd_file.empty()) {
+    std::cerr << "Warning: PDB/EZD outputs are not supported for this tool; ignoring.\n";
   }
 
   vossvolvox::pdbio::ConversionOptions convert_options;
@@ -146,40 +143,54 @@ int main(int argc, char *argv[]) {
     XYZRFILE[sizeof(XYZRFILE) - 1] = '\0';
   }
 
-//INITIALIZE GRID
+  if (minvol > 0) {
+    MINSIZE = int(minvol / GRIDVOL);
+  } else if (minperc == 0) {
+    minperc = 0.01;
+  }
+
+  //INITIALIZE GRID
   finalGridDims(BIGPROBE);
 
-//HEADER CHECK
+  //HEADER CHECK
   cerr << "Probe Radius: " << BIGPROBE << endl;
   cerr << "Grid Spacing: " << GRID << endl;
   cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
   cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
   cerr << "Input file:   " << input_path << endl;
+  cerr << "Minimum size: " << MINSIZE << " voxels" << endl;
 
-//FIRST PASS, MINMAX
+  //FIRST PASS, MINMAX
   int numatoms = read_NumAtoms_from_array(xyzr_buffer);
 
-//CHECK LIMITS & SIZE
+  //CHECK LIMITS & SIZE
   assignLimits();
 
-// ****************************************************
-// STARTING LARGE PROBE
-// ****************************************************
+  // ****************************************************
+  // STARTING LARGE PROBE
+  // ****************************************************
   gridpt *biggrid;
   biggrid = (gridpt*) std::malloc (NUMBINS);
   if (biggrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
   zeroGrid(biggrid);
   int bigvox;
-  if(BIGPROBE > 0.0) { 
+  if(BIGPROBE > 0.0) {
     bigvox = get_ExcludeGrid_fromArray(numatoms, BIGPROBE, xyzr_buffer, biggrid);
   } else {
     cerr << "BIGPROBE <= 0" << endl;
     return 1;
   }
 
-// ****************************************************
-// TRIM LARGE PROBE SURFACE
-// ****************************************************
+  if (minperc > 0) {
+    while (minperc > 1)
+      minperc /= 100;
+    MINSIZE = int(bigvox*minperc);
+  }
+  cerr << "Minimum size: " << MINSIZE << " voxels" << endl;
+
+  // ****************************************************
+  // TRIM LARGE PROBE SURFACE
+  // ****************************************************
   gridpt *trimgrid;
   trimgrid = (gridpt*) std::malloc (NUMBINS);
   if (trimgrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
@@ -187,81 +198,109 @@ int main(int argc, char *argv[]) {
   trun_ExcludeGrid(TRIMPROBE,biggrid,trimgrid);
   std::free (biggrid);
 
-  cout << "bg_prb\tsm_prb\tgrid\texcvol\tsurf\taccvol\tfile" << endl;
+  //cout << "bg_prb\tsm_prb\tgrid\texcvol\tsurf\taccvol\tfile" << endl;
 
-// ****************************************************
-// STARTING SMALL PROBE
-// ****************************************************
-    gridpt *smgrid;
-    smgrid = (gridpt*) std::malloc (NUMBINS);
-    if (smgrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
-    zeroGrid(smgrid);
-    int smvox;
-    smvox = fill_AccessGrid_fromArray(numatoms, SMPROBE, xyzr_buffer, smgrid);
+  // ****************************************************
+  // STARTING SMALL PROBE
+  // ****************************************************
+  gridpt *smgrid;
+  smgrid = (gridpt*) std::malloc (NUMBINS);
+  if (smgrid==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
+  zeroGrid(smgrid);
+  int smvox;
+  smvox = fill_AccessGrid_fromArray(numatoms, SMPROBE, xyzr_buffer, smgrid);
 
-// ****************************************************
-// GETTING ACCESSIBLE CHANNELS
-// ****************************************************
-    gridpt *solventACC;
-    solventACC = (gridpt*) std::malloc (NUMBINS);
-    if (solventACC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
-    copyGrid(trimgrid,solventACC); //copy trimgrid into solventACC
-    subt_Grids(solventACC,smgrid); //modify solventACC
-    std::free (smgrid);
+  // ****************************************************
+  // GETTING ACCESSIBLE CHANNELS
+  // ****************************************************
+  gridpt *solventACC;
+  solventACC = (gridpt*) std::malloc (NUMBINS);
+  if (solventACC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
+  copyGrid(trimgrid, solventACC); //copy trimgrid into solventACC
+  subt_Grids(solventACC, smgrid); //modify solventACC
+  std::free (smgrid);
 
+
+// ***************************************************
+// CALCULATE TOTAL SOLVENT
+// ***************************************************
+  gridpt *solventEXC;
+  solventEXC = (gridpt*) std::malloc (NUMBINS);
+  if (solventEXC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
+  grow_ExcludeGrid(SMPROBE, solventACC, solventEXC);
+  intersect_Grids(solventEXC, trimgrid); //modifies solventEXC
+  const std::string solvent_output = mrc_file.empty() ? "allsolvent.mrc" : mrc_file;
+  writeMRCFile(solventEXC, const_cast<char*>(solvent_output.c_str()));
+  std::free (solventACC);
 
 // ***************************************************
 // SELECT PARTICULAR CHANNEL
 // ***************************************************
-    gridpt *channelACC;
-    channelACC = (gridpt*) std::malloc (NUMBINS);
-    if (channelACC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
-    zeroGrid(channelACC);
 
-//main channel
-    get_Connected(solventACC,channelACC, x, y, z);
-    std::free (solventACC);
+  // initialize channel volume
+  gridpt *channelEXC;
+  channelEXC = (gridpt*) std::malloc (NUMBINS);
+  if (channelEXC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
+  int solventEXCvol = countGrid(solventEXC);
+  //main channel loop
+  int numchannels=0;
+  int allchannels=0;
+  int connected;
+  int maxvox=0, minvox=1000000, goodminvox=1000000;
+  cerr << "MIN SIZE: " << MINSIZE << " voxels" << endl;
+  cerr << "MIN SIZE: " << MINSIZE*GRIDVOL << " Angstroms" << endl;
 
-// ***************************************************
-// GETTING CONTACT CHANNEL
-// ***************************************************
-    gridpt *channelEXC;
-    channelEXC = (gridpt*) std::malloc (NUMBINS);
-    if (channelEXC==NULL) { cerr << "GRID IS NULL" << endl; return 1; }
-    int channelACCvol = copyGrid(channelACC,channelEXC);
-    cerr << "Accessible Channel Volume  ";
-    printVol(channelACCvol);
-    grow_ExcludeGrid(SMPROBE,channelACC,channelEXC);
-    std::free (channelACC);
+  while ( countGrid(solventEXC) > MINSIZE ) {
+    allchannels++;
 
-//limit growth to inside trimgrid
-    intersect_Grids(channelEXC,trimgrid); //modifies channelEXC
-    //std::free (trimgrid);
+    // get channel volume
+    zeroGrid(channelEXC); // initialize channelEXC volume
+    int gp = get_GridPoint(solventEXC);  //modify x,y,z
+    connected = get_Connected_Point(solventEXC, channelEXC, gp); //modify channelEXC
+    subt_Grids(solventEXC, channelEXC); //modify solventEXC
 
-// ***************************************************
-// OUTPUT RESULTS
-// ***************************************************
+    // ***************************************************
+    // GETTING CONTACT CHANNEL
+    // ***************************************************
+    int channelEXCvol = countGrid(channelEXC); // initialize channelEXC volume
+    if (channelEXCvol > maxvox)
+      maxvox = channelEXCvol;
+    if (channelEXCvol < minvox and channelEXCvol > 0)
+      minvox = channelEXCvol;
+    if (channelEXCvol <= MINSIZE) {
+      cerr << "SKIPPING CHANNEL" << endl;
+      cerr << "---------------------------------------------" << endl;
+      continue;
+    }
+    if (channelEXCvol < goodminvox)
+      goodminvox = channelEXCvol;
+
+    numchannels++;
+
+    // ***************************************************
+    // OUTPUT RESULTS
+    // ***************************************************
     cout << BIGPROBE << "\t" << SMPROBE << "\t" << GRID << "\t" << flush;
-    int channelEXCvol = countGrid(channelEXC);
     printVolCout(channelEXCvol);
     long double surf = surface_area(channelEXC);
     cout << "\t" << surf << "\t" << flush;
-    printVolCout(channelACCvol);
     cout << "\t#" << input_path << endl;
-    if(!pdb_file.empty()) {
-      write_SurfPDB(channelEXC, const_cast<char*>(pdb_file.c_str()));
-    }
-    if(!ezd_file.empty()) {
-      write_HalfEZD(channelEXC, const_cast<char*>(ezd_file.c_str()));
-    }
-    if(!mrc_file.empty()) {
-      writeSmallMRCFile(channelEXC, const_cast<char*>(mrc_file.c_str()));
-    }
-
-//RELEASE TEMPGRID
-    std::free (channelEXC);
-    cerr << endl;
-
+    char channel_file[64];
+    std::snprintf(channel_file, sizeof(channel_file), "channel-%03d.mrc", numchannels);
+    writeSmallMRCFile(channelEXC, channel_file);
+    cerr << "---------------------------------------------" << endl;
+  }
+  if (numchannels == 0)
+    goodminvox = 0;
+  cerr << "Channel min size: " << int(minvox*GRIDVOL) << " A (all) " << int(goodminvox*GRIDVOL) << " A (good)" << endl;
+  cerr << "Channel max size: " << int(maxvox*GRIDVOL) << " A " << endl;
+  cerr << "Used " << numchannels << " of " << allchannels << " channels" << endl;
+  if (allchannels > 0) {
+    cerr << "Mean size: " << solventEXCvol/float(allchannels)*GRIDVOL << " A " << endl;
+  }
+  cerr << "Cutoff size: " << MINSIZE << " voxels :: "<< MINSIZE*GRIDVOL << " Angstroms" << endl;
+  std::free (channelEXC);
+  std::free (solventEXC);
   std::free (trimgrid);
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;

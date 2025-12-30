@@ -7,7 +7,10 @@
 #include <iomanip>    // for operator<<, setw, setprecision
 #include <iostream>   // for cerr
 #include <sstream>    // for basic_ostringstream, ostringstream
+#include <algorithm>
 #include <string>     // for char_traits, allocator, basic_string
+#include <vector>
+#include "argument_helper.h"
 #include "utils.h"    // for GRID, endl, DX, DXY, gridpt
 
 /*********************************************
@@ -15,6 +18,19 @@
        PDB OUTPUT FUNCTIONS
 **********************************************
 *********************************************/
+
+namespace {
+std::string format_timestamp() {
+  std::time_t now = std::time(nullptr);
+  std::tm* local = std::localtime(&now);
+  if (!local) {
+    return "unknown";
+  }
+  char buffer[32];
+  std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", local);
+  return buffer;
+}
+}  // namespace
 
 //========================================================
 //========================================================
@@ -59,7 +75,14 @@ void write_PDB(const gridpt grid[], const char outfile[]) {
 
   // Write header information
   out << "REMARK (c) Neil Voss, 2005" << endl;
-  out << "REMARK PDB file created from " << XYZRFILE << endl;
+  out << "REMARK Created: " << format_timestamp() << endl;
+  if (!vossvolvox::command_line_args().empty()) {
+    std::vector<std::string> args = vossvolvox::command_line_args();
+    std::sort(args.begin(), args.end());
+    for (const auto& arg : args) {
+      out << "REMARK Arg: " << arg << endl;
+    }
+  }
   out << "REMARK Grid: " << GRID << "\tGRIDVOL: " << GRIDVOL
       << "\tWater_Res: " << WATER_RES << "\tMaxProbe: " << MAXPROBE
       << "\tCutoff: " << CUTOFF << endl;
@@ -111,7 +134,14 @@ void write_SurfPDB(const gridpt grid[], const char outfile[]) {
 
   // Write header
   out << "REMARK (c) Neil Voss, 2005" << std::endl;
-  out << "REMARK PDB file created from " << XYZRFILE << std::endl;
+  out << "REMARK Created: " << format_timestamp() << std::endl;
+  if (!vossvolvox::command_line_args().empty()) {
+    std::vector<std::string> args = vossvolvox::command_line_args();
+    std::sort(args.begin(), args.end());
+    for (const auto& arg : args) {
+      out << "REMARK Arg: " << arg << std::endl;
+    }
+  }
   out << "REMARK Grid: " << GRID << "\tGRIDVOL: " << GRIDVOL
       << "\tWater_Res: " << WATER_RES
       << "\tMaxProbe: " << MAXPROBE << "\tCutoff: " << CUTOFF << std::endl;

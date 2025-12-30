@@ -14,7 +14,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 try:
     import yaml
@@ -61,6 +61,17 @@ class TestFailure(RuntimeError):
     """Raised when a test expectation is not met."""
 
 
+class TestFailureWithChecks(TestFailure):
+    """Raised when checks are evaluated and at least one failed."""
+
+    def __init__(self, message: str, checks: List[Tuple[str, bool, str]], duration: float) -> None:
+        super().__init__(message)
+        self.checks = checks
+        self.duration = duration
+        self.passed = sum(1 for _, ok, _ in checks if ok)
+        self.total = len(checks)
+
+
 def run(cmd: List[str], cwd: Path) -> subprocess.CompletedProcess:
     """Run a command and capture stdout/stderr."""
     try:
@@ -103,12 +114,24 @@ def count_lines(path: Path) -> int:
 def md5sum(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
+def md5_hetatm(path: Path) -> str:
+    digest = hashlib.md5()
+    with path.open("r") as handle:
+        for line in handle:
+            if line.startswith("HETATM"):
+                digest.update(line.encode("utf-8"))
+    return digest.hexdigest()
+
+def count_hetatm_lines(path: Path) -> int:
+    with path.open("r") as handle:
+        return sum(1 for line in handle if line.startswith("HETATM"))
+
 
 def sanitized_md5(path: Path) -> str:
     digest = hashlib.md5()
     with path.open("r") as handle:
         for line in handle:
-            if line.startswith("REMARK Date") or line.startswith("REMARK PDB file created from"):
+            if line.startswith("REMARK"):
                 continue
             digest.update(line.encode("utf-8"))
     return digest.hexdigest()
@@ -194,7 +217,7 @@ def convert_xyzr(pdb: Path, output: Path, filters: List[str], overwrite: bool = 
         output.unlink()
     ensure_dir(output.parent)
     converter = BIN_DIR / "pdb_to_xyzr.exe"
-    cmd = [str(converter), *filters, str(pdb)]
+    cmd = [str(converter), *filters, "-i", str(pdb)]
     result = run(cmd, cwd=output.parent)
     output.write_text(result.stdout)
 
@@ -221,7 +244,7 @@ def handle_prerequisite(action: Dict[str, Any], workdir: Path) -> None:
         raise TestFailure(f"Unknown prerequisite action: {kind}")
 
 
-def run_test(test: Dict[str, Any]) -> float:
+def run_test(test: Dict[str, Any]) -> Tuple[float, int, int]:
     name = test["name"]
     rel_workdir = test.get("workdir", ".")
     workdir = (TEST_DIR / rel_workdir).resolve()
@@ -256,42 +279,93 @@ def run_test(test: Dict[str, Any]) -> float:
     result = run(command, cwd=workdir)
     duration = time.perf_counter() - start
     expect = test.get("expect", {})
+    checks: List[Tuple[str, bool, str]] = []
+
+    def record_check(label: str, passed: bool, detail: str = "") -> None:
+        checks.append((label, passed, detail))
 
     if "summary" in expect:
-        summary = extract_summary(result.stdout)
         summary_expect = expect["summary"]
         tol = summary_expect.get("tolerance", 1e-3)
-        for key in ("volume", "surface", "atoms"):
-            if key in summary_expect:
-                compare_float(f"{name}:{key}", summary_expect[key], summary[key], tol)
+        try:
+            summary = extract_summary(result.stdout)
+        except TestFailure as exc:
+            record_check("summary", False, str(exc))
+        else:
+            for key in ("volume", "surface", "atoms"):
+                if key in summary_expect:
+                    expected_value = summary_expect[key]
+                    actual_value = summary[key]
+                    try:
+                        compare_float(key, expected_value, actual_value, tol)
+                    except TestFailure as exc:
+                        record_check(key, False, str(exc))
+                    else:
+                        record_check(key, True)
 
     pdb_expect = expect.get("pdb")
     if pdb_expect:
         pdb_path = resolve_path(workdir, pdb_expect["path"])
         if not pdb_path.exists():
-            raise TestFailure(f"{name}: expected output {pdb_path} is missing.")
-        if "lines" in pdb_expect:
-            lines = count_lines(pdb_path)
-            if lines != pdb_expect["lines"]:
-                raise TestFailure(f"{name}: expected {pdb_expect['lines']} lines, found {lines}")
-        if "md5" in pdb_expect:
-            digest = md5sum(pdb_path)
-            if digest != pdb_expect["md5"]:
-                raise TestFailure(f"{name}: expected md5 {pdb_expect['md5']}, got {digest}")
-        if "md5_sanitized" in pdb_expect:
-            digest = sanitized_md5(pdb_path)
-            if digest != pdb_expect["md5_sanitized"]:
-                raise TestFailure(
-                    f"{name}: expected sanitized md5 {pdb_expect['md5_sanitized']}, got {digest}"
-                )
+            record_check("pdb_exists", False, f"expected output {pdb_path} is missing.")
+        else:
+            record_check("pdb_exists", True)
+            if "lines" in pdb_expect:
+                lines = count_lines(pdb_path)
+                if lines != pdb_expect["lines"]:
+                    record_check("lines", False, f"expected {pdb_expect['lines']} lines, found {lines}")
+                else:
+                    record_check("lines", True)
+            if "md5" in pdb_expect:
+                digest = md5sum(pdb_path)
+                if digest != pdb_expect["md5"]:
+                    record_check("md5", False, f"expected {pdb_expect['md5']}, got {digest}")
+                else:
+                    record_check("md5", True)
+            if "hetatm_lines" in pdb_expect:
+                hetatm_lines = count_hetatm_lines(pdb_path)
+                if hetatm_lines != pdb_expect["hetatm_lines"]:
+                    record_check(
+                        "hetatm_lines",
+                        False,
+                        f"expected {pdb_expect['hetatm_lines']} HETATM lines, found {hetatm_lines}",
+                    )
+                else:
+                    record_check("hetatm_lines", True)
+            if "hetatm_md5" in pdb_expect:
+                digest = md5_hetatm(pdb_path)
+                if digest != pdb_expect["hetatm_md5"]:
+                    record_check(
+                        "hetatm_md5",
+                        False,
+                        f"expected {pdb_expect['hetatm_md5']}, got {digest}",
+                    )
+                else:
+                    record_check("hetatm_md5", True)
+            if "md5_sanitized" in pdb_expect:
+                digest = sanitized_md5(pdb_path)
+                if digest != pdb_expect["md5_sanitized"]:
+                    record_check("md5_sanitized", False, f"expected {pdb_expect['md5_sanitized']}, got {digest}")
+                else:
+                    record_check("md5_sanitized", True)
 
     if expect.get("stdout_contains"):
         needle = expect["stdout_contains"]
         combined = result.stdout + result.stderr
         if needle not in combined:
-            raise TestFailure(f"{name}: stdout missing expected text: {needle}")
+            record_check("stdout_contains", False, f"stdout missing expected text: {needle}")
+        else:
+            record_check("stdout_contains", True)
 
-    return duration
+    total = len(checks)
+    passed = sum(1 for _, ok, _ in checks if ok)
+    if passed != total:
+        failed_details = "; ".join(
+            detail if detail else label for label, ok, detail in checks if not ok
+        )
+        raise TestFailureWithChecks(f"{name}: {failed_details}", checks, duration)
+
+    return duration, passed, total
 
 
 def load_tests(path: Path) -> List[Dict[str, Any]]:
@@ -395,13 +469,25 @@ def main() -> None:
         name = test["name"]
         info(f"▶ Running {name} ...")
         try:
-            elapsed = run_test(test)
+            elapsed, passed, total = run_test(test)
             durations.append((name, elapsed))
+        except TestFailureWithChecks as exc:
+            error(f"✖ {name}: {exc}")
+            for label, ok, detail in exc.checks:
+                if ok:
+                    success(f"  ✔ {label}")
+                else:
+                    error(f"  ✖ {label}: {detail if detail else 'failed'}")
+            error(f"✖ {name} [{exc.duration:.3f}s] ({exc.passed}/{exc.total} checks)")
+            failures.append(name)
         except TestFailure as exc:
             error(f"✖ {name}: {exc}")
             failures.append(name)
         else:
-            success(f"✔ {name} [{elapsed:.3f}s]")
+            if total:
+                success(f"✔ {name} [{elapsed:.3f}s] ({passed}/{total} checks)")
+            else:
+                success(f"✔ {name} [{elapsed:.3f}s]")
 
     if failures:
         error(f"{len(failures)} test(s) failed.")

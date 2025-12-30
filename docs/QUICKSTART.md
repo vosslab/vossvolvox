@@ -13,7 +13,7 @@ gunzip 1A01.pdb.gz
 ## 2. Convert to XYZR (native converter)
 
 ```sh
-./bin/pdb_to_xyzr.exe --exclude-ions --exclude-water 1A01.pdb > 1a01-filtered.xyzr
+./bin/pdb_to_xyzr.exe --exclude-ions --exclude-water -i 1A01.pdb > 1a01-filtered.xyzr
 ```
 
 Alternative: run the Python converter.

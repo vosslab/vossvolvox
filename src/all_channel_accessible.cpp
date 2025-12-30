@@ -71,6 +71,7 @@ void getDirname(char path[], char dir[]) {
 // Main function for channel extraction
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
+  vossvolvox::set_command_line(argc, argv);
 
   std::string input_path;
   std::string pdb_file;

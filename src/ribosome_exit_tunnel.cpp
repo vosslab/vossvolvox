@@ -28,6 +28,7 @@ void defineTunnel(gridpt tunnel[], gridpt channels[]);
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
+  vossvolvox::set_command_line(argc, argv);
 
   std::string input_path;
   std::string ezd_file;

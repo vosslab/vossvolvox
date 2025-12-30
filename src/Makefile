@@ -29,17 +29,22 @@ endif
 
 # Directory to store binaries
 BIN_DIR = ../bin
+# Directory to store object files
+OBJ_DIR = lib
 
 # Ensure the bin directory exists before building anything
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 # Object files used in all programs
-OBJS = utils-main.o utils-output.o utils-mrc.o argument_helper.o pdb_io.o
-LEGACY_OBJS = utils-main-legacy.o utils-output-legacy.o utils-mrc-legacy.o
+OBJS = $(OBJ_DIR)/utils-main.o $(OBJ_DIR)/utils-output.o $(OBJ_DIR)/utils-mrc.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/pdb_io.o
+LEGACY_OBJS = $(OBJ_DIR)/utils-main-legacy.o $(OBJ_DIR)/utils-output-legacy.o $(OBJ_DIR)/utils-mrc-legacy.o
 
-# Ensure the bin directory exists before building object files
-$(OBJS) $(LEGACY_OBJS): $(BIN_DIR)
+# Ensure the object directory exists before building object files
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
+$(OBJS) $(LEGACY_OBJS): $(OBJ_DIR)
 
 # The default target, which builds all programs
 all: $(BIN_DIR) cav chan allchan allexc fsv sol tun vdw vol volnocav twovol frac cust pdbxyzr
@@ -47,7 +52,7 @@ all: $(BIN_DIR) cav chan allchan allexc fsv sol tun vdw vol volnocav twovol frac
 # Clean target to remove all compiled binaries and object files
 .PHONY: clean
 clean:
-	rm -fv *.o  *~
+	rm -fv *.o $(OBJ_DIR)/*.o  *~
 	@echo "Object files and temporary files have been removed."
 
 # Distclean target for additional cleanup, including binaries
@@ -67,45 +72,45 @@ none:
 
 
 # Compilation rules for individual object files
-utils-main.o: lib/utils-main.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main.o lib/utils-main.cpp
+$(OBJ_DIR)/utils-main.o: lib/utils-main.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/utils-main.o lib/utils-main.cpp
 
-utils-main-legacy.o: lib/utils-main-legacy.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main-legacy.o lib/utils-main-legacy.cpp
+$(OBJ_DIR)/utils-main-legacy.o: lib/utils-main-legacy.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/utils-main-legacy.o lib/utils-main-legacy.cpp
 
-utils-output.o: utils-main.o lib/utils-output.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output.o lib/utils-output.cpp
+$(OBJ_DIR)/utils-output.o: $(OBJ_DIR)/utils-main.o lib/utils-output.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/utils-output.o lib/utils-output.cpp
 
-utils-output-legacy.o: utils-main-legacy.o lib/utils-output.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output-legacy.o lib/utils-output.cpp
+$(OBJ_DIR)/utils-output-legacy.o: $(OBJ_DIR)/utils-main-legacy.o lib/utils-output.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/utils-output-legacy.o lib/utils-output.cpp
 
-utils-mrc.o: lib/utils-mrc.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc.o lib/utils-mrc.cpp
+$(OBJ_DIR)/utils-mrc.o: lib/utils-mrc.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/utils-mrc.o lib/utils-mrc.cpp
 
-utils-mrc-legacy.o: lib/utils-mrc.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc-legacy.o lib/utils-mrc.cpp
+$(OBJ_DIR)/utils-mrc-legacy.o: lib/utils-mrc.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/utils-mrc-legacy.o lib/utils-mrc.cpp
 
-argument_helper.o: lib/argument_helper.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o argument_helper.o lib/argument_helper.cpp
+$(OBJ_DIR)/argument_helper.o: lib/argument_helper.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/argument_helper.o lib/argument_helper.cpp
 
-pdb_io.o: lib/pdb_io.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o pdb_io.o lib/pdb_io.cpp
+$(OBJ_DIR)/pdb_io.o: lib/pdb_io.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/pdb_io.o lib/pdb_io.cpp
 
 # Individual program targets
 cav: $(OBJS) cavities.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Cavities.exe $(OBJS) cavities.cpp
 	@chmod +x $(BIN_DIR)/Cavities.exe
 
-chan: $(OBJS) channel.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Channel.exe $(OBJS) channel.cpp
+chan: $(OBJS) find_channel.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Channel.exe $(OBJS) find_channel.cpp
 	@chmod +x $(BIN_DIR)/Channel.exe
 
-allchan: $(OBJS) allchannel.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/AllChannel.exe $(OBJS) allchannel.cpp
+allchan: $(OBJS) all_channel_accessible.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/AllChannel.exe $(OBJS) all_channel_accessible.cpp
 	@chmod +x $(BIN_DIR)/AllChannel.exe
 
-allexc: $(OBJS) allchannelexc.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/AllChannelExc.exe $(OBJS) allchannelexc.cpp
+allexc: $(OBJS) all_channel_excluded.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/AllChannelExc.exe $(OBJS) all_channel_excluded.cpp
 	@chmod +x $(BIN_DIR)/AllChannelExc.exe
 
 fsv: $(OBJS) fsv_calc.cpp
@@ -116,8 +121,8 @@ sol: $(OBJS) solvent.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Solvent.exe $(OBJS) solvent.cpp
 	@chmod +x $(BIN_DIR)/Solvent.exe
 
-tun: $(OBJS) tunnel.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Tunnel.exe $(OBJS) tunnel.cpp
+tun: $(OBJS) ribosome_exit_tunnel.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Tunnel.exe $(OBJS) ribosome_exit_tunnel.cpp
 	@chmod +x $(BIN_DIR)/Tunnel.exe
 
 vdw: $(OBJS) vdw.cpp
@@ -128,13 +133,9 @@ vol: $(OBJS) volume.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
 	@chmod +x $(BIN_DIR)/Volume.exe
 
-volume_original: $(LEGACY_OBJS) volume_original.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume-legacy.exe $(LEGACY_OBJS) volume_original.cpp
+volume_original: $(LEGACY_OBJS) volume-legacy.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume-legacy.exe $(LEGACY_OBJS) volume-legacy.cpp
 	@chmod +x $(BIN_DIR)/Volume-legacy.exe
-
-volume_reference: $(LEGACY_OBJS) volume_original.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume-1.0.exe $(LEGACY_OBJS) volume_original.cpp
-	@chmod +x $(BIN_DIR)/Volume-1.0.exe
 
 # Test target depends on the vol target
 test: vol
@@ -143,22 +144,22 @@ test: vol
 testhelp: all
 	cd $(BIN_DIR) && for i in *.exe; do echo $$i; ./$$i -q -h; sleep 0.1; done
 
-volnocav: $(OBJS) volnocav.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/VolumeNoCav.exe $(OBJS) volnocav.cpp
+volnocav: $(OBJS) volume-fill_cavities.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/VolumeNoCav.exe $(OBJS) volume-fill_cavities.cpp
 	@chmod +x $(BIN_DIR)/VolumeNoCav.exe
 
-twovol: $(OBJS) twovolnocav.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/TwoVol.exe $(OBJS) twovolnocav.cpp
+twovol: $(OBJS) two_volumes-fill_cavities.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/TwoVol.exe $(OBJS) two_volumes-fill_cavities.cpp
 	@chmod +x $(BIN_DIR)/TwoVol.exe
 
 cust: $(OBJS) rna_protein_volume.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Custom.exe $(OBJS) rna_protein_volume.cpp
-	@chmod +x $(BIN_DIR)/Custom.exe
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/ProteinRNAVolume.exe $(OBJS) rna_protein_volume.cpp
+	@chmod +x $(BIN_DIR)/ProteinRNAVolume.exe
 
-frac: $(OBJS) fracDim.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FracDim.exe $(OBJS) fracDim.cpp
+frac: $(OBJS) fractal_dimenstion.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FracDim.exe $(OBJS) fractal_dimenstion.cpp
 	@chmod +x $(BIN_DIR)/FracDim.exe
 
-pdbxyzr: $(BIN_DIR) pdb_io.o pdb_to_xyzr.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
-	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/pdb_to_xyzr.exe pdb_io.o pdb_to_xyzr.cpp
+pdbxyzr: $(BIN_DIR) $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/argument_helper.o pdb_to_xyzr.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
+	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/pdb_to_xyzr.exe $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/argument_helper.o pdb_to_xyzr.cpp
 	@chmod +x $(BIN_DIR)/pdb_to_xyzr.exe

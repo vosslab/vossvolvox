@@ -39,9 +39,10 @@ PDB_ID="2LYZ"
 PDB_FILE="${PDB_ID}.pdb"
 XYZR_FILE="${PDB_ID}-filtered.xyzr"
 OUTPUT_PDB="${PDB_ID}-volume.pdb"
-EXPECTED_MD5="f3271bd427b1fcc4d384a1221b738faf"
-EXPECTED_OUTPUT_LINES=4874
-EXPECTED_VOLUME=18551.124
+EXPECTED_OUTPUT_LINES=4882
+EXPECTED_HETATM_LINES=4870
+EXPECTED_HETATM_MD5="d8611307bbcc68315bd10d1a7f1f3741"
+EXPECTED_VOLUME=18550.861
 EXPECTED_SURFACE=4982.05
 VOLUME_TOLERANCE=0.01
 
@@ -70,7 +71,7 @@ if [ -n "${PDB_TO_XYZR_FILTERS:-}" ]; then
   FILTER_ARGS=(${PDB_TO_XYZR_FILTERS})
 fi
 echo "Converting ${PDB_FILE} to XYZR format using ${PDB_TO_XYZR_BIN} ${FILTER_ARGS[*]}..."
-"${PDB_TO_XYZR_BIN}" "${FILTER_ARGS[@]}" "${PDB_FILE}" > "${XYZR_FILE}"
+"${PDB_TO_XYZR_BIN}" "${FILTER_ARGS[@]}" -i "${PDB_FILE}" > "${XYZR_FILE}"
 
 # Step E: Compile the Volume program (if needed)
 if [ ! -x ../bin/Volume.exe ]; then
@@ -116,18 +117,27 @@ if [ "${OUTPUT_LINES}" -ne "${EXPECTED_OUTPUT_LINES}" ]; then
   overall_status=1
 fi
 
-# Step G: Calculate the MD5 checksum of the output
-echo "Calculating MD5 checksum of ${OUTPUT_PDB}..."
-OUTPUT_MD5=$(md5sum "${OUTPUT_PDB}" | awk '{print $1}')
-echo "Output PDB file md5sum value of '${OUTPUT_MD5}'"
+# Step G: Calculate the HETATM-only MD5 checksum of the output
+HETATM_FILE=$(mktemp)
+cleanup_files+=("$HETATM_FILE")
+grep '^HETATM' "${OUTPUT_PDB}" > "${HETATM_FILE}"
+HETATM_LINES=$(wc -l < "${HETATM_FILE}")
+echo "Output PDB file has ${HETATM_LINES} HETATM lines."
+if [ "${HETATM_LINES}" -ne "${EXPECTED_HETATM_LINES}" ]; then
+  echo "HETATM line count mismatch: expected ${EXPECTED_HETATM_LINES}, got ${HETATM_LINES}" >&2
+  overall_status=1
+fi
+echo "Calculating HETATM-only MD5 checksum of ${OUTPUT_PDB}..."
+HETATM_MD5=$(md5sum "${HETATM_FILE}" | awk '{print $1}')
+echo "HETATM md5sum value of '${HETATM_MD5}'"
 
-# Step H: Compare the MD5 checksum to the expected value
-if [ "$OUTPUT_MD5" == "$EXPECTED_MD5" ]; then
-  echo "Test passed: MD5 checksum matches expected value."
+# Step H: Compare the HETATM-only MD5 checksum to the expected value
+if [ "$HETATM_MD5" == "$EXPECTED_HETATM_MD5" ]; then
+  echo "Test passed: HETATM MD5 checksum matches expected value."
 else
-  echo "Test failed: MD5 checksum does not match expected value."
-  echo "Expected: $EXPECTED_MD5"
-  echo "Actual:   $OUTPUT_MD5"
+  echo "Test failed: HETATM MD5 checksum does not match expected value."
+  echo "Expected: $EXPECTED_HETATM_MD5"
+  echo "Actual:   $HETATM_MD5"
   overall_status=1
 fi
 

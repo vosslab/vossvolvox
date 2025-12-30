@@ -3,15 +3,33 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 namespace vossvolvox {
 
 namespace {
 bool g_quiet_mode = false;
+std::vector<std::string> g_command_line_args;
 }
 
 bool quiet_mode() {
   return g_quiet_mode;
+}
+
+void set_command_line(int argc, char* argv[]) {
+  g_command_line_args.clear();
+  if (argc <= 1 || argv == nullptr) {
+    return;
+  }
+  for (int i = 1; i < argc; ++i) {
+    if (argv[i]) {
+      g_command_line_args.emplace_back(argv[i]);
+    }
+  }
+}
+
+const std::vector<std::string>& command_line_args() {
+  return g_command_line_args;
 }
 
 ArgumentParser::ArgumentParser(std::string program_name, std::string description)

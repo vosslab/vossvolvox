@@ -119,6 +119,7 @@ def convert_modern(pdb_path: Path, output_xyzr: Path, converter: Path) -> None:
         str(converter),
         "--exclude-ions",
         "--exclude-water",
+        "-i",
         str(pdb_path),
     ]
     print(f"Converting {pdb_path.name} -> {output_xyzr.name} using modern converter...")

@@ -21,6 +21,7 @@ extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
+  vossvolvox::set_command_line(argc, argv);
 
   std::string input_path;
   double BIGPROBE = 10.0;

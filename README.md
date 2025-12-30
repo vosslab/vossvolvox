@@ -68,4 +68,4 @@ If you use these tools in your research, please cite:
 
 Common executables: `Volume.exe`, `Channel.exe`, `Cavities.exe`, `Solvent.exe`,
 `Tunnel.exe`, `VDW.exe`, `VolumeNoCav.exe`, `AllChannel.exe`, `AllChannelExc.exe`,
-`FsvCalc.exe`, `FracDim.exe`, `TwoVol.exe`, `Custom.exe`.
+`FsvCalc.exe`, `FracDim.exe`, `TwoVol.exe`, `ProteinRNAVolume.exe`.

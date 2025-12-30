@@ -30,6 +30,7 @@ int getCavitiesBothMeth(const float probe, gridpt shellACC[], gridpt shellEXC[],
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
+  vossvolvox::set_command_line(argc, argv);
 
   std::string file1;
   std::string file2;

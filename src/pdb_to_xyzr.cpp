@@ -1,8 +1,9 @@
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
+#include "argument_helper.h"
 #include "pdb_io.h"
 
 namespace {
@@ -32,100 +33,115 @@ void print_citation() {
               << std::endl;
 }
 
-struct Options {
-    bool use_united = true;
-    bool quiet = false;
-    std::string input = "-";
-    vossvolvox::pdbio::Filters filters;
-};
-
-void print_help(const char* program) {
-    std::cout << "Usage: " << program
-              << " [options] [input]\n\n"
-              << "Options:\n"
-              << "  -h, --help               show this message and exit\n"
-              << "  -H, --hydrogens          use explicit hydrogen radii\n"
-              << "  -q, --quiet              suppress program banner/citation output\n"
-              << "      --exclude-ions       drop residues classified as ions\n"
-              << "      --exclude-ligands    drop non-polymer ligands\n"
-              << "      --exclude-hetatm     drop residues composed of HETATM records only\n"
-              << "      --exclude-water      drop water molecules\n"
-              << "      --exclude-nucleic-acids drop nucleic-acid residues\n"
-              << "      --exclude-amino-acids  drop amino-acid residues\n";
-}
-
-Options parse_options(int argc, char** argv) {
-    Options options;
-    for (int i = 1; i < argc; ++i) {
-        const std::string arg = argv[i];
-        if (arg == "-h" || arg == "--help") {
-            print_help(argv[0]);
-            std::exit(0);
-        }
-        if (arg == "-H" || arg == "--hydrogens") {
-            options.use_united = false;
-            continue;
-        }
-        if (arg == "-q" || arg == "--quiet") {
-            options.quiet = true;
-            continue;
-        }
-        if (arg == "--exclude-ions") {
-            options.filters.exclude_ions = true;
-            continue;
-        }
-        if (arg == "--exclude-ligands") {
-            options.filters.exclude_ligands = true;
-            continue;
-        }
-        if (arg == "--exclude-hetatm") {
-            options.filters.exclude_hetatm = true;
-            continue;
-        }
-        if (arg == "--exclude-water") {
-            options.filters.exclude_water = true;
-            continue;
-        }
-        if (arg == "--exclude-nucleic-acids") {
-            options.filters.exclude_nucleic_acids = true;
-            continue;
-        }
-        if (arg == "--exclude-amino-acids") {
-            options.filters.exclude_amino_acids = true;
-            continue;
-        }
-        if (!arg.empty() && arg[0] == '-') {
-            std::cerr << "pdb_to_xyzr: unknown option '" << arg << "'\n";
-            print_help(argv[0]);
-            std::exit(2);
-        }
-        if (options.input != "-") {
-            std::cerr << "pdb_to_xyzr: multiple input files provided" << std::endl;
-            std::exit(2);
-        }
-        options.input = arg;
-    }
-    return options;
-}
-
 }  // namespace
 
 int main(int argc, char** argv) {
     std::ios::sync_with_stdio(false);
-    const auto options = parse_options(argc, argv);
-    if (!options.quiet) {
+    std::string input_file;
+    bool use_hydrogens = false;
+    bool exclude_ions = false;
+    bool exclude_ligands = false;
+    bool exclude_hetatm = false;
+    bool exclude_water = false;
+    bool exclude_nucleic = false;
+    bool exclude_amino = false;
+
+    vossvolvox::ArgumentParser parser(
+        argv[0],
+        "Convert structural inputs (PDB/mmCIF/PDBML/XYZR) to XYZR format.");
+    vossvolvox::add_input_option(parser, input_file);
+    vossvolvox::add_xyzr_filter_flags(parser,
+                                      use_hydrogens,
+                                      exclude_ions,
+                                      exclude_ligands,
+                                      exclude_hetatm,
+                                      exclude_water,
+                                      exclude_nucleic,
+                                      exclude_amino);
+    parser.add_example(std::string(argv[0]) +
+                       " -i 1A01.pdb --exclude-ions --exclude-water > 1a01-filtered.xyzr");
+    parser.add_example(std::string(argv[0]) + " -i - --exclude-water < 1a01.pdb > 1a01.xyzr");
+
+    std::string positional_input;
+    std::vector<std::string> filtered_args;
+    filtered_args.reserve(static_cast<size_t>(argc));
+    filtered_args.push_back(argv[0]);
+
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg = argv[i];
+        if (arg == "--") {
+            if (i + 1 < argc) {
+                if (!positional_input.empty()) {
+                    std::cerr << "pdb_to_xyzr: multiple input files provided\n";
+                    return 2;
+                }
+                positional_input = argv[i + 1];
+                if (i + 2 < argc) {
+                    std::cerr << "pdb_to_xyzr: multiple input files provided\n";
+                    return 2;
+                }
+            }
+            break;
+        }
+        if (arg == "-i" || arg == "--input") {
+            filtered_args.push_back(arg);
+            if (i + 1 < argc) {
+                filtered_args.push_back(argv[i + 1]);
+                ++i;
+            }
+            continue;
+        }
+        if (!arg.empty() && arg[0] != '-') {
+            if (!positional_input.empty()) {
+                std::cerr << "pdb_to_xyzr: multiple input files provided\n";
+                return 2;
+            }
+            positional_input = arg;
+            continue;
+        }
+        filtered_args.push_back(arg);
+    }
+
+    std::vector<char*> filtered_argv;
+    filtered_argv.reserve(filtered_args.size());
+    for (auto& arg : filtered_args) {
+        filtered_argv.push_back(arg.data());
+    }
+
+    const auto parse_result = parser.parse(static_cast<int>(filtered_argv.size()), filtered_argv.data());
+    if (parse_result == vossvolvox::ArgumentParser::ParseResult::HelpRequested) {
+        return 0;
+    }
+    if (parse_result == vossvolvox::ArgumentParser::ParseResult::Error) {
+        return 1;
+    }
+
+    if (!input_file.empty() && !positional_input.empty()) {
+        std::cerr << "pdb_to_xyzr: multiple input files provided\n";
+        return 2;
+    }
+    if (input_file.empty() && !positional_input.empty()) {
+        input_file = positional_input;
+    }
+
+    if (!vossvolvox::quiet_mode()) {
         print_compile_info(argv[0]);
         print_citation();
     }
 
     vossvolvox::pdbio::ConversionOptions convert_options;
-    convert_options.use_united = options.use_united;
-    convert_options.filters = options.filters;
+    convert_options.use_united = !use_hydrogens;
+    convert_options.filters.exclude_ions = exclude_ions;
+    convert_options.filters.exclude_ligands = exclude_ligands;
+    convert_options.filters.exclude_hetatm = exclude_hetatm;
+    convert_options.filters.exclude_water = exclude_water;
+    convert_options.filters.exclude_nucleic_acids = exclude_nucleic;
+    convert_options.filters.exclude_amino_acids = exclude_amino;
 
-    const bool use_stdin = options.input == "-";
+    const bool use_stdin = input_file.empty() || input_file == "-";
     if (!use_stdin) {
         vossvolvox::pdbio::XyzrData data;
-        if (!vossvolvox::pdbio::ReadFileToXyzr(options.input, convert_options, data)) {
+        if (!vossvolvox::pdbio::ReadFileToXyzr(input_file, convert_options, data)) {
             return 2;
         }
         vossvolvox::pdbio::WriteXyzrToStream(std::cout, data);
@@ -133,7 +149,6 @@ int main(int argc, char** argv) {
     }
 
     vossvolvox::pdbio::PdbToXyzrConverter converter;
-
     converter.ConvertStream(std::cin, "<stdin>", convert_options, std::cout);
     return 0;
 }

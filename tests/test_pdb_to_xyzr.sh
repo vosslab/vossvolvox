@@ -52,7 +52,7 @@ INPUT_PDB=$(prepare_input "${PDB_ID}") || {
 }
 
 IMPLEMENTATIONS=(
-  "cpp::${BIN_DIR}/pdb_to_xyzr.exe"
+  "cpp::${BIN_DIR}/pdb_to_xyzr.exe -i"
   "python::python3 ${XYZR_DIR}/pdb_to_xyzr.py"
   "sh::${XYZR_DIR}/pdb_to_xyzr.sh"
 )
@@ -88,7 +88,7 @@ for entry in "${IMPLEMENTATIONS[@]}"; do
     echo "Skipping shell implementation; script not found." >&2
     continue
   fi
-  if [[ "${cmd}" == "${BIN_DIR}/pdb_to_xyzr.exe" && ! -x "${BIN_DIR}/pdb_to_xyzr.exe" ]]; then
+  if [[ "${cmd}" == "${BIN_DIR}/pdb_to_xyzr.exe"* && ! -x "${BIN_DIR}/pdb_to_xyzr.exe" ]]; then
     echo "Skipping C++ implementation; executable not found." >&2
     continue
   fi

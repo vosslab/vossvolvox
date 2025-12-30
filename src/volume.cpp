@@ -31,6 +31,7 @@ void processGrid(double probe,
 
 int main(int argc, char* argv[]) {
   std::cerr << "\n";
+  vossvolvox::set_command_line(argc, argv);
 
   // Initialize variables
   std::string inputFile;

@@ -49,6 +49,7 @@ int trimYAxis (gridpt grid[]) {
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
+  vossvolvox::set_command_line(argc, argv);
 
   std::string rna_file;
   std::string amino_file;
