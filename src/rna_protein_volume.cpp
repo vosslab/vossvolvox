@@ -19,7 +19,7 @@ int trimYAxis (gridpt grid[]) {
   int error=0;
   if (DEBUG > 0)
     cerr << "Trimming Y Axis from Grids...  " << flush;
-	
+
   float x,y,z;
   for(unsigned int pt=0; pt<NUMBINS; pt++) {
     if (grid[pt]) {
@@ -31,8 +31,6 @@ int trimYAxis (gridpt grid[]) {
   }
   if (DEBUG > 0) {
     cerr << "done [ " << voxels << " vox changed ]" << endl;
-  //cerr << "done [ " << error << " errors : " <<
-//	int(1000.0*error/(voxels+error))/10.0 << "% ]" << endl;
     cerr << endl;
   }
   return voxels;

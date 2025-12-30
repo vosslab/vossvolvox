@@ -10,7 +10,6 @@
 
 // Globals
 extern float GRID;
-extern unsigned int NUMBINS;
 
 int getCavitiesBothMeth(const float probe,
                         gridpt shellACC[],
@@ -165,16 +164,10 @@ Accessible Process
 // EXTRA STEPS TO REMOVE SURFACE CAVITIES???
 
 //Get first point
-  bool stop = 1; int firstpt = 0;
-  for(unsigned int pt=1; pt<NUMBINS && stop; pt++) {
-    if (cavACC[pt]) { stop = 0; firstpt = pt;}
-  }
+  int firstpt = first_filled_point(cavACC.get());
   cerr << "FIRST POINT: " << firstpt << endl;
 //LAST POINT
-  stop = 1; int lastpt = NUMBINS-1;
-  for(unsigned int pt=NUMBINS-1; pt>0 && stop; pt--) {
-    if (cavACC[pt]) { stop = 0; lastpt = pt;}
-  }
+  int lastpt = last_filled_point(cavACC.get());
   cerr << "LAST  POINT: " << lastpt << endl;
 //  get_Connected_Point(cavACC,chanACC,lastpt);
 
@@ -194,7 +187,7 @@ Accessible Process
   auto ecavACC = make_zeroed_grid();
   grow_ExcludeGrid(probe, cavACC.get(), ecavACC.get());
   cavACC.reset();
-  
+
 //Intersect Grown Access Cavities with Shell
   int scavACC_voxels = countGrid(ecavACC.get());
   int ecavACC_voxels = intersect_Grids(ecavACC.get(), shellEXC); //modifies ecavACC
@@ -223,16 +216,10 @@ Excluded Process
   int echanEXC_voxels = countGrid(cavEXC.get());
 
 //Get first point
-  stop = 1; firstpt = 0;
-  for(unsigned int pt=1; pt<NUMBINS && stop; pt++) {
-    if (cavEXC[pt]) { stop = 0; firstpt = pt;}
-  }
+  firstpt = first_filled_point(cavEXC.get());
   cerr << "FIRST POINT: " << firstpt << endl;
 //LAST POINT
-  stop = 1; lastpt = NUMBINS-1;
-  for(unsigned int pt=NUMBINS-1; pt>0 && stop; pt--) {
-    if (cavEXC[pt]) { stop = 0; lastpt = pt;}
-  }
+  lastpt = last_filled_point(cavEXC.get());
   cerr << "LAST  POINT: " << lastpt << endl;
 
 //Pull channels out of inverse excluded map
@@ -274,9 +261,9 @@ Excluded Process
   cout << "\t" << natoms << "\t" << input_label;
   cout << "\tprobe,grid,cav_meth1,cav_meth2,num_atoms,file";
   cout << endl;
-  
+
 //  float perACC = 100*float(tunnACC_voxels) / float(chanACC_voxels);
 //  float perEXC = 100*float(tunnEXC_voxels) / float(chanEXC_voxels);
-  
+
   return cavACC_voxels+ecavACC_voxels;
 };

@@ -349,6 +349,30 @@ std::unique_ptr<gridpt[]> make_grid() {
   return std::unique_ptr<gridpt[]>(new gridpt[NUMBINS]);
 }
 
+int first_filled_point(const gridpt grid[]) {
+  if (!grid) {
+    return 0;
+  }
+  for (unsigned int pt = 1; pt < NUMBINS; ++pt) {
+    if (grid[pt]) {
+      return static_cast<int>(pt);
+    }
+  }
+  return 0;
+}
+
+int last_filled_point(const gridpt grid[]) {
+  if (!grid) {
+    return static_cast<int>(NUMBINS - 1);
+  }
+  for (unsigned int pt = NUMBINS - 1; pt > 0; --pt) {
+    if (grid[pt]) {
+      return static_cast<int>(pt);
+    }
+  }
+  return static_cast<int>(NUMBINS - 1);
+}
+
 /*********************************************/
 int copyGrid (const gridpt oldgrid[], gridpt newgrid[]) {
   // Zeroing the destination is unnecessary because every element will be overwritten.

@@ -106,6 +106,8 @@ void zeroGrid (gridpt grid[]);
 int copyGridFromTo (const gridpt oldgrid[], gridpt newgrid[]);
 int copyGrid (const gridpt oldgrid[], gridpt newgrid[]);
 void inverseGrid (gridpt grid[]);
+int first_filled_point(const gridpt grid[]);
+int last_filled_point(const gridpt grid[]);
 
 //file based functions
 int read_NumAtoms (char file[]);
