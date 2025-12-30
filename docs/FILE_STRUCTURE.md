@@ -3,7 +3,8 @@
 Directory map of the repository and where files belong, including generated assets.
 
 ## Top-level layout
-- `src/`: C++17 sources for all command-line tools and shared helpers.
+- `src/`: C++17 sources for all command-line tools.
+- `src/lib/`: shared C++ helpers, grid utilities, and converter libraries.
 - `bin/`: generated executables (built by `cd src && make`).
 - `xyzr/`: legacy and Python converters for XYZR.
 - `python/`: Python utilities and scripts used by tests and workflows.
@@ -28,7 +29,8 @@ Directory map of the repository and where files belong, including generated asse
 - Root-level docs are limited to `README.md`, `LICENSE`, `AGENTS.md`, and `VERSION`.
 
 ## Where to add new work
-- New C++ binaries: `src/` with `argument_helper.*` integration.
+- New C++ binaries: `src/` with `argument_helper.*` integration via `src/lib/`.
+- New shared C++ helpers: `src/lib/`.
 - New converters or filters: `src/` (native) or `xyzr/` (legacy/Python).
 - New tests: `tests/` (shell and support scripts).
 - New docs: `docs/` with SCREAMING_SNAKE_CASE filenames.

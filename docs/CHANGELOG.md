@@ -16,6 +16,8 @@ OpenAI Codex
 - Updated documentation references from `test/` to `tests/` after the directory
   move.
 - Added short descriptions to the `README.md` documentation links.
+- Moved shared C++ helpers into `src/lib/` and updated build paths and docs.
+- Ensured `src/Makefile` creates `bin/` before building legacy objects.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

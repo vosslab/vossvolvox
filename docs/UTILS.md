@@ -1,6 +1,6 @@
 # Utility Function Reference (utils-main.cpp)
 
-This companion document summarizes the major helper routines defined in `src/utils-main.cpp`. The functions are grouped by their responsibilities so you can look up how the grid, file, point, and utility workflows interact without hunting through the implementation.
+This companion document summarizes the major helper routines defined in `src/lib/utils-main.cpp`. The functions are grouped by their responsibilities so you can look up how the grid, file, point, and utility workflows interact without hunting through the implementation.
 
 ## Initialization & Limit Management
 - `void finalGridDims(float maxprobe)` – reset derived constants (grid volume, water density), zero the tracking filename, and set wide spanning extrema before loading new input.
@@ -60,4 +60,4 @@ This companion document summarizes the major helper routines defined in `src/uti
 
 ## Notes
 - All functions rely on the global variables defined in `utils-main.cpp` (`XMIN`, `GRID`, `NUMBINS`, etc.), so run `finalGridDims()` / the reader helpers before invoking the point-based utilities.
-- The helper functions described here are not exported via headers—they live entirely in `src/utils-main.cpp` and are used by the toolchain (Volume.exe, Solvent.exe, etc.). Use this file as a single reference point until you refactor the logic into separate modules.
+- The helper functions described here are not exported via headers—they live entirely in `src/lib/utils-main.cpp` and are used by the toolchain (Volume.exe, Solvent.exe, etc.). Use this file as a single reference point until you refactor the logic into separate modules.

@@ -9,12 +9,13 @@ and related geometric outputs. Tools share a common CLI layer and converter
 helpers so behavior and flags stay consistent across executables.
 
 ## Major components
-- CLI layer: `argument_helper.*` defines shared flags, output options, and banner
-  behavior for all executables.
-- Converters: `pdb_to_xyzr` (C++ and Python) plus shared XYZR helpers transform
-  structural inputs into XYZR streams or in-memory buffers.
+- CLI layer: `src/lib/argument_helper.*` defines shared flags, output options, and
+  banner behavior for all executables.
+- Converters: `pdb_to_xyzr` (C++ and Python) plus shared XYZR helpers in
+  `src/lib/pdb_io.*` transform structural inputs into XYZR streams or in-memory
+  buffers.
 - Grid and geometry core: voxel grid generation, exclusion, and surface
-  calculations live in `src/` utilities (for example `utils-main.cpp`).
+  calculations live in `src/lib/` utilities (for example `utils-main.cpp`).
 - Executables: tool-specific entry points (for example `Volume.exe`,
   `Channel.exe`, `Cavities.exe`, `Solvent.exe`, `Tunnel.exe`, `VDW.exe`) that
   orchestrate input parsing, grid construction, and output emission.

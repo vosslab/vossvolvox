@@ -13,8 +13,9 @@ BASE_FLAGS = -O3
 CPU_FLAGS = -march=native -mtune=native
 # OpenMP flag for parallel processing
 OPENMP_FLAGS = -fopenmp
-# Default to base flags; OpenMP will be added if supported
-FLAGS = $(strip $(BASE_FLAGS) $(CPU_FLAGS))
+# Default to base flags plus local include paths; OpenMP will be added if supported
+INCLUDE_FLAGS = -Ilib
+FLAGS = $(strip $(BASE_FLAGS) $(CPU_FLAGS) $(INCLUDE_FLAGS))
 STD_FLAG = -std=c++17
 
 # Setup target to configure flags based on OpenMP support
@@ -38,7 +39,7 @@ OBJS = utils-main.o utils-output.o utils-mrc.o argument_helper.o pdb_io.o
 LEGACY_OBJS = utils-main-legacy.o utils-output-legacy.o utils-mrc-legacy.o
 
 # Ensure the bin directory exists before building object files
-$(OBJS): $(BIN_DIR)
+$(OBJS) $(LEGACY_OBJS): $(BIN_DIR)
 
 # The default target, which builds all programs
 all: $(BIN_DIR) cav chan allchan allexc fsv sol tun vdw vol volnocav twovol frac cust pdbxyzr
@@ -66,29 +67,29 @@ none:
 
 
 # Compilation rules for individual object files
-utils-main.o: utils-main.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main.o utils-main.cpp
+utils-main.o: lib/utils-main.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main.o lib/utils-main.cpp
 
-utils-main-legacy.o: utils-main-legacy.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main-legacy.o utils-main-legacy.cpp
+utils-main-legacy.o: lib/utils-main-legacy.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-main-legacy.o lib/utils-main-legacy.cpp
 
-utils-output.o: utils-main.o utils-output.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output.o utils-output.cpp
+utils-output.o: utils-main.o lib/utils-output.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output.o lib/utils-output.cpp
 
-utils-output-legacy.o: utils-main-legacy.o utils-output.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output-legacy.o utils-output.cpp
+utils-output-legacy.o: utils-main-legacy.o lib/utils-output.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-output-legacy.o lib/utils-output.cpp
 
-utils-mrc.o: utils-mrc.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc.o utils-mrc.cpp
+utils-mrc.o: lib/utils-mrc.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc.o lib/utils-mrc.cpp
 
-utils-mrc-legacy.o: utils-mrc.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc-legacy.o utils-mrc.cpp
+utils-mrc-legacy.o: lib/utils-mrc.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o utils-mrc-legacy.o lib/utils-mrc.cpp
 
-argument_helper.o: argument_helper.cpp
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o argument_helper.o argument_helper.cpp
+argument_helper.o: lib/argument_helper.cpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o argument_helper.o lib/argument_helper.cpp
 
-pdb_io.o: pdb_io.cpp pdb_io.h atmtypenumbers_data.h
-	$(CC) $(FLAGS) $(STD_FLAG) -c -o pdb_io.o pdb_io.cpp
+pdb_io.o: lib/pdb_io.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o pdb_io.o lib/pdb_io.cpp
 
 # Individual program targets
 cav: $(OBJS) cavities.cpp
@@ -137,7 +138,7 @@ volume_reference: $(LEGACY_OBJS) volume_original.cpp
 
 # Test target depends on the vol target
 test: vol
-	cd ../test && ./test_volume.sh
+	cd ../tests && ./test_volume.sh
 
 testhelp: all
 	cd $(BIN_DIR) && for i in *.exe; do echo $$i; ./$$i -q -h; sleep 0.1; done
@@ -158,6 +159,6 @@ frac: $(OBJS) fracDim.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FracDim.exe $(OBJS) fracDim.cpp
 	@chmod +x $(BIN_DIR)/FracDim.exe
 
-pdbxyzr: $(BIN_DIR) pdb_io.o pdb_to_xyzr.cpp pdb_io.h atmtypenumbers_data.h
+pdbxyzr: $(BIN_DIR) pdb_io.o pdb_to_xyzr.cpp lib/pdb_io.h lib/atmtypenumbers_data.h
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/pdb_to_xyzr.exe pdb_io.o pdb_to_xyzr.cpp
 	@chmod +x $(BIN_DIR)/pdb_to_xyzr.exe
