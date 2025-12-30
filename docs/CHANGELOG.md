@@ -86,6 +86,9 @@ OpenAI Codex
 - Added `report_grid_metrics()` helper for consistent grid summary output.
 - Added `make_zeroed_grid()` helper to combine allocation and zeroing.
 - Updated C++ includes to use renamed `.hpp` headers and refreshed build refs.
+- Trimmed unused global extern declarations across modern executables.
+- Modernized `rna_protein_volume.cpp` grid allocations to use `make_zeroed_grid()`.
+- Dropped the planned `--debug-limits` hook from the refactor plan.
 
 ## 2025-11-29
 Neil Voss <vossman77@yahoo.com>

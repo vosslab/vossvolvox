@@ -16,17 +16,10 @@
 // designed for use with 3d printer
 // ****************************************************
 
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
+// Globals
+extern float GRID, GRIDVOL;
 extern int DX, DY, DZ;
-extern int DXY, DXYZ;
 extern unsigned int NUMBINS;
-extern float MAXPROBE;
-extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
 
 int getCavitiesBothMeth(const float probe, gridpt shellACC[], gridpt shellEXC[],
 	const int natoms, char file1[], char file2[], char mrcfile1[], char mrcfile2[]);
@@ -185,54 +178,51 @@ int main(int argc, char *argv[]) {
   cerr << "Input file 2:   " << file2 << endl;
   cerr << "DIMENSIONS:   " << DX << ", " << DY << ", " << DZ << endl;
 
-  gridpt *shellACC=NULL, *shellACC2=NULL, *EXCgrid1=NULL, *EXCgrid2=NULL;
   int voxels1, voxels2;
 
 // ****************************************************
 // STARTING FILE 1 READ-IN
 // ****************************************************
 
-  shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromArray(numatoms1, PROBE1, xyzr_buffer1, shellACC);
+  auto shellACC = make_zeroed_grid();
+  fill_AccessGrid_fromArray(numatoms1, PROBE1, xyzr_buffer1, shellACC.get());
   if(merge == 1) {
-    shellACC2 = (gridpt*) std::malloc (NUMBINS);
-    fill_AccessGrid_fromArray(numatoms2, minPROBE, xyzr_buffer2, shellACC2);
+    auto shellACC2 = make_zeroed_grid();
+    fill_AccessGrid_fromArray(numatoms2, minPROBE, xyzr_buffer2, shellACC2.get());
     cerr << "Merge Volumes 1->2" << endl;
-    merge_Grids(shellACC, shellACC2);
-    std::free (shellACC2);
+    merge_Grids(shellACC.get(), shellACC2.get());
   }
-  voxels1 = countGrid(shellACC);
-  fill_cavities(shellACC);
-  voxels2 = countGrid(shellACC);
+  voxels1 = countGrid(shellACC.get());
+  fill_cavities(shellACC.get());
+  voxels2 = countGrid(shellACC.get());
   cerr << "Fill Cavities: " << voxels2 - voxels1 << " voxels filled" << endl;
 
-  EXCgrid1 = (gridpt*) std::malloc (NUMBINS);
-  trun_ExcludeGrid(PROBE1,shellACC,EXCgrid1);
+  auto EXCgrid1 = make_zeroed_grid();
+  trun_ExcludeGrid(PROBE1, shellACC.get(), EXCgrid1.get());
 
-  std::free (shellACC);
+  shellACC.reset();
   
 // ****************************************************
 // STARTING FILE 2 READ-IN
 // ****************************************************
 
-  shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromArray(numatoms2, PROBE2, xyzr_buffer2, shellACC);
+  shellACC = make_zeroed_grid();
+  fill_AccessGrid_fromArray(numatoms2, PROBE2, xyzr_buffer2, shellACC.get());
   if(merge == 2) {
-    shellACC2 = (gridpt*) std::malloc (NUMBINS);
-    fill_AccessGrid_fromArray(numatoms2, minPROBE, xyzr_buffer1, shellACC2);
+    auto shellACC2 = make_zeroed_grid();
+    fill_AccessGrid_fromArray(numatoms2, minPROBE, xyzr_buffer1, shellACC2.get());
     cerr << "Merge Volumes 2->1" << endl;
-    merge_Grids(shellACC, shellACC2);
-    std::free (shellACC2);
+    merge_Grids(shellACC.get(), shellACC2.get());
   }  
-  voxels1 = countGrid(shellACC);
-  fill_cavities(shellACC);
-  voxels2 = countGrid(shellACC);
+  voxels1 = countGrid(shellACC.get());
+  fill_cavities(shellACC.get());
+  voxels2 = countGrid(shellACC.get());
   cerr << "Fill Cavities: " << voxels2 - voxels1 << " voxels filled" << endl;
 
-  EXCgrid2 = (gridpt*) std::malloc (NUMBINS);
-  trun_ExcludeGrid(PROBE2,shellACC,EXCgrid2);
+  auto EXCgrid2 = make_zeroed_grid();
+  trun_ExcludeGrid(PROBE2, shellACC.get(), EXCgrid2.get());
 
-  std::free (shellACC);
+  shellACC.reset();
   
 // ****************************************************
 // SUBTRACT AND SAVE
@@ -242,16 +232,16 @@ int main(int argc, char *argv[]) {
 
   cerr << "subtract grids" << endl;
   if(merge == 1) {
-    subt_Grids(EXCgrid1, EXCgrid2); //modifies first grid
+    subt_Grids(EXCgrid1.get(), EXCgrid2.get()); //modifies first grid
   } else {
-    subt_Grids(EXCgrid2, EXCgrid1); //modifies first grid
+    subt_Grids(EXCgrid2.get(), EXCgrid1.get()); //modifies first grid
   }
   
   cerr << "makerbot fill" << endl;
   if(fill == 1) {
-  	makerbot_fill(EXCgrid2, EXCgrid1);
+  	makerbot_fill(EXCgrid2.get(), EXCgrid1.get());
   } else if(fill == 2) {
-    makerbot_fill(EXCgrid1, EXCgrid2);
+    makerbot_fill(EXCgrid1.get(), EXCgrid2.get());
   } else {
   	cerr << "no fill" << endl;
   }
@@ -266,18 +256,12 @@ int main(int argc, char *argv[]) {
   */
 
   if(!mrcfile1.empty()) {
-    writeMRCFile(EXCgrid1, const_cast<char*>(mrcfile1.c_str()));
+    writeMRCFile(EXCgrid1.get(), const_cast<char*>(mrcfile1.c_str()));
   }
-
-//RELEASE TEMPGRID
-  std::free (EXCgrid1);
 
   if(!mrcfile2.empty()) {
-    writeMRCFile(EXCgrid2, const_cast<char*>(mrcfile2.c_str()));
+    writeMRCFile(EXCgrid2.get(), const_cast<char*>(mrcfile2.c_str()));
   }
-
-//RELEASE TEMPGRID
-  std::free (EXCgrid2);
 
   //cout << PROBE1 << "\t" << PROBE2 << "\t" << GRID << "\t" << endl;
 

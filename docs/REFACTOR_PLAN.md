@@ -199,7 +199,6 @@ After pilots pass:
 - [x] Document `assignLimits()` padding behavior as a preserved invariant.
 - [x] `xyzr_cli_helpers` module added.
 - [x] Pilots refactored and validated.
-- [ ] Optional: add `--debug-limits` to pilots once there is a safe call site.
 - [x] Unified --debug flag added for filters, inputs/outputs, grid state, and timing.
 - [x] Rollout completed for remaining modern tools.
 - [x] Phase 4b common CLI settings refactor implemented.

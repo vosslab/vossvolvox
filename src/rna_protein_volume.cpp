@@ -11,17 +11,9 @@
 #include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.hpp"
 
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
-extern int DX, DY, DZ;
-extern int DXY, DXYZ;
+// Globals
+extern float GRID, GRIDVOL;
 extern unsigned int NUMBINS;
-extern float MAXPROBE;
-extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
 
 
 /*********************************************/
@@ -151,33 +143,23 @@ int main(int argc, char *argv[]) {
 // STARTING FIRST FILE
 // ****************************************************
 //READ FILE INTO RNAgrid
-  gridpt *RNAgrid;
-  RNAgrid = (gridpt*) std::malloc (NUMBINS);
-  if (RNAgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
-  zeroGrid(RNAgrid);
-  int rnavoxels = get_ExcludeGrid_fromArray(rnanumatoms, PROBE, rna_xyzr_buffer, RNAgrid);
+  auto RNAgrid = make_zeroed_grid();
+  int rnavoxels = get_ExcludeGrid_fromArray(rnanumatoms, PROBE, rna_xyzr_buffer, RNAgrid.get());
 
 //READ FILE INTO AminoGrid
-  gridpt *AminoGrid;
-  AminoGrid = (gridpt*) std::malloc (NUMBINS);
-  if (AminoGrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
-  zeroGrid(AminoGrid);
-  int aminovoxels = get_ExcludeGrid_fromArray(aminonumatoms, PROBE, amino_xyzr_buffer, AminoGrid);
+  auto AminoGrid = make_zeroed_grid();
+  int aminovoxels = get_ExcludeGrid_fromArray(aminonumatoms, PROBE, amino_xyzr_buffer, AminoGrid.get());
 
 //Subtract the protein grid
-  subt_Grids(RNAgrid, AminoGrid);
+  subt_Grids(RNAgrid.get(), AminoGrid.get());
 
-  trimYAxis(AminoGrid);
-  trimYAxis(RNAgrid);
+  trimYAxis(AminoGrid.get());
+  trimYAxis(RNAgrid.get());
 
   const char* rnafilename = "rna.mrc";
-  writeMRCFile(RNAgrid, rnafilename);
+  writeMRCFile(RNAgrid.get(), rnafilename);
   const char* aminofilename = "amino.mrc";
-  writeMRCFile(AminoGrid, aminofilename);
-
-//RELEASE TEMPGRID
-  std::free (AminoGrid);
-  std::free (RNAgrid);
+  writeMRCFile(AminoGrid.get(), aminofilename);
 
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;

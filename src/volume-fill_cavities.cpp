@@ -16,17 +16,9 @@
 // designed for use with 3d printer
 // ****************************************************
 
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
-extern int DX, DY, DZ;
-extern int DXY, DXYZ;
+// Globals
+extern float GRID, GRIDVOL;
 extern unsigned int NUMBINS;
-extern float MAXPROBE;
-extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
 
 int getCavitiesBothMeth(const float probe,
                         gridpt shellACC[],
@@ -118,30 +110,25 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 
 
-  gridpt *shellACC=NULL;
-  shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromArray(numatoms, PROBE, xyzr_buffer, shellACC);
-  int voxels1 = countGrid(shellACC);
-  fill_cavities(shellACC);
-  int voxels2 = countGrid(shellACC);
+  auto shellACC = make_zeroed_grid();
+  fill_AccessGrid_fromArray(numatoms, PROBE, xyzr_buffer, shellACC.get());
+  int voxels1 = countGrid(shellACC.get());
+  fill_cavities(shellACC.get());
+  int voxels2 = countGrid(shellACC.get());
   cerr << "Fill Cavities: " << voxels2 - voxels1 << " voxels filled" << endl;
 
-  gridpt *EXCgrid=NULL;
-  EXCgrid = (gridpt*) std::malloc (NUMBINS);
-  trun_ExcludeGrid(PROBE,shellACC,EXCgrid);
+  auto EXCgrid = make_zeroed_grid();
+  trun_ExcludeGrid(PROBE, shellACC.get(), EXCgrid.get());
 
-  std::free (shellACC);
-  int voxels = countGrid(EXCgrid);
+  shellACC.reset();
+  int voxels = countGrid(EXCgrid.get());
 
 
 
   long double surf;
-  surf = surface_area(EXCgrid);
+  surf = surface_area(EXCgrid.get());
 
-  write_output_files(EXCgrid, outputs);
-
-//RELEASE TEMPGRID
-  std::free (EXCgrid);
+  write_output_files(EXCgrid.get(), outputs);
 
   cout << PROBE << "\t" << GRID << "\t" << flush;
   printVolCout(voxels);

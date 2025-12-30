@@ -1,4 +1,4 @@
-#include <cstdlib>   // For std::free, std::malloc, std::exit, std::atof
+#include <cstdlib>
 #include <cstring>   // For std::strlen, std::strcpy, std::strrchr
 #include <iostream>  // For std::cerr
 #include <cstdio>    // For std::snprintf
@@ -11,17 +11,9 @@
 #include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.hpp"
 
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
-extern int DX, DY, DZ;
-extern int DXY, DXYZ;
+// Globals
+extern float GRID, GRIDVOL;
 extern unsigned int NUMBINS;
-extern float MAXPROBE;
-extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
 
 // Function to get the directory name from a given file path
 //
@@ -212,13 +204,10 @@ int main(int argc, char *argv[]) {
   // ****************************************************
   // STARTING LARGE PROBE
   // ****************************************************
-  gridpt *biggrid;
-  biggrid = (gridpt*) std::malloc (NUMBINS);
-  if (biggrid == NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
-  zeroGrid(biggrid);
+  auto biggrid = make_zeroed_grid();
   int bigvox;
   if (BIGPROBE > 0.0) {
-    bigvox = get_ExcludeGrid_fromArray(numatoms, BIGPROBE, xyzr_buffer, biggrid);
+    bigvox = get_ExcludeGrid_fromArray(numatoms, BIGPROBE, xyzr_buffer, biggrid.get());
   } else {
     std::cerr << "BIGPROBE <= 0" << endl;
     return 1;
@@ -239,106 +228,88 @@ int main(int argc, char *argv[]) {
   // ****************************************************
   // TRIM LARGE PROBE SURFACE
   // ****************************************************
-  gridpt *trimgrid;
-  trimgrid = (gridpt*) std::malloc (NUMBINS);
-  if (trimgrid==NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
-  copyGrid(biggrid,trimgrid);
-  trun_ExcludeGrid(TRIMPROBE,biggrid,trimgrid);
-  std::free (biggrid);
+  auto trimgrid = make_zeroed_grid();
+  copyGrid(biggrid.get(), trimgrid.get());
+  trun_ExcludeGrid(TRIMPROBE, biggrid.get(), trimgrid.get());
+  biggrid.reset();
 
   //cout << "bg_prb\tsm_prb\tgrid\texcvol\tsurf\taccvol\tfile" << endl;
 
   // ****************************************************
   // STARTING SMALL PROBE
   // ****************************************************
-  gridpt *smgrid;
-  smgrid = (gridpt*) std::malloc (NUMBINS);
-  if (smgrid==NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
-  zeroGrid(smgrid);
+  auto smgrid = make_zeroed_grid();
   int smvox;
-  smvox = fill_AccessGrid_fromArray(numatoms, SMPROBE, xyzr_buffer, smgrid);
+  smvox = fill_AccessGrid_fromArray(numatoms, SMPROBE, xyzr_buffer, smgrid.get());
 
   // ****************************************************
   // GETTING ACCESSIBLE CHANNELS
   // ****************************************************
-  gridpt *solventACC;
-  solventACC = (gridpt*) std::malloc (NUMBINS);
-  if (solventACC==NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
-  copyGrid(trimgrid, solventACC); //copy trimgrid into solventACC
-  subt_Grids(solventACC, smgrid); //modify solventACC
-  std::free (smgrid);
+  auto solventACC = make_zeroed_grid();
+  copyGrid(trimgrid.get(), solventACC.get()); //copy trimgrid into solventACC
+  subt_Grids(solventACC.get(), smgrid.get()); //modify solventACC
+  smgrid.reset();
 
   // ***************************************************
   // CALCULATE TOTAL SOLVENT
   // ***************************************************
-  gridpt *solventEXC;
-  solventEXC = (gridpt*) std::malloc (NUMBINS);
-  if (solventEXC==NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
-  grow_ExcludeGrid(SMPROBE, solventACC, solventEXC);
-  intersect_Grids(solventEXC, trimgrid); //modifies solventEXC
+  auto solventEXC = make_zeroed_grid();
+  grow_ExcludeGrid(SMPROBE, solventACC.get(), solventEXC.get());
+  intersect_Grids(solventEXC.get(), trimgrid.get()); //modifies solventEXC
   //snprintf(mrcfile, sizeof(mrcfile), "allsolvent.mrc");
   //writeMRCFile(solventEXC, mrcfile);
-  std::free (solventEXC);
+  solventEXC.reset();
 
   // ***************************************************
   // SELECT PARTICULAR CHANNEL
   // ***************************************************
 
   // initialize channel volume
-  gridpt *channelACC;
-  channelACC = (gridpt*) std::malloc (NUMBINS);
-  if (channelACC==NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
+  auto channelACC = make_zeroed_grid();
 
   //main channel loop
   int numchannels=0;
   int allchannels=0;
   int connected;
   int maxvox=0, minvox=1000000, goodminvox=1000000;
-  int solventACCvol = countGrid(solventACC); // initialize origSolventACC volume
+  int solventACCvol = countGrid(solventACC.get()); // initialize origSolventACC volume
 
   if (numchan > 0) {
     if (DEBUG > 0)
       std::cerr << "#######" << endl << "Starting NumChan Area" << endl
       << "#######" << endl;
-    gridpt *tempSolventACC;
-    tempSolventACC = (gridpt*) std::malloc (NUMBINS);
-    if (tempSolventACC==NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
+    auto tempSolventACC = make_zeroed_grid();
 
     // set up a list
-    int *vollist;
-    vollist = (int*) std::malloc ((numchan+2)*sizeof(int));
-    if (vollist==NULL) { std::cerr << "LIST IS NULL" << endl; return 1; }
-    for (int i=0; i<numchan+2; i++) {
-      vollist[i] = 0;
-    }
+    std::vector<int> vollist(numchan + 2, 0);
 
-    copyGrid(solventACC, tempSolventACC); // initialize tempSolventACC volume
+    copyGrid(solventACC.get(), tempSolventACC.get()); // initialize tempSolventACC volume
 
     short int insert;
-    while ( countGrid(tempSolventACC) > MINSIZE ) {
+    while ( countGrid(tempSolventACC.get()) > MINSIZE ) {
       // get channel volume
-      zeroGrid(channelACC); // initialize channelACC volume
+      zeroGrid(channelACC.get()); // initialize channelACC volume
 
       // get first available filled point
-      int gp = get_GridPoint(tempSolventACC);  //modify gp
+      int gp = get_GridPoint(tempSolventACC.get());  //modify gp
 
       if (DEBUG > 0) {
-        int tempSolventACCvol = countGrid(tempSolventACC);
+        int tempSolventACCvol = countGrid(tempSolventACC.get());
         std::cerr << "Temp Solvent Volume ..." << tempSolventACCvol << endl;
       }
 
       // get all connected volume to point
       if (DEBUG > 0)
         std::cerr << "Time to crash..." << endl;
-      connected = get_Connected_Point (tempSolventACC, channelACC, gp); //modify channelACC
+      connected = get_Connected_Point (tempSolventACC.get(), channelACC.get(), gp); //modify channelACC
       if (DEBUG > 0)
         std::cerr << "Connected voxel volume: " << connected << endl;
 
       // remove channel from total solvent
-      subt_Grids(tempSolventACC, channelACC); //modify solventACC
+      subt_Grids(tempSolventACC.get(), channelACC.get()); //modify solventACC
 
       // get volume
-      int channelACCvol = countGrid(channelACC);
+      int channelACCvol = countGrid(channelACC.get());
 
       // skip volume if it is too small
       if (channelACCvol <= MINSIZE) {
@@ -366,8 +337,7 @@ int main(int argc, char *argv[]) {
     // set the minsize to be one less than a channel of
     MINSIZE = vollist[numchan-1] - 1;
 
-    std::free (tempSolventACC);
-    std::free (vollist);
+    tempSolventACC.reset();
     if (MINSIZE < 10) {
       std::cerr << endl << "#######" << endl << "NO CHANNELS WERE FOUND" << endl
       << "#######" << endl;
@@ -380,40 +350,38 @@ int main(int argc, char *argv[]) {
       << "#######" << endl;
   }
 
-  gridpt *channelEXC;
-  channelEXC = (gridpt*) std::malloc (NUMBINS);
-  if (channelEXC==NULL) { std::cerr << "GRID IS NULL" << endl; return 1; }
+  auto channelEXC = make_zeroed_grid();
 
-  while ( countGrid(solventACC) > MINSIZE ) {
+  while ( countGrid(solventACC.get()) > MINSIZE ) {
     if (DEBUG > 0)
-      std::cerr << endl << "Loop: Solvent Volume (" << countGrid(solventACC)
+      std::cerr << endl << "Loop: Solvent Volume (" << countGrid(solventACC.get())
       << ") greater than MINSIZE (" << MINSIZE << ")" << endl << endl;
     allchannels++;
 
     // get channel volume
-    zeroGrid(channelACC); // initialize channelACC volume
+    zeroGrid(channelACC.get()); // initialize channelACC volume
 
     // get first available filled point
-    int gp = get_GridPoint(solventACC);  //return gp
+    int gp = get_GridPoint(solventACC.get());  //return gp
 
     if (DEBUG > 0) {
-      std::cerr << "Solvent Volume ... " << countGrid(solventACC) << endl;
-      std::cerr << "Channel Volume ... " << countGrid(channelACC) << endl;
+      std::cerr << "Solvent Volume ... " << countGrid(solventACC.get()) << endl;
+      std::cerr << "Channel Volume ... " << countGrid(channelACC.get()) << endl;
     }
 
     if (DEBUG > 0)
       std::cerr << "Time to crash..." << endl;
 
     // get all connected volume to point
-    connected = get_Connected_Point(solventACC, channelACC, gp); //modify channelACC
+    connected = get_Connected_Point(solventACC.get(), channelACC.get(), gp); //modify channelACC
     if (DEBUG > 0)
       std::cerr << "Connected voxel volume: " << connected << endl;
 
     // remove channel from total solvent
-    subt_Grids(solventACC, channelACC); //modify solventACC
+    subt_Grids(solventACC.get(), channelACC.get()); //modify solventACC
 
     // initialize volume for excluded surface
-    int channelACCvol = copyGrid(channelACC, channelEXC); // initialize channelEXC volume
+    int channelACCvol = copyGrid(channelACC.get(), channelEXC.get()); // initialize channelEXC volume
 
     // statistics
     if (channelACCvol > maxvox)
@@ -439,10 +407,10 @@ int main(int argc, char *argv[]) {
     numchannels++;
 
     // get excluded surface
-    grow_ExcludeGrid(SMPROBE, channelACC, channelEXC);
+    grow_ExcludeGrid(SMPROBE, channelACC.get(), channelEXC.get());
 
     //limit growth to inside trimgrid
-    int chanvox = intersect_Grids(channelEXC, trimgrid); //modifies channelEXC
+    int chanvox = intersect_Grids(channelEXC.get(), trimgrid.get()); //modifies channelEXC
 
     // output results
     if (DEBUG > 0)
@@ -456,7 +424,7 @@ int main(int argc, char *argv[]) {
 
     printVolCout(chanvox);
     std::cerr << endl;
-    writeSmallMRCFile(channelEXC, mrcfile);
+    writeSmallMRCFile(channelEXC.get(), mrcfile);
     //cerr << "---------------------------------------------" << endl;
   }
 
@@ -469,10 +437,6 @@ int main(int argc, char *argv[]) {
     std::cerr << "Mean size: " << solventACCvol/float(allchannels)*GRIDVOL << " A " << endl;
   }
   std::cerr << "Cutoff size: " << MINSIZE << " voxels :: "<< MINSIZE*GRIDVOL << " Angstroms" << endl;
-  std::free (channelACC);
-  std::free (channelEXC);
-  std::free (solventACC);
-  std::free (trimgrid);
   std::cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;
 };

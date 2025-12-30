@@ -10,17 +10,9 @@
 #include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.hpp"
 
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
-extern int DX, DY, DZ;
-extern int DXY, DXYZ;
+// Globals
+extern float GRID, GRIDVOL;
 extern unsigned int NUMBINS;
-extern float MAXPROBE;
-extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -113,24 +105,19 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 
 //GET SHELL
-  gridpt *shell;
-  shell = (gridpt*) std::malloc (NUMBINS);
-  if (shell==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
-  zeroGrid(shell);
-  int shellvol = get_ExcludeGrid_fromArray(numatoms, BIGPROBE, xyzr_buffer, shell);
+  auto shell = make_zeroed_grid();
+  int shellvol = get_ExcludeGrid_fromArray(numatoms, BIGPROBE, xyzr_buffer, shell.get());
 
 //INIT NEW smShellACC GRID
   cerr << "Trimming Radius: " << TRIMPROBE << endl;
-  gridpt *smShell;
-  smShell = (gridpt*) std::malloc (NUMBINS);
-  if (smShell==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+  auto smShell = make_zeroed_grid();
 
 //COPY AND TRUNCATE (IF NECESSARY)
-  copyGrid(shell,smShell);
+  copyGrid(shell.get(), smShell.get());
   if(TRIMPROBE > 0) {
-    trun_ExcludeGrid(TRIMPROBE,shell,smShell);
+    trun_ExcludeGrid(TRIMPROBE, shell.get(), smShell.get());
   }
-  std::free (shell);
+  shell.reset();
 
 // ****************************************************
 // STARTING LOOP OVER PROBE SIZE
@@ -140,36 +127,26 @@ int main(int argc, char *argv[]) {
 
   for (double SMPROBE=0.0; SMPROBE<BIGPROBE; SMPROBE+=PROBESTEP) {
 	//COPY SMSHELL INTO CHANACC
-	  gridpt *solventACC;
-	  solventACC = (gridpt*) std::malloc (NUMBINS);
-	  if (solventACC==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
-	  int smshellvol = copyGrid(smShell,solventACC);
+	  auto solventACC = make_zeroed_grid();
+	  int smshellvol = copyGrid(smShell.get(), solventACC.get());
 
 	//SUBTRACT PROBE_ACC FROM SHELL TO GET ACC CHANNELS
-	  gridpt *probeACC;
-	  probeACC = (gridpt*) std::malloc (NUMBINS);
-	  if (probeACC==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
-	  zeroGrid(probeACC);
-	  fill_AccessGrid_fromArray(numatoms, SMPROBE, xyzr_buffer, probeACC);
-	  subt_Grids(solventACC, probeACC);
-	  std::free (probeACC);
+	  auto probeACC = make_zeroed_grid();
+	  fill_AccessGrid_fromArray(numatoms, SMPROBE, xyzr_buffer, probeACC.get());
+	  subt_Grids(solventACC.get(), probeACC.get());
 
 	//INIT NEW solventEXC GRID
-	  gridpt *solventEXC;
-	  solventEXC = (gridpt*) std::malloc (NUMBINS);
-	  if (solventEXC==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
+	  auto solventEXC = make_zeroed_grid();
 
 	//GROW EXCLUDED SURFACE FROM ACCESSIBLE
 	  //copyGrid(solventACC,solventEXC);
-	  zeroGrid(solventEXC);
-	  grow_ExcludeGrid(SMPROBE, solventACC, solventEXC);
-	  std::free (solventACC);
+	  grow_ExcludeGrid(SMPROBE, solventACC.get(), solventEXC.get());
 
 	//INTERSECT
-	  intersect_Grids(solventEXC, smShell); //modifies solventEXC
+	  intersect_Grids(solventEXC.get(), smShell.get()); //modifies solventEXC
 
 	//OUTPUT
-	  int solventvol = countGrid(solventEXC);
+	  int solventvol = countGrid(solventEXC.get());
 	  cout << SMPROBE << "\t";
 	  printVolCout(shellvol);
 	  printVolCout(solventvol);
@@ -187,10 +164,8 @@ int main(int argc, char *argv[]) {
 		writeMRCFile(solventEXC, mrcfile);
 	  }
 	*/
-	  std::free (solventEXC);
-
   }
-  std::free (smShell);
+  smShell.reset();
 
   cerr << endl << "Program Completed Sucessfully" << endl << endl;
   return 0;

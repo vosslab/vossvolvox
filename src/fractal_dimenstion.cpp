@@ -11,17 +11,9 @@
 #include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.hpp"
 
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
-extern int DX, DY, DZ;
-extern int DXY, DXYZ;
-extern unsigned int NUMBINS;
-extern float MAXPROBE;
+// Globals
 extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
+extern unsigned int NUMBINS;
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -131,23 +123,17 @@ int main(int argc, char *argv[]) {
 		// STARTING FIRST FILE
 		// ****************************************************
 		//READ FILE INTO SASGRID
-		gridpt *EXCgrid;
-		EXCgrid = (gridpt*) std::malloc (NUMBINS);
-		if (EXCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
-		zeroGrid(EXCgrid);
+		auto EXCgrid = make_zeroed_grid();
 		int voxels;
 		if(probe > 0.0) { 
-			voxels = get_ExcludeGrid_fromArray(numatoms, probe, xyzr_buffer, EXCgrid);
+			voxels = get_ExcludeGrid_fromArray(numatoms, probe, xyzr_buffer, EXCgrid.get());
 		} else {
-			voxels = fill_AccessGrid_fromArray(numatoms, 0.0f, xyzr_buffer, EXCgrid);
+			voxels = fill_AccessGrid_fromArray(numatoms, 0.0f, xyzr_buffer, EXCgrid.get());
 		}
 
-		int edgeVoxels = countEdgePoints(EXCgrid);
+		int edgeVoxels = countEdgePoints(EXCgrid.get());
 //1.5	2.97079	0.999992	2.02719	0.999988 // big run
 //1.5	2.75922	-0.999936	2.01569	-0.999939 // weighted
-
-		//RELEASE TEMPGRID
-		std::free (EXCgrid);
 
 		//cout << GRID << "\t" << voxels << "\t" << edgeVoxels << endl;
 		double x = -1.0*log(GRID);

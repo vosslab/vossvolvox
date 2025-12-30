@@ -212,5 +212,6 @@ int writeSmallMRCFile(const gridpt data[], const char filename[] );
 void write_output_files(const gridpt grid[],
                         const vossvolvox::OutputSettings& outputs);
 std::unique_ptr<gridpt[]> make_zeroed_grid();
+std::unique_ptr<gridpt[]> make_grid();
 
 #endif // UTILS_H

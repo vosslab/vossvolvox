@@ -11,17 +11,9 @@
 #include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.hpp"
 
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
-extern int DX, DY, DZ;
-extern int DXY, DXYZ;
+// Globals
+extern float GRID, GRIDVOL;
 extern unsigned int NUMBINS;
-extern float MAXPROBE;
-extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
 
 int main(int argc, char *argv[]) {
   std::cerr << std::endl;
@@ -95,23 +87,17 @@ int main(int argc, char *argv[]) {
 // STARTING FIRST FILE
 // ****************************************************
 //READ FILE INTO SASGRID
-  gridpt *EXCgrid;
-  EXCgrid = (gridpt*) std::malloc (NUMBINS);
-  if (EXCgrid==NULL) { cerr << "GRID IS NULL" << endl; exit (1); }
-  zeroGrid(EXCgrid);
+  auto EXCgrid = make_zeroed_grid();
   int voxels;
-  if(PROBE > 0.0) { 
-    voxels = get_ExcludeGrid_fromArray(numatoms, PROBE, xyzr_buffer, EXCgrid);
+  if (PROBE > 0.0) {
+    voxels = get_ExcludeGrid_fromArray(numatoms, PROBE, xyzr_buffer, EXCgrid.get());
   } else {
-    voxels = fill_AccessGrid_fromArray(numatoms, 0.0f, xyzr_buffer, EXCgrid);
+    voxels = fill_AccessGrid_fromArray(numatoms, 0.0f, xyzr_buffer, EXCgrid.get());
   }
   long double surf;
-  surf = surface_area(EXCgrid);
+  surf = surface_area(EXCgrid.get());
 
-  write_output_files(EXCgrid, outputs);
-
-//RELEASE TEMPGRID
-  std::free (EXCgrid);
+  write_output_files(EXCgrid.get(), outputs);
 
   cout << PROBE << "\t" << GRID << "\t" << flush;
   printVolCout(voxels);

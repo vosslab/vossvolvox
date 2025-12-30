@@ -345,6 +345,10 @@ std::unique_ptr<gridpt[]> make_zeroed_grid() {
   return grid;
 }
 
+std::unique_ptr<gridpt[]> make_grid() {
+  return std::unique_ptr<gridpt[]>(new gridpt[NUMBINS]);
+}
+
 /*********************************************/
 int copyGrid (const gridpt oldgrid[], gridpt newgrid[]) {
   // Zeroing the destination is unnecessary because every element will be overwritten.

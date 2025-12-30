@@ -11,17 +11,9 @@
 #include "vossvolvox_cli_common.hpp"
 #include "xyzr_cli_helpers.hpp"
 
-extern float XMIN, YMIN, ZMIN;
-extern float XMAX, YMAX, ZMAX;
-extern int DX, DY, DZ;
-extern int DXY, DXYZ;
+// Globals
+extern float GRID, GRIDVOL;
 extern unsigned int NUMBINS;
-extern float MAXPROBE;
-extern float GRID;
-extern float GRIDVOL;
-extern float WATER_RES;
-extern float CUTOFF;
-extern char XYZRFILE[256];
 
 void printTun(const float probe, 
 	const float surfEXC, const int tunnEXC_voxels, const int chanEXC_voxels,
@@ -122,92 +114,80 @@ int main(int argc, char *argv[]) {
 // ****************************************************
 
 //Compute Shell
-  gridpt *shellACC=NULL;
-  shellACC = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromArray(numatoms, shell_rad, xyzr_buffer, shellACC);
-  fill_cavities(shellACC);
+  auto shellACC = make_zeroed_grid();
+  fill_AccessGrid_fromArray(numatoms, shell_rad, xyzr_buffer, shellACC.get());
+  fill_cavities(shellACC.get());
 
-  gridpt *shellEXC=NULL;
-  shellEXC = (gridpt*) std::malloc (NUMBINS);
-  trun_ExcludeGrid(shell_rad,shellACC,shellEXC);
-  std::free (shellACC);
+  auto shellEXC = make_zeroed_grid();
+  trun_ExcludeGrid(shell_rad, shellACC.get(), shellEXC.get());
+  shellACC.reset();
 
 //Trim Shell
   if(trim_prb > 0.0) {
-    gridpt *trimEXC;
-    trimEXC = (gridpt*) std::malloc (NUMBINS);
-    copyGrid(shellEXC,trimEXC);
-    trun_ExcludeGrid(trim_prb,shellEXC,trimEXC);  // TRIMMING PART
-    zeroGrid(shellEXC);
-    copyGrid(trimEXC,shellEXC);
-    std::free (trimEXC);
+    auto trimEXC = make_zeroed_grid();
+    copyGrid(shellEXC.get(), trimEXC.get());
+    trun_ExcludeGrid(trim_prb, shellEXC.get(), trimEXC.get());  // TRIMMING PART
+    zeroGrid(shellEXC.get());
+    copyGrid(trimEXC.get(), shellEXC.get());
   }
 
 //Get Shell Volume
-  int shell_vol = countGrid(shellEXC);
+  int shell_vol = countGrid(shellEXC.get());
   printVol(shell_vol); cerr << endl;
 
 //Get Access Volume for "probe"
-  gridpt *access;
-  access = (gridpt*) std::malloc (NUMBINS);
-  fill_AccessGrid_fromArray(numatoms, tunnel_prb, xyzr_buffer, access);
+  auto access = make_zeroed_grid();
+  fill_AccessGrid_fromArray(numatoms, tunnel_prb, xyzr_buffer, access.get());
 
 //Get Channels for "probe"
-  gridpt *chanACC;
-  chanACC = (gridpt*) std::malloc (NUMBINS);
-  copyGrid(shellEXC,chanACC);
-  subt_Grids(chanACC,access);
-  std::free (access);
-  intersect_Grids(chanACC,shellEXC); //modifies chanACC
-  int chanACC_voxels = countGrid(chanACC);
+  auto chanACC = make_zeroed_grid();
+  copyGrid(shellEXC.get(), chanACC.get());
+  subt_Grids(chanACC.get(), access.get());
+  access.reset();
+  intersect_Grids(chanACC.get(), shellEXC.get()); //modifies chanACC
+  int chanACC_voxels = countGrid(chanACC.get());
   printVol(chanACC_voxels); cerr << endl;
 
 //Extract Tunnel
-  gridpt *tunnACC;
-  tunnACC = (gridpt*) std::malloc (NUMBINS);
-  defineTunnel(tunnACC, chanACC);
+  auto tunnACC = make_zeroed_grid();
+  defineTunnel(tunnACC.get(), chanACC.get());
   //writeMRCFile(chanACC, mrcfile);
-  std::free (chanACC);
-  int tunnACC_voxels = countGrid(tunnACC);
+  chanACC.reset();
+  int tunnACC_voxels = countGrid(tunnACC.get());
   cerr << "ACCESSIBLE TUNNEL VOLUME: ";
   printVol(tunnACC_voxels); cerr << endl << endl;
   //float surfACC = surface_area(tunnACC);
   float surfACC = 0;
   if (tunnACC_voxels*GRIDVOL > 2000000) {
     cerr << "ERROR: Accessible volume of tunnel is too large to be valid" << endl;
-    std::free (shellEXC);
+    shellEXC.reset();
     //writeMRCFile(chanACC, mrcfile);
-    std::free (tunnACC);
     return 0;
   }
 
 //Grow Tunnel
-  gridpt *tunnEXC;
-  tunnEXC = (gridpt*) std::malloc (NUMBINS);
-  grow_ExcludeGrid(tunnel_prb,tunnACC,tunnEXC);
-  std::free (tunnACC);
+  auto tunnEXC = make_zeroed_grid();
+  grow_ExcludeGrid(tunnel_prb, tunnACC.get(), tunnEXC.get());
+  tunnACC.reset();
 
 //Intersect Grown Tunnel with Shell
-  intersect_Grids(tunnEXC,shellEXC); //modifies tunnEXC
-  std::free (shellEXC);
+  intersect_Grids(tunnEXC.get(), shellEXC.get()); //modifies tunnEXC
+  shellEXC.reset();
 
 //Get EXC Props
-  int tunnEXC_voxels = countGrid(tunnEXC);
+  int tunnEXC_voxels = countGrid(tunnEXC.get());
   cerr << "TUNNEL VOLUME: ";
   printVol(tunnEXC_voxels); cerr << endl << endl;
   //shell volume at 6A probe 9732148*0.6^3 = 2,102,144 A^3
   //solvent volume at 1.4A probe 2465252*0.6^3 = 532,494 A^3
   if (tunnEXC_voxels*GRIDVOL > 1800000) {
     cerr << "ERROR: Excluded volume of tunnel is too large to be valid" << endl;
-    std::free (tunnEXC);
     return 0;
   }
-  float surfEXC = surface_area(tunnEXC);
+  float surfEXC = surface_area(tunnEXC.get());
 
 //Output
-  write_output_files(tunnEXC, outputs);
-
-  std::free (tunnEXC);
+  write_output_files(tunnEXC.get(), outputs);
 
   printTun(trim_prb,
            surfEXC,
