@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
     MINSIZE = 20;
   } else if (minvol > 0) {
     // set min volume to input, convert to voxels
-    MINSIZE = int(minvol/GRID/GRID/GRID);
+    MINSIZE = int(minvol/GRIDVOL);
   } else if (minperc == 0) {
     // set min volume later
     minperc=0.01;
