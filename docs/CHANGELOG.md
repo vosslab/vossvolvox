@@ -38,6 +38,7 @@ OpenAI Codex
   unavailable.
 - Updated `src/Makefile` to place shared object files under `src/lib/`.
 - Renamed C++ entry point sources to snake_case and updated build references.
+- Bumped `VERSION` to `26.01b3`.
 - Renamed `Custom.exe` to `ProteinRNAVolume.exe`.
 - Standardized `pdb_to_xyzr.exe` CLI handling via `ArgumentParser`, retaining
   positional input support while documenting `-i` usage.
