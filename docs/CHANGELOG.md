@@ -6,6 +6,8 @@ Chronological record of user-facing and maintenance changes.
 OpenAI Codex
 - Ensured single-target builds (for example `make vol`) create `bin/` before
   linking executables.
+- Rounded grid resolution metrics consistently (for example `1000` instead of
+  `999.999`) and reused a shared formatter across tools.
 
 ## 2025-12-30
 OpenAI Codex

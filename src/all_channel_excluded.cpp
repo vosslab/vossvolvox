@@ -122,8 +122,8 @@ int main(int argc, char *argv[]) {
   //HEADER CHECK
   cerr << "Probe Radius: " << BIGPROBE << endl;
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
+  cerr << "Resolution:      " << format_resolution(1000.0L) << " voxels per A^3" << endl;
+  cerr << "Resolution:      " << format_resolution(11494.0L) << " voxels per water molecule" << endl;
   cerr << "Input file:   " << input_path << endl;
   cerr << "Minimum size: " << MINSIZE << " voxels" << endl;
 

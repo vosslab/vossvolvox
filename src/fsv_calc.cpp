@@ -92,8 +92,8 @@ int main(int argc, char *argv[]) {
 
 //HEADER CHECK
   cerr << "Grid Spacing: " << GRID << endl;
-  cerr << "Resolution:      " << int(1000.0/float(GRIDVOL))/1000.0 << " voxels per A^3" << endl;
-  cerr << "Resolution:      " << int(11494.0/float(GRIDVOL))/1000.0 << " voxels per water molecule" << endl;
+  cerr << "Resolution:      " << format_resolution(1000.0L) << " voxels per A^3" << endl;
+  cerr << "Resolution:      " << format_resolution(11494.0L) << " voxels per water molecule" << endl;
   cerr << "Complexity:      " << int(8000000/float(GRIDVOL))/1000.0 << endl;
   cerr << "Input file:   " << input_path << endl;
 

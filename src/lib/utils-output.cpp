@@ -8,6 +8,7 @@
 #include <iostream>   // for cerr
 #include <sstream>    // for basic_ostringstream, ostringstream
 #include <algorithm>
+#include <cmath>      // for pow, round
 #include <string>     // for char_traits, allocator, basic_string
 #include <vector>
 #include "argument_helper.hpp"
@@ -31,7 +32,37 @@ std::string format_timestamp() {
   std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", local);
   return buffer;
 }
+
+long double round_to(long double value, int decimals) {
+  const long double scale = std::pow(10.0L, static_cast<long double>(decimals));
+  return std::round(value * scale) / scale;
+}
+
+std::string trim_trailing_zeros(std::string text) {
+  const auto dot = text.find('.');
+  if (dot == std::string::npos) {
+    return text;
+  }
+  while (!text.empty() && text.back() == '0') {
+    text.pop_back();
+  }
+  if (!text.empty() && text.back() == '.') {
+    text.pop_back();
+  }
+  return text;
+}
 }  // namespace
+
+std::string format_resolution(long double numerator, int decimals) {
+  const long double gridvol = static_cast<long double>(GRIDVOL);
+  if (gridvol == 0.0L) {
+    return "inf";
+  }
+  const long double value = (numerator / gridvol) / 1000.0L;
+  std::ostringstream oss;
+  oss << std::fixed << std::setprecision(decimals) << round_to(value, decimals);
+  return trim_trailing_zeros(oss.str());
+}
 
 //========================================================
 //========================================================
@@ -253,8 +284,8 @@ float computeBlurredValue(const gridpt grid[], int voxelIndex) {
 void report_grid_metrics(std::ostream& out, int voxels, long double surface_area) {
   out << "Grid Spacing:       " << GRID << " A\n"
       << "Voxel Volume:       " << GRIDVOL << " A\n"
-      << "Resolution:         " << int(1000.0 / float(GRIDVOL)) / 1000.0 << " voxels per A^3\n"
-      << "Resolution:         " << int(11494.0 / float(GRIDVOL)) / 1000.0 << " voxels per water molecule\n"
+      << "Resolution:         " << format_resolution(1000.0L) << " voxels per A^3\n"
+      << "Resolution:         " << format_resolution(11494.0L) << " voxels per water molecule\n"
       << "Total Voxels:       " << voxels << "\n"
       << "Volume:             " << voxels * GRIDVOL << "\n"
       << "Surface Area:       " << surface_area << " A^2\n";

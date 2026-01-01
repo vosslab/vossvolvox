@@ -196,6 +196,7 @@ struct OutputSettings;
 }
 void write_PDB (const gridpt grid[], const char outfile[]);
 void write_SurfPDB (const gridpt grid[], const char outfile[]);
+std::string format_resolution(long double numerator, int decimals = 3);
 void report_grid_metrics(std::ostream& out, int voxels, long double surface_area);
 //output EZD functions (in utils-output.cpp)
 float computeBlurredValue(const gridpt grid[], int voxelIndex);

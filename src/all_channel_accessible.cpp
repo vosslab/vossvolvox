@@ -194,8 +194,8 @@ int main(int argc, char *argv[]) {
   // Print header information
   std::cerr << "Probe Radius: " << BIGPROBE << endl;
   std::cerr << "Grid Spacing: " << GRID << endl;
-  std::cerr << "Resolution: " << int(1000.0 / float(GRIDVOL)) / 1000.0 << " voxels per A^3" << endl;
-  std::cerr << "Resolution: " << int(11494.0 / float(GRIDVOL)) / 1000.0 << " voxels per water molecule" << endl;
+  std::cerr << "Resolution: " << format_resolution(1000.0L) << " voxels per A^3" << endl;
+  std::cerr << "Resolution: " << format_resolution(11494.0L) << " voxels per water molecule" << endl;
   std::cerr << "Input file: " << file << endl;
   std::cerr << "Minimum size: " << MINSIZE << " voxels" << endl;
 
