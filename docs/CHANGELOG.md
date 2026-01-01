@@ -2,6 +2,11 @@
 
 Chronological record of user-facing and maintenance changes.
 
+## 2026-01-01
+OpenAI Codex
+- Ensured single-target builds (for example `make vol`) create `bin/` before
+  linking executables.
+
 ## 2025-12-30
 OpenAI Codex
 - Converted `docs/CHANGELOG.md` to Markdown headings and bullet lists.

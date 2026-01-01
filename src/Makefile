@@ -103,43 +103,43 @@ $(OBJ_DIR)/vossvolvox_cli_common.o: lib/vossvolvox_cli_common.cpp lib/vossvolvox
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/vossvolvox_cli_common.o lib/vossvolvox_cli_common.cpp
 
 # Individual program targets
-cav: $(OBJS) cavities.cpp
+cav: $(OBJS) cavities.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Cavities.exe $(OBJS) cavities.cpp
 	@chmod +x $(BIN_DIR)/Cavities.exe
 
-chan: $(OBJS) find_channel.cpp
+chan: $(OBJS) find_channel.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Channel.exe $(OBJS) find_channel.cpp
 	@chmod +x $(BIN_DIR)/Channel.exe
 
-allchan: $(OBJS) all_channel_accessible.cpp
+allchan: $(OBJS) all_channel_accessible.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/AllChannel.exe $(OBJS) all_channel_accessible.cpp
 	@chmod +x $(BIN_DIR)/AllChannel.exe
 
-allexc: $(OBJS) all_channel_excluded.cpp
+allexc: $(OBJS) all_channel_excluded.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/AllChannelExc.exe $(OBJS) all_channel_excluded.cpp
 	@chmod +x $(BIN_DIR)/AllChannelExc.exe
 
-fsv: $(OBJS) fsv_calc.cpp
+fsv: $(OBJS) fsv_calc.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FsvCalc.exe $(OBJS) fsv_calc.cpp
 	@chmod +x $(BIN_DIR)/FsvCalc.exe
 
-sol: $(OBJS) solvent.cpp
+sol: $(OBJS) solvent.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Solvent.exe $(OBJS) solvent.cpp
 	@chmod +x $(BIN_DIR)/Solvent.exe
 
-tun: $(OBJS) ribosome_exit_tunnel.cpp
+tun: $(OBJS) ribosome_exit_tunnel.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Tunnel.exe $(OBJS) ribosome_exit_tunnel.cpp
 	@chmod +x $(BIN_DIR)/Tunnel.exe
 
-vdw: $(OBJS) vdw.cpp
+vdw: $(OBJS) vdw.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/VDW.exe $(OBJS) vdw.cpp
 	@chmod +x $(BIN_DIR)/VDW.exe
 
-vol: $(OBJS) volume.cpp
+vol: $(OBJS) volume.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume.exe $(OBJS) volume.cpp
 	@chmod +x $(BIN_DIR)/Volume.exe
 
-volume_original: $(LEGACY_OBJS) volume-legacy.cpp
+volume_original: $(LEGACY_OBJS) volume-legacy.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/Volume-legacy.exe $(LEGACY_OBJS) volume-legacy.cpp
 	@chmod +x $(BIN_DIR)/Volume-legacy.exe
 
@@ -150,19 +150,19 @@ test: vol
 testhelp: all
 	cd $(BIN_DIR) && for i in *.exe; do echo $$i; ./$$i -q -h; sleep 0.1; done
 
-volnocav: $(OBJS) volume-fill_cavities.cpp
+volnocav: $(OBJS) volume-fill_cavities.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/VolumeNoCav.exe $(OBJS) volume-fill_cavities.cpp
 	@chmod +x $(BIN_DIR)/VolumeNoCav.exe
 
-twovol: $(OBJS) two_volumes-fill_cavities.cpp
+twovol: $(OBJS) two_volumes-fill_cavities.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/TwoVol.exe $(OBJS) two_volumes-fill_cavities.cpp
 	@chmod +x $(BIN_DIR)/TwoVol.exe
 
-cust: $(OBJS) rna_protein_volume.cpp
+cust: $(OBJS) rna_protein_volume.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/ProteinRNAVolume.exe $(OBJS) rna_protein_volume.cpp
 	@chmod +x $(BIN_DIR)/ProteinRNAVolume.exe
 
-frac: $(OBJS) fractal_dimenstion.cpp
+frac: $(OBJS) fractal_dimenstion.cpp | $(BIN_DIR)
 	$(CC) $(FLAGS) $(STD_FLAG) -o $(BIN_DIR)/FracDim.exe $(OBJS) fractal_dimenstion.cpp
 	@chmod +x $(BIN_DIR)/FracDim.exe
 
