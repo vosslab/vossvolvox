@@ -11,9 +11,10 @@ import tempfile
 # PIP3 modules
 import rich.console
 
-CHANGELOG_PATH = "docs/CHANGELOG.md"
+CHANGELOG_PATHSPEC = "docs/CHANGELOG.md"
 VERSION_RE = re.compile(r"^##\s*\[?([^\]\s]+)[^\]]*\]?")
 console = rich.console.Console()
+err_console = rich.console.Console(stderr=True)
 
 #============================================
 
@@ -29,6 +30,18 @@ def run_git(args: list[str]) -> subprocess.CompletedProcess:
 
 #============================================
 
+def get_git_root() -> str:
+	"""Return the git repository root path."""
+	result = run_git(["rev-parse", "--show-toplevel"])
+	if result.returncode != 0:
+		raise RuntimeError("Unable to determine git repository root.")
+	root = result.stdout.strip()
+	if not root:
+		raise RuntimeError("Git repository root is empty.")
+	return root
+
+#============================================
+
 def get_git_status_lines() -> list[str]:
 	"""Return git status porcelain output lines.
 
@@ -37,7 +50,28 @@ def get_git_status_lines() -> list[str]:
 	"""
 	result = run_git(["status", "--porcelain=1"])
 	if result.returncode != 0:
-		return []
+		raise RuntimeError(result.stderr.strip() or "git status failed.")
+	lines = [line for line in result.stdout.splitlines() if line.strip()]
+	return lines
+
+#============================================
+
+def get_untracked_files() -> list[str]:
+	"""Return a list of untracked file paths."""
+	status_lines = get_git_status_lines()
+	untracked: list[str] = []
+	for line in status_lines:
+		if line.startswith("?? "):
+			untracked.append(line[3:])
+	return untracked
+
+#============================================
+
+def get_unmerged_paths() -> list[str]:
+	"""Return a list of paths with merge conflicts."""
+	result = run_git(["diff", "--name-only", "--diff-filter=U"])
+	if result.returncode != 0:
+		raise RuntimeError(result.stderr.strip() or "git diff failed.")
 	lines = [line for line in result.stdout.splitlines() if line.strip()]
 	return lines
 
@@ -142,7 +176,8 @@ def get_editor_cmd() -> list[str]:
 def edit_file_in_editor(path: str) -> int:
 	"""Open a file in the configured editor."""
 	cmd = get_editor_cmd() + [path]
-	return subprocess.run(cmd).returncode
+	result = subprocess.run(cmd).returncode
+	return result
 
 #============================================
 
@@ -168,7 +203,7 @@ def print_error(message: str) -> None:
 	Args:
 		message: The error message to print.
 	"""
-	console.print(message, style="bold red", file=sys.stderr)
+	err_console.print(message, style="bold red")
 
 #============================================
 
@@ -193,7 +228,49 @@ def confirm(prompt: str) -> bool:
 	"""
 	choice_prompt = build_choice_prompt(prompt)
 	ans = console.input(choice_prompt).strip().lower()
-	return ans in ("y", "yes")
+	confirmed = ans in ("y", "yes")
+	return confirmed
+
+#============================================
+
+def build_action_prompt(prompt: str) -> str:
+	"""Build a colored prompt string with yes/no/commit choices.
+
+	Args:
+		prompt: Base prompt text.
+
+	Returns:
+		The prompt with colored choices appended.
+	"""
+	yes_text = "[bold green]yes[/bold green]"
+	no_text = "[bold red]no[/bold red]"
+	commit_text = "[bold cyan]commit[/bold cyan]"
+	choice_prompt = f"{prompt} [{yes_text}/{no_text}/{commit_text}] "
+	return choice_prompt
+
+#============================================
+
+def prompt_message_action(prompt: str) -> str:
+	"""Ask whether to edit, exit, or commit.
+
+	Args:
+		prompt: Prompt text shown before the choices.
+
+	Returns:
+		One of: "yes", "no", or "commit".
+	"""
+	choice_prompt = build_action_prompt(prompt)
+	while True:
+		ans = console.input(choice_prompt).strip().lower()
+		if ans == "":
+			return "yes"
+		if ans in ("y", "yes"):
+			return "yes"
+		if ans in ("n", "no"):
+			return "no"
+		if ans in ("c", "commit"):
+			return "commit"
+		print_warning("Please enter yes, no, or commit.")
 
 #============================================
 
@@ -206,6 +283,31 @@ def strip_git_style_comments(message: str) -> str:
 		out_lines.append(line)
 	cleaned = "\n".join(out_lines).strip()
 	return cleaned
+
+#============================================
+
+def print_diff_to_stderr(diff_text: str, path: str) -> None:
+	"""Print a diff to stderr with a header."""
+	if not diff_text:
+		return
+	err_console.print(f"Diff for {path}:", style="bold")
+	for line in diff_text.splitlines():
+		if line.startswith("+++"):
+			err_console.print(line, style="bold cyan", markup=False)
+			continue
+		if line.startswith("---"):
+			err_console.print(line, style="bold cyan", markup=False)
+			continue
+		if line.startswith("@@"):
+			err_console.print(line, style="bold yellow", markup=False)
+			continue
+		if line.startswith("+"):
+			err_console.print(line, style="green", markup=False)
+			continue
+		if line.startswith("-"):
+			err_console.print(line, style="red", markup=False)
+			continue
+		sys.stderr.write(line + "\n")
 
 #============================================
 
@@ -266,75 +368,134 @@ def build_message(added_lines: list[str], max_body_lines: int) -> str:
 
 #============================================
 
-def make_seed_message() -> str | None:
+def make_seed_message(diff_text: str) -> str | None:
 	"""Create the initial commit message from the changelog diff."""
-	diff_text = get_diff(CHANGELOG_PATH)
 	if not diff_text:
 		return None
-
 	added_lines = extract_added_lines(diff_text)
 	if not added_lines:
-		raise RuntimeError(f"Diff for {CHANGELOG_PATH} had no added lines.")
+		raise RuntimeError("Changelog diff had no added lines.")
 
 	message = build_message(added_lines, max_body_lines=25)
 	return message
 
 #============================================
 
-def commit_with_editor_gate(seed_message: str) -> int:
-	"""Edit the message, confirm, then commit with -a."""
+def write_message_file(seed_message: str, include_comments: bool) -> str:
+	"""Write a commit message file and return its path.
+
+	Args:
+		seed_message: Initial commit message text.
+		include_comments: True to include editor guidance and status.
+
+	Returns:
+		Path to the message file.
+	"""
 	with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8") as tf:
 		tf.write(seed_message)
 		tf.write("\n")
-		tf.write("# Save and exit to use this message.\n")
-		tf.write("# Exiting without changes will abort by default.\n")
-		status_block = build_git_status_block()
-		if status_block:
-			tf.write(status_block)
-		msg_path = tf.name
+		if include_comments:
+			tf.write("# Save and exit to use this message.\n")
+			tf.write("# You will confirm the commit after editing.\n")
+			status_block = build_git_status_block()
+			if status_block:
+				tf.write(status_block)
+		return tf.name
 
-	original = strip_git_style_comments(seed_message)
+#============================================
 
-	try:
-		rc = edit_file_in_editor(msg_path)
-		if rc != 0:
-			print_error("Editor exited non-zero. Aborting.")
-			return rc
-
-		with open(msg_path, "r", encoding="utf-8") as f:
-			edited_raw = f.read()
-
-		edited = strip_git_style_comments(edited_raw)
-		if not edited:
-			print_error("Empty commit message. Aborting.")
-			return 2
-
-		if edited == original:
-			if not confirm("Message unchanged. Commit anyway?"):
-				print_warning("Aborted.")
-				return 3
-
-		cmd_str = "git commit -a -F " + shlex.quote(msg_path)
-		if not confirm(f"Proceed with: {cmd_str} ?"):
-			print_warning("Aborted.")
-			return 4
-
-		return subprocess.run(["git", "commit", "-a", "-F", msg_path]).returncode
-	finally:
+def edit_message(seed_message: str) -> str | None:
+	"""Edit a commit message and return the message file path."""
+	msg_path = write_message_file(seed_message, include_comments=True)
+	rc = edit_file_in_editor(msg_path)
+	if rc != 0:
+		print_error("Editor exited non-zero. Aborting.")
 		os.unlink(msg_path)
+		return None
+
+	with open(msg_path, "r", encoding="utf-8") as f:
+		edited_raw = f.read()
+
+	edited = strip_git_style_comments(edited_raw)
+	if not edited:
+		print_error("Empty commit message. Aborting.")
+		os.unlink(msg_path)
+		return None
+
+	with open(msg_path, "w", encoding="utf-8") as f:
+		f.write(edited)
+		f.write("\n")
+
+	return msg_path
+
+#============================================
+
+def commit_with_message_file(msg_path: str) -> int:
+	"""Commit with a prepared message file."""
+	result = subprocess.run(["git", "commit", "-a", "-F", msg_path]).returncode
+	return result
 
 #============================================
 
 def main() -> None:
 	ensure_in_git_repo()
+	repo_root = get_git_root()
+	os.chdir(repo_root)
+	changelog_path = CHANGELOG_PATHSPEC
 
-	seed_message = make_seed_message()
-	if seed_message is None:
-		console.print(f"No changes in {CHANGELOG_PATH}. Nothing to commit.", style="yellow")
+	unmerged = get_unmerged_paths()
+	if unmerged:
+		print_error("Merge conflicts detected. Resolve before committing.")
+		for path in unmerged:
+			sys.stderr.write(f"  {path}\n")
 		return
-	rc = commit_with_editor_gate(seed_message)
+
+	untracked = get_untracked_files()
+	if untracked:
+		sys.stderr.write("Untracked files:\n")
+		for path in untracked:
+			sys.stderr.write(f"  {path}\n")
+		if not confirm("Keep untracked files untracked?"):
+			print_warning("Aborted.")
+			return
+
+	diff_text = get_diff(CHANGELOG_PATHSPEC)
+	if not diff_text:
+		message = f"No changes in {changelog_path}. Nothing to commit."
+		console.print(message, style="yellow")
+		return
+
+	print_diff_to_stderr(diff_text, changelog_path)
+	seed_message = make_seed_message(diff_text)
+	if seed_message is None:
+		return
+
+	action = prompt_message_action("Add to the commit message?")
+	if action == "no":
+		print_warning("Aborted.")
+		return
+
+	if action == "yes":
+		msg_path = edit_message(seed_message)
+		if msg_path is None:
+			return
+		if not confirm("Commit now?"):
+			print_warning("Aborted.")
+			os.unlink(msg_path)
+			return
+		rc = commit_with_message_file(msg_path)
+		os.unlink(msg_path)
+	elif action == "commit":
+		msg_path = write_message_file(seed_message, include_comments=False)
+		rc = commit_with_message_file(msg_path)
+		os.unlink(msg_path)
+	else:
+		print_error("Unknown action. Aborting.")
+		return
+
 	if rc != 0:
 		raise SystemExit(rc)
+	console.print("Reminder: run git pull and git push.", style="yellow")
 
 #============================================
 

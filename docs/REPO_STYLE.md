@@ -44,6 +44,7 @@ Repo-wide conventions for this project and related repos.
 - Keep scripts self-contained and single-purpose.
 - Add a shebang for executable scripts and keep them runnable directly.
 - Document shared helpers and modules in `docs/USAGE.md` when used across scripts.
+- Use `tests/run_pyflakes.sh` and `tests/run_ascii_compliance.sh` for repo-wide lint checks, with `tests/check_ascii_compliance.py` for single-file ASCII/ISO-8859-1 checks.
 
 ## Dependency manifests
 - Store Python dependencies in `pip_requirements.txt` at the repo root. 
@@ -51,6 +52,7 @@ Repo-wide conventions for this project and related repos.
 - Store Homebrew packages in `Brewfile` at the repo root.
 - Use per-subproject manifests only when a subfolder is a standalone project.
 - Document non-default system dependencies in `docs/INSTALL.md`.
+- In general, we want to require all dependencies, rather than provide work-arounds if they are mssing, because without all the dependencies the program is too crippled to run properly
 
 ## Data and outputs
 - Keep generated outputs out of git unless they are small and intentional.

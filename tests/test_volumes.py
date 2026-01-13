@@ -253,7 +253,7 @@ def report(results: Dict[str, List[VolumeResult]]) -> None:
             dl = res.line_count - reference.line_count
             md5_match = res.md5_sanitized == reference.md5_sanitized
             print(
-                f"  {res.binary:12}: ΔVolume={dv:+.3f}  ΔSurface={ds:+.3f}  ΔAtoms={da:+d}  ΔLines={dl:+d}  MD5 match={md5_match}"
+                f"  {res.binary:12}: dVolume={dv:+.3f}  dSurface={ds:+.3f}  dAtoms={da:+d}  dLines={dl:+d}  MD5 match={md5_match}"
             )
 
 

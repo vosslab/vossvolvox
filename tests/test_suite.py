@@ -467,27 +467,27 @@ def main() -> None:
     durations = []
     for test in tests:
         name = test["name"]
-        info(f"▶ Running {name} ...")
+        info(f">> Running {name} ...")
         try:
             elapsed, passed, total = run_test(test)
             durations.append((name, elapsed))
         except TestFailureWithChecks as exc:
-            error(f"✖ {name}: {exc}")
+            error(f"X {name}: {exc}")
             for label, ok, detail in exc.checks:
                 if ok:
-                    success(f"  ✔ {label}")
+                    success(f"  OK {label}")
                 else:
-                    error(f"  ✖ {label}: {detail if detail else 'failed'}")
-            error(f"✖ {name} [{exc.duration:.3f}s] ({exc.passed}/{exc.total} checks)")
+                    error(f"  X {label}: {detail if detail else 'failed'}")
+            error(f"X {name} [{exc.duration:.3f}s] ({exc.passed}/{exc.total} checks)")
             failures.append(name)
         except TestFailure as exc:
-            error(f"✖ {name}: {exc}")
+            error(f"X {name}: {exc}")
             failures.append(name)
         else:
             if total:
-                success(f"✔ {name} [{elapsed:.3f}s] ({passed}/{total} checks)")
+                success(f"OK {name} [{elapsed:.3f}s] ({passed}/{total} checks)")
             else:
-                success(f"✔ {name} [{elapsed:.3f}s]")
+                success(f"OK {name} [{elapsed:.3f}s]")
 
     if failures:
         error(f"{len(failures)} test(s) failed.")

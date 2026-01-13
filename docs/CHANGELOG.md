@@ -2,6 +2,11 @@
 
 Chronological record of user-facing and maintenance changes.
 
+## 2026-01-13
+OpenAI Codex
+- Replaced non-ASCII characters in `AGENTS.md`, `docs/UTILS.md`, and test harness
+  output strings to satisfy `tests/run_ascii_compliance.sh`.
+
 ## 2026-01-01
 OpenAI Codex
 - Ensured single-target builds (for example `make vol`) create `bin/` before

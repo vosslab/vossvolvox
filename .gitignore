@@ -1,4 +1,7 @@
-submit_to_pypi.py
+.DS_Store
+ascii_compliance.txt
+*.xyzr
+*.pdb
 
 # Prerequisites
 *.d

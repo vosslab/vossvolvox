@@ -23,6 +23,8 @@ Language Model guide to Neil python3 programming
 
 - Use a `def main()` for the backbone of the code, have a `if __name__ == '__main__': main()` to run main
 - I prefer single task sub-functions over one large function.
+- `args` is reserved for the `argparse.Namespace` returned by `parse_args()`; do not attach derived runtime state to `args` (use local variables, module-level caches, or explicit parameters instead).
+- Prefer to avoid module-level global state; when a generator needs expensive precomputed data (lists, parsed files) and the framework requires `write_question(N, args)`, it is acceptable to cache that data in a module-level constant-like variable (ALL_CAPS) initialized in `main()` and treated as read-only during question generation.
 - Whenever making a URL or API internet request, add a time.sleep(random.random()) to avoid overloading the server, unless the official API specifies otherwise.
 - For error handling, avoid try/except block if you can, I find they cause more problems than they solve.
 - Use try/except rarely, and if needed use for at most two lines
@@ -207,7 +209,39 @@ import aminoacidlib
 ```
 
 ## ARGPARSE
-* Always provide argparse for inputs and outputs and any variables to adjusted.
+
+### ARGPARSE MINIMALISM
+
+Be conservative. Only add arguments users frequently need to change between runs.
+
+**Good candidates:**
+- Input/output file paths
+- Mode switches (--dry-run, --verbose, --format)
+- Behavior toggles (--recursive, --force)
+
+**Hardcode instead:**
+- Backup suffixes, timeout durations, buffer sizes
+- Retry counts, column widths, formatting details
+- Any "what if someone wants to..." parameters
+
+**Rule:** If you added it thinking "someone might want to configure this", remove it.
+
+#### Over-engineered (bad):
+```python
+parser.add_argument('-t', '--timeout', type=int, default=30)
+parser.add_argument('-r', '--retries', type=int, default=3)
+parser.add_argument('-s', '--suffix', default='.bak')
+```
+
+#### Minimal (good):
+```python
+parser.add_argument('-i', '--input', dest='input_file', required=True)
+parser.add_argument('-o', '--output', dest='output_file', required=True)
+parser.add_argument('-n', '--dry-run', dest='dry_run', action='store_true')
+```
+
+### ARGPARSE DETAILS
+
 * Argparse value should have both a single letter cli flag and a full word cli flag. You should always specify the destination for the value, dest='flag_name'. See example below.
 * When doing an argparse boolean value. Provide both on and off flags and set the default with a different command, For example,
 ```python
