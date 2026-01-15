@@ -44,7 +44,7 @@ Repo-wide conventions for this project and related repos.
 - Keep scripts self-contained and single-purpose.
 - Add a shebang for executable scripts and keep them runnable directly.
 - Document shared helpers and modules in `docs/USAGE.md` when used across scripts.
-- Use `tests/run_pyflakes.sh` and `tests/run_ascii_compliance.sh` for repo-wide lint checks, with `tests/check_ascii_compliance.py` for single-file ASCII/ISO-8859-1 checks.
+- Use `tests/run_pyflakes.sh` and `tests/run_ascii_compliance.py` for repo-wide lint checks, with `tests/check_ascii_compliance.py` for single-file ASCII/ISO-8859-1 checks.
 
 ## Dependency manifests
 - Store Python dependencies in `pip_requirements.txt` at the repo root. 
@@ -68,6 +68,8 @@ Repo-wide conventions for this project and related repos.
 - Use underscores between words and avoid spaces.
 - Choose clear, descriptive names.
 - Keep well-known root-level docs (for example VERSION, README.md, AGENTS.md).
+- I prefer to use social media links instead of hard coding my email in repos. For example, Neil Voss, https://bsky.app/profile/neilvosslab.bsky.social
+
 
 ### Recommended common docs
 - `AGENTS.md`: agent instructions, tool constraints, and repo-specific workflow guardrails.
