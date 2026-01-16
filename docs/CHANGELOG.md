@@ -2,6 +2,15 @@
 
 Chronological record of user-facing and maintenance changes.
 
+## 2026-01-16
+OpenAI Codex
+- Refreshed `docs/CODE_ARCHITECTURE.md` and `docs/FILE_STRUCTURE.md` to match the
+  current repository layout and components.
+- Refreshed `docs/INSTALL.md` and added `docs/USAGE.md` with minimal setup and
+  run guidance based on current repo evidence.
+- Streamlined `README.md` with a shorter overview, curated doc links, and a
+  minimal quick start.
+
 ## 2026-01-13
 OpenAI Codex
 - Replaced non-ASCII characters in `AGENTS.md`, `docs/UTILS.md`, and test harness

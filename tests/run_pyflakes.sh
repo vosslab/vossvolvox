@@ -4,13 +4,73 @@ set -e
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "${REPO_ROOT}"
 
+SCOPE="${REPO_HYGIENE_SCOPE:-}"
+if [ -z "${SCOPE}" ] && [ "${FAST_REPO_HYGIENE:-}" = "1" ]; then
+	SCOPE="changed"
+fi
+
 # Run pyflakes on all Python files and capture output
 PYFLAKES_OUT="${REPO_ROOT}/pyflakes.txt"
-find "${REPO_ROOT}" \
-	-type d \( -name .git -o -name .venv -o -name old_shell_folder \) -prune -o \
-	\( -type f -name "*.py" ! -path "*TEMPLATE*" -print0 \) \
-	| sort -z \
-	| xargs -0 pyflakes > "${PYFLAKES_OUT}" 2>&1 || true
+if [ "${SCOPE}" = "changed" ]; then
+	CHANGED_LIST="$(mktemp)"
+	trap 'rm -f "${CHANGED_LIST}"' EXIT
+	collect_changed_files() {
+		git diff --name-only --diff-filter=ACMRTUXB -z
+		git diff --name-only --cached --diff-filter=ACMRTUXB -z
+	}
+	collect_changed_files | while IFS= read -r -d '' path; do
+		if [ -z "${path}" ]; then
+			continue
+		fi
+		case "${path}" in
+			.git/*|*/.git/*|.venv/*|*/.venv/*|old_shell_folder/*|*/old_shell_folder/*)
+				continue
+				;;
+		esac
+		if [[ "${path}" != *.py ]]; then
+			continue
+		fi
+		if [[ "${path}" == *TEMPLATE* ]]; then
+			continue
+		fi
+		printf '%s\0' "${path}"
+	done | sort -zu > "${CHANGED_LIST}"
+	FILE_COUNT=$(tr -cd '\0' < "${CHANGED_LIST}" | wc -c | tr -d ' ')
+	if [ "${FILE_COUNT}" -eq 0 ]; then
+		: > "${PYFLAKES_OUT}"
+		echo "pyflakes: no Python files matched scope changed."
+		echo "No errors found!!!"
+		exit 0
+	fi
+	echo "pyflakes: scanning ${FILE_COUNT} files..."
+	xargs -0 pyflakes < "${CHANGED_LIST}" > "${PYFLAKES_OUT}" 2>&1 || true
+else
+	TRACKED_LIST="$(mktemp)"
+	trap 'rm -f "${TRACKED_LIST}"' EXIT
+	git ls-files -z -- "*.py" | while IFS= read -r -d '' path; do
+		if [ -z "${path}" ]; then
+			continue
+		fi
+		case "${path}" in
+			.git/*|*/.git/*|.venv/*|*/.venv/*|old_shell_folder/*|*/old_shell_folder/*)
+				continue
+				;;
+		esac
+		if [[ "${path}" == *TEMPLATE* ]]; then
+			continue
+		fi
+		printf '%s\0' "${path}"
+	done | sort -zu > "${TRACKED_LIST}"
+	FILE_COUNT=$(tr -cd '\0' < "${TRACKED_LIST}" | wc -c | tr -d ' ')
+	if [ "${FILE_COUNT}" -eq 0 ]; then
+		: > "${PYFLAKES_OUT}"
+		echo "pyflakes: no Python files matched scope all."
+		echo "No errors found!!!"
+		exit 0
+	fi
+	echo "pyflakes: scanning ${FILE_COUNT} files..."
+	xargs -0 pyflakes < "${TRACKED_LIST}" > "${PYFLAKES_OUT}" 2>&1 || true
+fi
 
 RESULT=$(wc -l < "${PYFLAKES_OUT}")
 

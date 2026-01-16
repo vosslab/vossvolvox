@@ -1,38 +1,33 @@
 # Install
 
-Set up the Voss Volvox toolchain and build the C++17 executables.
+Install means building the C++17 command-line executables into [bin/](bin/) and
+optionally using the Python utilities under [python/](python/) and [xyzr/](xyzr/).
 
-## Prerequisites
-- C++17 compiler (g++ 7+ or clang++)
-- GNU Make
+## Requirements
+- C++17 compiler (g++ or clang++).
+- GNU Make.
+- Python 3.12 for Python utilities and tests.
+- Gemmi headers for mmCIF or PDBML inputs (optional but required for those
+  formats).
 
-## Build steps
-1. Clone the repository:
-
-```sh
-git clone https://github.com/vosslab/vossvolvox.git
-```
-
-2. Build from the source directory:
+## Install steps
+- Build the executables:
 
 ```sh
-cd vossvolvox/src
+cd src
 make
 cd ..
 ```
 
-3. Confirm the executables were created:
+- Confirm the executables exist in [bin/](bin/).
+
+## Verify install
 
 ```sh
-ls ../bin/
-```
-
-4. Run tools to verify the CLI:
-
-```sh
-./bin/pdb_to_xyzr.exe --help
 ./bin/Volume.exe -h
-./bin/Volume.exe -i 1A01.pdb --exclude-ions --exclude-water -p 1.5 -g 0.5
 ```
 
-See [QUICKSTART.md](QUICKSTART.md) for a walkthrough.
+## Known gaps
+- TODO: Confirm supported operating systems and shells.
+- TODO: Document how to install Gemmi headers for C++ builds on macOS and Linux.
+- TODO: Document any required Python dependencies for [python/](python/) scripts.

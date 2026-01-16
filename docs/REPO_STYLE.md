@@ -69,6 +69,7 @@ Repo-wide conventions for this project and related repos.
 - Choose clear, descriptive names.
 - Keep well-known root-level docs (for example VERSION, README.md, AGENTS.md).
 - I prefer to use social media links instead of hard coding my email in repos. For example, Neil Voss, https://bsky.app/profile/neilvosslab.bsky.social
+- When referencing files, use Markdown links so users can click through. Markdown links are created using the syntax [link text](URL), where "link text" is the clickable text that appears in the document, and "URL" is the web address or file path the link points to. This allows users to navigate between different content easily. Use file-path link text so readers know the exact filename (good: [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md), bad: [Style Guide for Markdown](docs/MARKDOWN_STYLE.md)). Only include a backticked path when the link text is not the path.
 
 
 ### Recommended common docs
