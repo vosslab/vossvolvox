@@ -78,19 +78,10 @@ volume_text = f"<span style='font-family: monospace;'>{vol1:.1f} mL</span>"
 - I like to test the code with **pyflakes** and **mypy**
 - For simple functions only, provide an **assert** command.
 - create a folder in most projects called tests for storing test scripts
-- a good test script is run_pyflakes.sh
+- a good repo-wide pyflakes gate is `tests/test_pyflakes.py` (run with pytest)
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-cd "${PYTHON_ROOT}"
-pyflakes $(find "${PYTHON_ROOT}" -type f -name "*.py" -print) > pyflakes.txt 2>&1 || true
-RESULT=$(wc -l < pyflakes.txt)
-if [ "${RESULT}" -eq 0 ]; then
-	echo "No errors found!!!"
-	exit 0
-fi
-echo "Found ${RESULT} pyflakes errors"
-exit 1
+python3 -m pytest tests/test_pyflakes.py
+/opt/homebrew/opt/python@3.12/bin/python3.12 -m pytest tests/test_pyflakes.py
 ```
 
 ## DO NOT USE HEREDOCS
@@ -124,6 +115,15 @@ debug_mode = os.environ.get("DEBUG_MODE") == "true"
 ```
 
 For api keys, mode settings, or temp variables use argparse, config files, or function arguments instead. Rule of thumb: If a variable exists only because the script exists, it does not belong in the environment.
+
+### Shell defaults
+
+When running Python scripts locally, export these to get unbuffered output and to avoid writing `.pyc` / `__pycache__` garbage files (scripts must still work without them):
+
+```bash
+export PYTHONUNBUFFERED=1
+export PYTHONDONTWRITEBYTECODE=1
+```
 
 ## COMMENTING
 

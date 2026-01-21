@@ -20,6 +20,18 @@ Keep documentation concise, scannable, and consistent.
 - Use fenced code blocks with language where practical.
 - Use inline backticks for file paths, CLI flags, and identifiers.
 
+## Tables and diagrams
+- Use ASCII-only tables and diagrams. Do not use Unicode box-drawing or checkmark symbols.
+- For boxed layouts, use `+`, `-`, and `|` inside fenced code blocks.
+- Replace checkmarks with `OK`, `YES`, or `[x]` and crosses with `NO`, `FAIL`, or `[ ]`.
+- For progress bars or fills, use `#` and `.` (or `-`) instead of block characters.
+- If the content is tabular, prefer Markdown tables unless alignment in a code block is required.
+- Simple Markdown table example:
+  | Field | Description |
+  | --- | --- |
+  | input | Path to input file |
+  | output | Path to output file |
+
 ## Links
 - Use relative links inside the repo.
 - Prefer descriptive link text, not raw URLs.

@@ -7,11 +7,12 @@ Repo-wide conventions for this project and related repos.
 - Create topic folders only when a collection needs grouping.
 - Avoid deep nesting; keep paths short.
 - Keep `README.md` and `AGENTS.md` at the repo root.
+- Determine REPO_ROOT with `git rev-parse --show-toplevel`, not by deriving paths from the current working directory.
 
 ## Naming
 - Use SCREAMING_SNAKE_CASE for Markdown docs filenames, with the .md extension
 - For non-Markdown filenames, use only lowercase ASCII letters, numbers, and underscores.
-- Prefer snake_case for most filenames. Avoid CamelCase in filenames. 
+- Prefer snake_case for most filenames. Avoid CamelCase in filenames.
 - Use underscores between words and avoid spaces.
 - Use `.md` for docs, `.sh` for shell, `.py` for Python.
 - Keep filenames descriptive, and consistent with the primary thing the file provides.
@@ -44,10 +45,11 @@ Repo-wide conventions for this project and related repos.
 - Keep scripts self-contained and single-purpose.
 - Add a shebang for executable scripts and keep them runnable directly.
 - Document shared helpers and modules in `docs/USAGE.md` when used across scripts.
-- Use `tests/run_pyflakes.sh` and `tests/run_ascii_compliance.py` for repo-wide lint checks, with `tests/check_ascii_compliance.py` for single-file ASCII/ISO-8859-1 checks.
+- Use `tests/test_pyflakes.py` and `tests/test_ascii_compliance.py` for repo-wide lint checks, with `tests/check_ascii_compliance.py` for single-file ASCII/ISO-8859-1 checks and `tests/fix_ascii_compliance.py` for single-file fixes.
+- For smoke tests, reuse stable output folder names (for example `output_smoke/`) instead of creating one-off output directory names; reusing/overwriting avoids repeated delete-approval prompts.
 
 ## Dependency manifests
-- Store Python dependencies in `pip_requirements.txt` at the repo root. 
+- Store Python standard dependencies in `pip_requirements.txt` at the repo root and developer dependencies, e.g., pytest in `pip_requirements-dev.txt`.
 - Use `pip_requirements.txt` not `requirements.txt` for clarity reasons
 - Store Homebrew packages in `Brewfile` at the repo root.
 - Use per-subproject manifests only when a subfolder is a standalone project.
