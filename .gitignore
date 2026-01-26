@@ -1,6 +1,8 @@
 .DS_Store
 *.xyzr
 *.pdb
+*.o
+bin/*.exe
 
 # Generated comparison artifacts
 test/pdb_to_xyzr_results/
