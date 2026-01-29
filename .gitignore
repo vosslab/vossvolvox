@@ -12,4 +12,3 @@ report_pyflakes.txt
 report_bandit.txt
 report_pyright.txt
 report_ascii_compliance.txt
-
