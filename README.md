@@ -1,9 +1,10 @@
 # Molecular volume and solvent analysis tools
 
-This repository provides C++17 command-line tools for analyzing molecular
-structures by computing volumes, channels, cavities, and tunnel geometry from
-PDB, mmCIF, PDBML, or XYZR inputs. It is intended for researchers in structural
-biology and molecular biophysics who need reproducible grid-based analyses.
+Command-line tools for protein structure analysis: convert PDB, mmCIF, PDBML,
+or XYZR files into atomic sphere data, then compute volumes, channels,
+cavities, and tunnel geometry using grid-based methods. Intended for
+researchers in structural biology and molecular biophysics who need
+reproducible, scriptable analyses of protein 3D structure.
 
 ## Documentation
 
@@ -15,7 +16,6 @@ biology and molecular biophysics who need reproducible grid-based analyses.
 ### Reference
 - [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md): system design and data flow.
 - [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md): directory map and generated assets.
-- [docs/UTILS.md](docs/UTILS.md): shared C++ helper reference.
 
 ### Project records
 - [docs/CHANGELOG.md](docs/CHANGELOG.md): chronological record of changes.
