@@ -300,6 +300,13 @@ void write_output_files(const gridpt grid[],
       writeMRCFile(grid, const_cast<char*>(outputs.mrcFile.c_str()));
     }
   }
+  if (!outputs.ccp4File.empty()) {
+    if (outputs.use_small_mrc) {
+      writeSmallCCP4File(grid, const_cast<char*>(outputs.ccp4File.c_str()));
+    } else {
+      writeCCP4File(grid, const_cast<char*>(outputs.ccp4File.c_str()));
+    }
+  }
   if (!outputs.ezdFile.empty()) {
     write_HalfEZD(grid, const_cast<char*>(outputs.ezdFile.c_str()));
   }

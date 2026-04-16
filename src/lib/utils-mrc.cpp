@@ -1,81 +1,19 @@
 /*
 ** utils-mrc.cpp
+** MRC2014 volume writer: placement via ORIGIN in Angstroms, NSTART zeroed.
 */
-#include <cstdio>      // for fclose, fopen, fwrite
-#include <ctime>       // for time
-#include <cstdint>     // for int16_t, int32_t, int8_t, uint16_t
+#include <cstdio>      // for fclose, fopen, fwrite, snprintf
 #include <cstdlib>     // for std::free, std::malloc
+#include <cstring>     // for memset
 #include <iostream>    // for cerr, endl
 #include "utils.hpp"     // for cerr, endl, DEBUG, gridpt, countGrid
-
-#define MRC_MODE_BYTE            0
-#define MRC_MODE_SHORT           1
-#define MRC_MODE_FLOAT           2
-#define MRC_MODE_SHORT_COMPLEX   3
-#define MRC_MODE_FLOAT_COMPLEX   4
-#define MRC_MODE_UNSIGNED_SHORT  5
-
-#define MRC_COUNT          856    /* Number of freads for a complete header */
-#define MRC_USERS           25
-#define MRC_LABEL_SIZE      80
-#define MRC_NUM_LABELS      10
-
-typedef   int8_t		s08;
-typedef   uint8_t		u08;
-typedef   int16_t		s16;
-typedef   uint16_t	u16;
-typedef   int32_t		s32;
-typedef   uint32_t	u32;
-typedef   float		f32;
-
-/*********************************************/
-typedef struct MRCHeaderSt {
-	s32    nx;                    /* Number of columns */
-	s32    ny;                    /* Number of rows */
-	s32    nz;                    /* Number of sections */
-	s32    mode;                    /* See modes above. */
-	s32    nxstart;                /* No. of first column in map   default 0.*/
-	s32    nystart;                /* No. of first row in map  default 0.*/
-	s32    nzstart;                /* No. of first section in map  default 0.*/
-	s32    mx;                    /* Number of intervals along X. */
-	s32    my;                    /* Number of intervals along Y. */
-	s32    mz;                    /* Number of intervals along Z. */
-	f32    x_length;            /* Cell dimensions (Angstroms). */
-	f32    y_length;            /* Cell dimensions (Angstroms). */
-	f32    z_length;            /* Cell dimensions (Angstroms). */
-	f32    alpha;                /* Cell angles (Degrees). */
-	f32    beta;                    /* Cell angles (Degrees). */
-	f32    gamma;                /* Cell angles (Degrees). */
-	s32    mapc;                    /* Which axis corresponds to Columns.  */
-	s32    mapr;                    /* Which axis corresponds to Rows. */
-	s32    maps;                    /* Which axis corresponds to Sections. */
-	f32    amin;                    /* Minimum density value. */
-	f32    amax;                    /* Maximum density value. */
-	f32    amean;                /* Mean density value.*/
-	s32    ispg;                    /* Space group number (0 for images) */
-	s32    nsymbt;                /* Number of bytes used for storing symmetry operators */
-	s32    extra[MRC_USERS];    /* For user, all set to zero by default */
-	f32    xorigin;                /* X origin */
-	f32    yorigin;                /* Y origin */
-	f32    zorigin;                /* Z origin */
-	s32    map;                    /* Identify file type */
-	s32    mach;                    /* Machine Stamp */
-	f32    rms;                    /* Standard Deviation */
-	s32    nlabl;                /* Number of labels being used. */
-	s08    label[MRC_NUM_LABELS][MRC_LABEL_SIZE];     /* 10 text labels of 80 characters each. */
-} MRCHeaderSt;
-
-typedef MRCHeaderSt * MRCHeaderP;
+#include "utils-mrc-header.hpp"  // for MRCHeaderSt, byteWrite, writeMRCHeader
 
 //FROM utils.h external variables
 extern float XMIN, YMIN, ZMIN;
-//extern float XMAX, YMAX, ZMAX;
 extern int DX, DY, DZ;
-//extern int DXY, DXYZ;
 extern unsigned int NUMBINS;
 extern float GRID;
-//extern float GRIDVOL;
-//END utils.h
 
 
 /*********************************************/
@@ -194,9 +132,10 @@ int writeMRCFile(const gridpt data[], const char filename[] ) {
 	header.x_length     = DX*GRID;
 	header.y_length     = DY*GRID;
 	header.z_length     = DZ*GRID;
-	header.nxstart      = DX/-2;
-	header.nystart      = DY/-2;
-	header.nzstart      = DZ/-2;
+	// MRC2014: placement via ORIGIN only; NSTART zeroed
+	header.nxstart      = 0;
+	header.nystart      = 0;
+	header.nzstart      = 0;
 	header.mapc         = 1;
 	header.mapr         = 2;
 	header.maps         = 3;
@@ -207,31 +146,37 @@ int writeMRCFile(const gridpt data[], const char filename[] ) {
 	header.amax         = 0;
 	header.amin         = 0;
 	header.rms          = 0;
-	header.mach         = time(NULL);
-	// "MAP " from ascii to little-endian integer:  
+	// MRC2014 machine stamp: 0x44 0x44 0x00 0x00 for little-endian
+	header.mach         = 0x00004144;
+	// "MAP " from ascii to little-endian integer:
 	//   ord('M')=77, ord('A')=65, ord('P')=80, ord(' ')=32
-	//   reverse order and powers of 256
 	//   32*(256**3) + 80*(256**2) + 65*(256) + 77
 	header.map          = 542130509;
+	// ORIGIN in Angstroms: real-space location of voxel (0,0,0)
 	header.xorigin      = float(XMIN);
 	header.yorigin      = float(YMIN);
 	header.zorigin      = float(ZMIN);
-	header.ispg         = 0;
+	header.ispg         = 1;  // single EM-style volume
 	header.nsymbt       = 0;
-	header.nlabl        = 0;
 	header.mode         = MRC_MODE_BYTE;
-	
+
 	if ( header.nz == 0 ) header.nz = 1;
 
 	if (DEBUG > 0) {
-      cerr << "Standard MRC write" << endl;
+		cerr << "Standard MRC write" << endl;
 		cerr << "N.START: " << header.nxstart << " , " << header.nystart << " , " << header.nzstart << endl;
 		cerr << "ORIGIN: " << header.xorigin << " , " << header.yorigin << " , " << header.zorigin << endl;
 	}
 
 	int k;
 	for(k=0;k<MRC_USERS;k++) header.extra[k] = 0;
-	for(k=0;k<MRC_NUM_LABELS;k++) header.label[k][0] = '\0';
+	// NVERSION at word 28 = extra[3]: MRC2014 format
+	header.extra[3]     = 20140;
+	// label describing placement convention
+	memset(header.label, 0, MRC_NUM_LABELS * MRC_LABEL_SIZE);
+	snprintf(reinterpret_cast<char*>(header.label[0]), MRC_LABEL_SIZE,
+		"MRC2014: ORIGIN used for placement; NSTART zeroed");
+	header.nlabl        = 1;
 	
 	if ( writeMRCHeader(fp,header) == -1 ) return -1;
 
@@ -339,9 +284,10 @@ int writeSmallMRCFile(const gridpt data[], const char filename[]) {
 	header.x_length     = xdim*GRID;
 	header.y_length     = ydim*GRID;
 	header.z_length     = zdim*GRID;
-	header.nxstart      = DX/-2;
-	header.nystart      = DY/-2;
-	header.nzstart      = DZ/-2;
+	// MRC2014: placement via ORIGIN only; NSTART zeroed
+	header.nxstart      = 0;
+	header.nystart      = 0;
+	header.nzstart      = 0;
 	header.mapc         = 1;
 	header.mapr         = 2;
 	header.maps         = 3;
@@ -352,24 +298,23 @@ int writeSmallMRCFile(const gridpt data[], const char filename[]) {
 	header.amax         = 0;
 	header.amin         = 0;
 	header.rms          = 0;
-	header.mach         = time(NULL);
-	// "MAP " from ascii to little-endian integer:  
-	//   ord('M')=77, ord('A')=65, ord('P')=80, ord(' ')=32
-	//   reverse order and powers of 256
+	// MRC2014 machine stamp: 0x44 0x44 0x00 0x00 for little-endian
+	header.mach         = 0x00004144;
+	// "MAP " from ascii to little-endian integer:
 	//   32*(256**3) + 80*(256**2) + 65*(256) + 77
 	header.map          = 542130509;
-	header.xorigin      = XMIN+GRID*xmin; //check this
+	// ORIGIN in Angstroms: real-space location of trimmed voxel (0,0,0)
+	header.xorigin      = XMIN+GRID*xmin;
 	header.yorigin      = YMIN+GRID*ymin;
 	header.zorigin      = ZMIN+GRID*zmin;
-	header.ispg         = 0;
+	header.ispg         = 1;  // single EM-style volume
 	header.nsymbt       = 0;
-	header.nlabl        = 0;
 	header.mode         = MRC_MODE_BYTE;
 
 	if (DEBUG > 0) {
-      cerr << "Trimmed MRC write" << endl;
+		cerr << "Trimmed MRC write" << endl;
 		cerr << "N.START: " << header.nxstart << " , " << header.nystart << " , " << header.nzstart << endl;
-      cerr << "MINS:   " << xmin << " , " << ymin << " , " << zmin;
+		cerr << "MINS:   " << xmin << " , " << ymin << " , " << zmin;
 		cerr << "ORIGIN: " << header.xorigin << " , " << header.yorigin << " , " << header.zorigin << endl;
 	}
 
@@ -377,7 +322,13 @@ int writeSmallMRCFile(const gridpt data[], const char filename[]) {
 
 	int k;
 	for(k=0;k<MRC_USERS;k++) header.extra[k] = 0;
-	for(k=0;k<MRC_NUM_LABELS;k++) header.label[k][0] = '\0';
+	// NVERSION at word 28 = extra[3]: MRC2014 format
+	header.extra[3]     = 20140;
+	// label describing placement convention
+	memset(header.label, 0, MRC_NUM_LABELS * MRC_LABEL_SIZE);
+	snprintf(reinterpret_cast<char*>(header.label[0]), MRC_LABEL_SIZE,
+		"MRC2014: ORIGIN used for placement; NSTART zeroed");
+	header.nlabl        = 1;
 	
 	if ( writeMRCHeader(fp,header) == -1 ) return -1;
 
@@ -385,7 +336,7 @@ int writeSmallMRCFile(const gridpt data[], const char filename[]) {
 	int count = byteWrite( fp, smdata, numbins, 1 );
 	std::free (smdata);
 	if ( count != 17 ) return -1;
-	
+
 	fclose(fp);
 
 	return 1;

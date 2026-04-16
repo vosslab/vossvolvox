@@ -21,6 +21,7 @@ struct OutputSettings {
   std::string pdbFile;
   std::string ezdFile;
   std::string mrcFile;
+  std::string ccp4File;
   bool use_small_mrc = false;
 };
 

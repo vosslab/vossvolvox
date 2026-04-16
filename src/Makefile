@@ -37,7 +37,7 @@ $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 # Object files used in all programs
-OBJS = $(OBJ_DIR)/utils-main.o $(OBJ_DIR)/utils-output.o $(OBJ_DIR)/utils-mrc.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/xyzr_cli_helpers.o $(OBJ_DIR)/vossvolvox_cli_common.o
+OBJS = $(OBJ_DIR)/utils-main.o $(OBJ_DIR)/utils-output.o $(OBJ_DIR)/utils-mrc.o $(OBJ_DIR)/utils-ccp4.o $(OBJ_DIR)/argument_helper.o $(OBJ_DIR)/pdb_io.o $(OBJ_DIR)/xyzr_cli_helpers.o $(OBJ_DIR)/vossvolvox_cli_common.o
 LEGACY_OBJS = $(OBJ_DIR)/utils-main-legacy.o $(OBJ_DIR)/utils-output-legacy.o $(OBJ_DIR)/utils-mrc-legacy.o
 
 # Ensure the object directory exists before building object files
@@ -89,6 +89,9 @@ $(OBJ_DIR)/utils-mrc.o: lib/utils-mrc.cpp
 
 $(OBJ_DIR)/utils-mrc-legacy.o: lib/utils-mrc.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/utils-mrc-legacy.o lib/utils-mrc.cpp
+
+$(OBJ_DIR)/utils-ccp4.o: lib/utils-ccp4.cpp lib/utils-mrc-header.hpp
+	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/utils-ccp4.o lib/utils-ccp4.cpp
 
 $(OBJ_DIR)/argument_helper.o: lib/argument_helper.cpp
 	$(CC) $(FLAGS) $(STD_FLAG) -c -o $(OBJ_DIR)/argument_helper.o lib/argument_helper.cpp

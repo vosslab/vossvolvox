@@ -2,6 +2,31 @@
 
 Chronological record of user-facing and maintenance changes.
 
+## 2026-04-15
+
+### Fixes and Maintenance
+- Fixed MRC writer to follow MRC2014 real-space placement conventions:
+  zeroed `NXSTART/NYSTART/NZSTART` (placement via `ORIGIN` only),
+  set `ISPG=1` (single volume), added proper machine stamp and `NVERSION=20140`.
+  Previously the MRC header mixed both placement mechanisms with inconsistent
+  values, causing misalignment in viewers that use `NSTART` (e.g. PyMOL `format=ccp4`).
+- Extracted shared MRC header struct and write helpers into `src/lib/utils-mrc-header.hpp`.
+
+### Additions and New Features
+- Added CCP4 volume export (`-c`/`--ccp4-output`) as a compatibility format for
+  viewers that expect CCP4/NSTART placement semantics. CCP4 files use `NSTART`
+  grid indices for placement with `ORIGIN` zeroed. Grid bounds are snapped to
+  multiples of `4*GRID`, so `NSTART` placement is exact in this codebase.
+  Recommend `.ccp4` or `.map` extension. MRC remains the recommended format
+  for exact real-space placement via `ORIGIN`.
+- New file `src/lib/utils-ccp4.cpp` with `writeCCP4File()` and `writeSmallCCP4File()`.
+
+### Decisions and Failures
+- MRC and CCP4 exports intentionally use different placement conventions to match
+  what each viewer expects. MRC uses `ORIGIN` (Angstroms), CCP4 uses `NSTART`
+  (grid indices). Both include labels identifying which convention is active.
+  See `docs/pymol-deep-research-report.md` for background on the origin ambiguity.
+
 ## 2026-01-16
 OpenAI Codex
 - Refreshed `docs/CODE_ARCHITECTURE.md` and `docs/FILE_STRUCTURE.md` to match the

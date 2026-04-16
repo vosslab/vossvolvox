@@ -131,13 +131,24 @@ inline void add_mrc_option(ArgumentParser& parser, std::string& target) {
                     "<MRC file>");
 }
 
+inline void add_ccp4_option(ArgumentParser& parser, std::string& target) {
+  parser.add_option("-c",
+                    "--ccp4-output",
+                    target,
+                    std::string(),
+                    "Write density to this CCP4 file (uses NSTART placement). Use .ccp4 or .map extension.",
+                    "<CCP4 file>");
+}
+
 inline void add_output_file_options(ArgumentParser& parser,
                                     std::string& pdb_output,
                                     std::string& ezd_output,
-                                    std::string& mrc_output) {
+                                    std::string& mrc_output,
+                                    std::string& ccp4_output) {
   add_pdb_option(parser, pdb_output);
   add_ezd_option(parser, ezd_output);
   add_mrc_option(parser, mrc_output);
+  add_ccp4_option(parser, ccp4_output);
 }
 
 inline void add_xyzr_filter_flags(ArgumentParser& parser,

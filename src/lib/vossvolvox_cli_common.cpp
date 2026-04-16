@@ -40,7 +40,7 @@ void add_filter_options(ArgumentParser& parser, FilterSettings& filters) {
 }
 
 void add_output_options(ArgumentParser& parser, OutputSettings& outputs) {
-  add_output_file_options(parser, outputs.pdbFile, outputs.ezdFile, outputs.mrcFile);
+  add_output_file_options(parser, outputs.pdbFile, outputs.ezdFile, outputs.mrcFile, outputs.ccp4File);
 }
 
 pdbio::ConversionOptions make_conversion_options(const FilterSettings& filters) {
