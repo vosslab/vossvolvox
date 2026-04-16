@@ -36,7 +36,7 @@ if __name__ == "__main__":
 	parser.add_option("-a", "--axes", dest="axes", default="xyz",
 		help="Axis choices, can be combination", metavar="AXES")
 	parser.add_option("-p", "--percentcut", dest="percentcut", default=-1,
-		help="Percent to cut, -1 = auto", metavar="#", type="float")		
+		help="Percent to cut, -1 = auto", metavar="#", type="float")
 	(options, args) = parser.parse_args()
 
 	filename = options.mrcfile

@@ -1,0 +1,5 @@
+@AGENTS.md
+@docs/REPO_STYLE.md
+@docs/PYTHON_STYLE.md
+@docs/MARKDOWN_STYLE.md
+@docs/CLAUDE_HOOK_USAGE_GUIDE.md

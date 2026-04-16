@@ -1,13 +1,11 @@
 import os
 import subprocess
 
+import pytest
+
 import git_file_utils
 
-
-SCOPE_ENV = "REPO_HYGIENE_SCOPE"
-FAST_ENV = "FAST_REPO_HYGIENE"
-SKIP_ENV = "SKIP_REPO_HYGIENE"
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+REPO_ROOT = git_file_utils.get_repo_root()
 
 EXTENSIONS = {
 	".md",
@@ -30,21 +28,6 @@ EXTENSIONS = {
 	".css",
 }
 SKIP_DIRS = {".git", ".venv", "old_shell_folder"}
-
-
-#============================================
-def resolve_scope() -> str:
-	"""Resolve the scan scope from environment.
-
-	Returns:
-		str: "all" or "changed".
-	"""
-	scope = os.environ.get(SCOPE_ENV, "").strip().lower()
-	if not scope and os.environ.get(FAST_ENV) == "1":
-		scope = "changed"
-	if scope in ("all", "changed"):
-		return scope
-	return "all"
 
 
 #============================================
@@ -144,37 +127,23 @@ def run_fixer(path: str) -> None:
 		raise AssertionError(message)
 
 
+_FILES = git_file_utils.collect_files(REPO_ROOT, gather_files, gather_changed_files)
+
+
 #============================================
-def test_whitespace_hygiene(pytestconfig) -> None:
+@pytest.mark.parametrize(
+	"file_path", _FILES,
+	ids=lambda p: os.path.relpath(p, REPO_ROOT),
+)
+def test_whitespace_hygiene(file_path: str, pytestconfig) -> None:
 	"""Fail on whitespace issues. Auto-fix unless --no-ascii-fix is set."""
-	if os.environ.get(SKIP_ENV) == "1":
-		return
 	apply_fix = not pytestconfig.getoption("no_ascii_fix", default=False)
-
-	scope = resolve_scope()
-	if scope == "changed":
-		paths = gather_changed_files(REPO_ROOT)
-	else:
-		paths = gather_files(REPO_ROOT)
-
-	errors = []
-	to_fix = []
-	for path in paths:
-		issues = check_whitespace(path)
-		if not issues:
-			continue
-		rel_path = os.path.relpath(path, REPO_ROOT)
-		errors.append(f"{rel_path}:0:0: " + ", ".join(sorted(set(issues))))
-		to_fix.append(path)
-
-	if not errors:
+	issues = check_whitespace(file_path)
+	if not issues:
 		return
-
+	rel_path = os.path.relpath(file_path, REPO_ROOT)
+	message = f"{rel_path}: " + ", ".join(sorted(set(issues)))
 	if apply_fix:
-		for path in to_fix:
-			run_fixer(path)
-		raise AssertionError(
-			"Whitespace issues were fixed. Please re-run pytest.\n" + "\n".join(errors)
-		)
-
-	raise AssertionError("Whitespace issues found:\n" + "\n".join(errors))
+		run_fixer(file_path)
+		raise AssertionError(f"Whitespace issues were fixed. Please re-run pytest.\n{message}")
+	raise AssertionError(f"Whitespace issues found:\n{message}")

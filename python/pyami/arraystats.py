@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 '''
 Functions for calculating statistics on numpy arrays.
 A statistic is only calculated once on an array.  Future attempts to

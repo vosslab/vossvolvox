@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -12,8 +12,8 @@ if __name__ == "__main__":
 		sys.exit(1)
 	if not os.path.isfile(pdbfile):
 		sys.exit(1)
-		
-	root = os.path.splitext(pdbfile)[0]	
+
+	root = os.path.splitext(pdbfile)[0]
 	atomlist = pdblib.pdb2atomdict(pdbfile)
 	splitlist = pdblib.splitResTypes(atomlist)
 	for restype in list(splitlist.keys()):
@@ -25,4 +25,3 @@ if __name__ == "__main__":
 			line = pdblib.atomdict2line(atomdict)
 			f.write(line+"\n")
 		f.close()
-	

@@ -40,11 +40,21 @@ def read_text(input_file: str) -> tuple[str, str]:
 	content = ""
 	error = ""
 	try:
-		with open(input_file, "r", encoding="utf-8") as handle:
-			content = handle.read()
+		with open(input_file, "rb") as handle:
+			raw_bytes = handle.read()
+		content = raw_bytes.decode("utf-8")
 	except UnicodeDecodeError as exc:
 		byte_index = exc.start
-		error = f"{input_file}:0:0: invalid utf-8 sequence at byte {byte_index}"
+		line_number = raw_bytes.count(b"\n", 0, byte_index) + 1
+		last_newline = raw_bytes.rfind(b"\n", 0, byte_index)
+		if last_newline == -1:
+			column_number = byte_index + 1
+		else:
+			column_number = byte_index - last_newline
+		error = (
+			f"{input_file}:{line_number}:{column_number}: "
+			f"invalid utf-8 sequence at byte {byte_index}"
+		)
 	return content, error
 
 

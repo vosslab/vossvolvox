@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import re
 import os
 import sys
@@ -109,7 +107,7 @@ def getSymmInfo(pdbdata):
 			if m and m.groups():
 				crystDict = {
 						'a': float(m.groups()[0]),
-						'b': float(m.groups()[1]),	
+						'b': float(m.groups()[1]),
 						'c': float(m.groups()[2]),
 						'alpha': float(m.groups()[3]),
 						'beta': float(m.groups()[4]),
@@ -129,7 +127,7 @@ def getSymmInfo(pdbdata):
 						symCount = symNum
 					symDict = {
 						'row': int(m.groups()[0]),
-						'num': symNum,	
+						'num': symNum,
 						'rot1': float(m.groups()[2]),
 						'rot2': float(m.groups()[3]),
 						'rot3': float(m.groups()[4]),
@@ -154,7 +152,7 @@ def getSymmInfo(pdbdata):
 def makeUnitCell(atomlist, symOps):
 	numOps = len(symOps)
 	atomlistSet = []
-	print("Original Atoms %d"%(len(atomlist)))	
+	print("Original Atoms %d"%(len(atomlist)))
 	for i in range(numOps):
 		newatomlist = []
 		print(symOps[i][1])
@@ -168,7 +166,7 @@ def makeUnitCell(atomlist, symOps):
 			newatomdict['z'] = newcoord[2]
 			newatomlist.append(newatomdict)
 		atomlistSet.append(newatomlist)
-		sys.stderr.write("Total Atoms %d\n"%(len(atomlistSet)))	
+		sys.stderr.write("Total Atoms %d\n"%(len(atomlistSet)))
 	return atomlistSet
 
 #==========
@@ -203,14 +201,14 @@ def translateUnitCell(atomlistSet, scaleOp, numCopies=4, maxDist=80):
 		model += 1
 		newatomlist = atomCoords2List(atomCoords, atomlistSet[0], model)
 		fullatomlist.extend(newatomlist)
-	sys.stderr.write("\nTotal Models %d\n"%(model))	
+	sys.stderr.write("\nTotal Models %d\n"%(model))
 	return fullatomlist
 
 #==========
 def getAtomCoords(atomlist):
 	coordList = []
 	for atomdict in atomlist:
-		coord = numpy.array([atomdict['x'], atomdict['y'], atomdict['z']])	
+		coord = numpy.array([atomdict['x'], atomdict['y'], atomdict['z']])
 		coordList.append(coord)
 	atomCoords = numpy.array(coordList)
 	return atomCoords
@@ -240,7 +238,7 @@ def centerOfMass(atomlist):
 	return atomCoords.mean(0)
 
 #==========
-def translateAtomList(atomCoords, scaleOp, shiftOp, maxDist):	
+def translateAtomList(atomCoords, scaleOp, shiftOp, maxDist):
 	invScale = numpy.linalg.inv(scaleOp[0])
 	newAtomCoords = numpy.dot(scaleOp[0], atomCoords.T).T + shiftOp
 	fixAtomCoords = numpy.dot(invScale, newAtomCoords.T).T
@@ -252,7 +250,7 @@ def translateAtomList(atomCoords, scaleOp, shiftOp, maxDist):
 	if numpy.max(numpy.abs(centerCoord)) > maxDist:
 		return None
 	return fixAtomCoords
-	
+
 #==========
 def pdbData2atomdict(pdbdata):
 	atomlist = []
@@ -275,8 +273,8 @@ def pdbData2atomdict(pdbdata):
 		#	print ("read %d lines, found %d atoms"%(count, len(atomlist)))
 	print(("read %d lines, found %d atoms, %d models"%(count, len(atomlist), model)))
 	return atomlist
-	
-#==========		
+
+#==========
 def line2atomdict(line):
 	#print line
 	atomdict = {}
@@ -289,7 +287,7 @@ def line2atomdict(line):
 	atomdict['atomnum'] = int(line[6:11])
 	atomdict['atomname'] = line[12:16].strip()
 	atomdict['resname'] = line[17:20].strip()
-	atomdict['restype'] = getResType(atomdict['resname'])	
+	atomdict['restype'] = getResType(atomdict['resname'])
 	atomdict['chainid'] = line[21]
 	atomdict['resnum'] = int(line[22:26])
 	atomdict['x'] = float(line[30:38])
@@ -301,7 +299,7 @@ def line2atomdict(line):
 	atomdict2line(atomdict)
 	return atomdict
 
-#==========		
+#==========
 def getResType(resname):
 	try:
 		aadict[resname]
@@ -322,15 +320,15 @@ def getResType(resname):
 		sugdict[resname]
 		return 'sugar'
 	except KeyError:
-		pass		
+		pass
 	try:
 		ligdict[resname]
 		return 'ligand'
 	except KeyError:
-		pass		
+		pass
 	return 'unknown'
 
-#==========	
+#==========
 def countResTypes(atomlist):
 	typehist = {}
 	for atomdict in atomlist:
@@ -341,7 +339,7 @@ def countResTypes(atomlist):
 			typehist[type] = 1
 	return typehist
 
-#==========	
+#==========
 def splitResTypes(atomlist):
 	splitatomlists = {}
 	for atomdict in atomlist:
@@ -352,7 +350,7 @@ def splitResTypes(atomlist):
 			splitatomlists[type] = [atomdict]
 	return splitatomlists
 
-#==========	
+#==========
 def getModel(atomlist, modelNum):
 	modelAtomList = []
 	for atomdict in atomlist:
@@ -361,7 +359,7 @@ def getModel(atomlist, modelNum):
 	print("Selected %d of %d atoms for model %d"%(len(modelAtomList), len(atomlist), modelNum))
 	return modelAtomList
 
-#==========	
+#==========
 def splitChain(atomlist):
 	splitatomlists = {}
 	for atomdict in atomlist:
@@ -372,7 +370,7 @@ def splitChain(atomlist):
 			splitatomlists[chain] = [atomdict]
 	return splitatomlists
 
-#==========	
+#==========
 def atomdict2line(atomdict):
 	line = ""
 	if atomdict['atomtype'] == "ATOM":
@@ -397,8 +395,8 @@ def atomdict2line(atomdict):
 		print(line)
 		raise
 	return line
-	
-#==========	
+
+#==========
 def rightPadString(s,n=10,fill=" "):
 	n = int(n)
 	s = str(s)
@@ -408,7 +406,7 @@ def rightPadString(s,n=10,fill=" "):
 		s += fill
 	return s
 
-#==========	
+#==========
 def leftPadString(s,n=10,fill=" "):
 	n = int(n)
 	s = str(s)
@@ -418,7 +416,7 @@ def leftPadString(s,n=10,fill=" "):
 		s = fill+s
 	return s
 
-#==========	
+#==========
 def writePDB(atomlist, pdbfile, modellist=None):
 	f = open(pdbfile, "w")
 	print("writing %d atoms to file %s"%(len(atomlist), pdbfile))
@@ -449,8 +447,8 @@ if __name__ == "__main__":
 		sys.exit(1)
 	if not os.path.isfile(pdbfile):
 		sys.exit(1)
-		
-	root = os.path.splitext(pdbfile)[0]	
+
+	root = os.path.splitext(pdbfile)[0]
 	atomlist = pdb2atomdict(pdbfile)
 	splitlist = splitResTypes(atomlist)
 	for restype in list(splitlist.keys()):

@@ -42,11 +42,21 @@ def read_text(input_file: str) -> tuple[str, str]:
 	content = ""
 	error = ""
 	try:
-		with open(input_file, "r", encoding="utf-8") as handle:
-			content = handle.read()
+		with open(input_file, "rb") as handle:
+			raw_bytes = handle.read()
+		content = raw_bytes.decode("utf-8")
 	except UnicodeDecodeError as exc:
 		byte_index = exc.start
-		error = f"{input_file}:0:0: invalid utf-8 sequence at byte {byte_index}"
+		line_number = raw_bytes.count(b"\n", 0, byte_index) + 1
+		last_newline = raw_bytes.rfind(b"\n", 0, byte_index)
+		if last_newline == -1:
+			column_number = byte_index + 1
+		else:
+			column_number = byte_index - last_newline
+		error = (
+			f"{input_file}:{line_number}:{column_number}: "
+			f"invalid utf-8 sequence at byte {byte_index}"
+		)
 	return content, error
 
 
@@ -137,6 +147,24 @@ def apply_simple_fixes(text: str) -> tuple[str, bool]:
 	fixed_text = fixed_text.replace("\u2022", "*")
 	fixed_text = fixed_text.replace("\u00B7", "*")
 
+
+	fixed_text = fixed_text.replace("\u2713 Yes", "Yes")
+	fixed_text = fixed_text.replace("\u2717 No", "No")
+
+	#greek characters
+	fixed_text = fixed_text.replace("\u03BC", "&micro;")
+
+
+
+	fixed_text = fixed_text.replace("\u20AC", "&euro;")
+	fixed_text = fixed_text.replace("\u2122", "&trade;")
+
+
+	#subscripts
+	fixed_text = fixed_text.replace("\u2080", "&#x2080;")
+
+
+
 	# Replace multiplication and division signs.
 	fixed_text = fixed_text.replace("\u00D7", "x")
 	fixed_text = fixed_text.replace("\u00F7", "/")
@@ -148,9 +176,23 @@ def apply_simple_fixes(text: str) -> tuple[str, bool]:
 	fixed_text = fixed_text.replace("\u00B1", "+/-")
 	fixed_text = fixed_text.replace("\u2248", "~")
 
+	# Replace box-drawing characters with ASCII equivalents.
+	fixed_text = fixed_text.replace("\u2500", "-")   # horizontal line
+	fixed_text = fixed_text.replace("\u2502", "|")   # vertical line
+	fixed_text = fixed_text.replace("\u250C", "+")   # top-left corner
+	fixed_text = fixed_text.replace("\u2510", "+")   # top-right corner
+	fixed_text = fixed_text.replace("\u2514", "+")   # bottom-left corner
+	fixed_text = fixed_text.replace("\u2518", "+")   # bottom-right corner
+	fixed_text = fixed_text.replace("\u251C", "+")   # left tee
+	fixed_text = fixed_text.replace("\u2524", "+")   # right tee
+	fixed_text = fixed_text.replace("\u252C", "+")   # top tee
+	fixed_text = fixed_text.replace("\u2534", "+")   # bottom tee
+	fixed_text = fixed_text.replace("\u253C", "+")   # cross
+
 	# Replace or drop additional symbol-like characters.
 	fixed_text = fixed_text.replace("\u037C", "(c)")
 	fixed_text = fixed_text.replace("\u200E", "")
+	fixed_text = fixed_text.replace("\u200F", "")
 
 	# Remove object replacement characters.
 	fixed_text = fixed_text.replace("\uFFFC", "")

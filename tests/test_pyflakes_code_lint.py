@@ -1,33 +1,23 @@
 import os
-import random
 import re
+import random
 import shutil
 import subprocess
 
+import pytest
+
 import git_file_utils
 
-SCOPE_ENV = "REPO_HYGIENE_SCOPE"
-FAST_ENV = "FAST_REPO_HYGIENE"
-SKIP_ENV = "SKIP_REPO_HYGIENE"
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+REPO_ROOT = git_file_utils.get_repo_root()
 ERROR_RE = re.compile(r":[0-9]+:[0-9]+:")
 ERROR_SAMPLE_COUNT = 5
-SMALL_LIMIT = 20
 CHUNK_SIZE = 200
 SKIP_DIRS = {".git", ".venv", "old_shell_folder"}
-
-
-#============================================
-def resolve_scope() -> str:
-	"""
-	Resolve the scan scope from environment.
-	"""
-	scope = os.environ.get(SCOPE_ENV, "").strip().lower()
-	if not scope and os.environ.get(FAST_ENV) == "1":
-		scope = "changed"
-	if scope in ("all", "changed"):
-		return scope
-	return "all"
+# Show the full summary report when this many files have errors
+SUMMARY_THRESHOLD = 4
+_PYFLAKES_READY = False
+_PYFLAKES_LINES: list[str] = []
+_PYFLAKES_BY_FILE: dict[str, list[str]] = {}
 
 
 #============================================
@@ -124,6 +114,32 @@ def sample_errors(lines: list[str], count: int) -> list[str]:
 	if len(lines) <= count:
 		return list(lines)
 	return random.sample(lines, count)
+
+
+#============================================
+def normalize_path(path: str) -> str:
+	"""
+	Normalize a path for stable comparisons.
+	"""
+	return os.path.realpath(os.path.abspath(path))
+
+
+#============================================
+def index_output_lines(lines: list[str]) -> dict[str, list[str]]:
+	"""
+	Index pyflakes output lines by normalized file path.
+	"""
+	index: dict[str, list[str]] = {}
+	for line in lines:
+		separator = line.find(":")
+		if separator == -1:
+			continue
+		path_text = line[:separator]
+		normalized = normalize_path(path_text)
+		if normalized not in index:
+			index[normalized] = []
+		index[normalized].append(line)
+	return index
 
 
 #============================================
@@ -229,52 +245,69 @@ def run_pyflakes(repo_root: str, files: list[str]) -> list[str]:
 
 
 #============================================
-def test_pyflakes() -> None:
+def get_pyflakes_results() -> tuple[list[str], dict[str, list[str]]]:
 	"""
-	Run pyflakes across the repo.
+	Run pyflakes once and cache output plus per-file index.
 	"""
-	if os.environ.get(SKIP_ENV) == "1":
+	global _PYFLAKES_READY
+	global _PYFLAKES_LINES
+	global _PYFLAKES_BY_FILE
+	if not _PYFLAKES_READY:
+		_PYFLAKES_LINES = run_pyflakes(REPO_ROOT, _FILES)
+		_PYFLAKES_BY_FILE = index_output_lines(_PYFLAKES_LINES)
+		_PYFLAKES_READY = True
+	return _PYFLAKES_LINES, _PYFLAKES_BY_FILE
+
+
+_FILES = git_file_utils.collect_files(REPO_ROOT, gather_files, gather_changed_files)
+
+
+#============================================
+@pytest.mark.parametrize(
+	"file_path", _FILES,
+	ids=lambda p: os.path.relpath(p, REPO_ROOT),
+)
+def test_pyflakes(file_path: str) -> None:
+	"""Run pyflakes on a single Python file."""
+	_, line_index = get_pyflakes_results()
+	lines = line_index.get(normalize_path(file_path), [])
+	if lines:
+		raise AssertionError(
+			f"pyflakes errors in {os.path.relpath(file_path, REPO_ROOT)}:\n"
+			+ "\n".join(lines)
+		)
+
+
+#============================================
+def test_pyflakes_summary() -> None:
+	"""
+	Batch summary with report file and error categories.
+
+	Only produces detailed output when more than SUMMARY_THRESHOLD files
+	have errors; otherwise the per-file tests are sufficient.
+	"""
+	if not _FILES:
 		return
 
-	# Delete old report file before running
-	pyflakes_out = os.path.join(REPO_ROOT, "report_pyflakes.txt")
-	if os.path.exists(pyflakes_out):
-		os.remove(pyflakes_out)
-
-	scope = resolve_scope()
-	if scope == "changed":
-		files = gather_changed_files(REPO_ROOT)
-	else:
-		files = gather_files(REPO_ROOT)
-
-	if not files:
-		print(f"pyflakes: no Python files matched scope {scope}.")
-		print("No errors found!!!")
-		return
-
-	print(f"pyflakes: scanning {len(files)} files...")
-	lines = run_pyflakes(REPO_ROOT, files)
+	lines, line_index = get_pyflakes_results()
 	result_count = len(lines)
-
 	if result_count == 0:
-		print("No errors found!!!")
 		return
 
+	# Count distinct files with errors
+	error_files = set(line_index.keys())
+
+	# Skip summary when few files have errors; per-file tests cover them
+	if len(error_files) <= SUMMARY_THRESHOLD:
+		return
+
+	# Write full report to disk
+	pyflakes_out = os.path.join(REPO_ROOT, "report_pyflakes.txt")
 	with open(pyflakes_out, "w", encoding="utf-8") as handle:
 		for line in lines:
 			handle.write(f"{line}\n")
 
 	error_lines = [line for line in lines if ERROR_RE.search(line)]
-
-	if result_count <= SMALL_LIMIT:
-		print("")
-		print(f"Last {ERROR_SAMPLE_COUNT} errors")
-		for line in error_lines[-ERROR_SAMPLE_COUNT:]:
-			print(shorten_paths(line))
-		print("-------------------------")
-		print("")
-		print(f"Found {result_count} pyflakes errors written to REPO_ROOT/report_pyflakes.txt")
-		raise AssertionError("Pyflakes errors detected.")
 
 	print("")
 	print(f"First {ERROR_SAMPLE_COUNT} errors")
@@ -312,5 +345,9 @@ def test_pyflakes() -> None:
 	print("-------------------------")
 	print("")
 
-	print(f"Found {result_count} pyflakes errors written to REPO_ROOT/report_pyflakes.txt")
-	raise AssertionError("Pyflakes errors detected.")
+	print(f"Found {result_count} pyflakes errors across {len(error_files)} files")
+	print("Full report written to REPO_ROOT/report_pyflakes.txt")
+	raise AssertionError(
+		f"Pyflakes errors in {len(error_files)} files "
+		f"({result_count} total lines). See report_pyflakes.txt."
+	)

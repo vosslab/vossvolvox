@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import time
@@ -58,7 +58,7 @@ def processImage(image, count):
 	if fileSize(newfile) != 67109873:
 		print(count, "-- wrong final size", newfile)
 		return False
-	
+
 	print(count, "-- completed successfully -- ", newfile)
 	return True
 

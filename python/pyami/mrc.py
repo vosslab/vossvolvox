@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 '''
 MRC I/O functions:
   write(a, filename, header=None)

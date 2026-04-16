@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import random
@@ -24,13 +24,13 @@ class CrystalClass(object):
 		self.parser.set_usage("Usage: %prog [options]")
 
 		self.parser.add_option("-i", "--pdbid", dest="pdbid",
-			help="PDB id to create crystal structure", metavar="####")	
+			help="PDB id to create crystal structure", metavar="####")
 
 		self.parser.add_option("-d", "--maxdist", dest="maxdist", type="int",
-			help="Maximum distance to generate crystal", metavar="#")	
+			help="Maximum distance to generate crystal", metavar="#")
 
 		self.parser.add_option("-u", "--unitcells", dest="unitcells", type="int",
-			help="Number of unit cells to create to find atoms", metavar="#", default=8)	
+			help="Number of unit cells to create to find atoms", metavar="#", default=8)
 
 
 	#=======================================
@@ -71,11 +71,11 @@ if __name__ == "__main__":
 	if 'aminoacid' in splitlist:
 		bioatomlist.extend(splitlist['aminoacid'])
 	if 'solvent' in splitlist:
-		bioatomlist.extend(splitlist['solvent'])		
+		bioatomlist.extend(splitlist['solvent'])
 	crystDict, scaleOp, symOps = pdblib.getSymmInfo(pdbdata)
 	print(scaleOp)
 	atomlistSet = pdblib.makeUnitCell(bioatomlist, symOps)
-	fullatomlist = pdblib.translateUnitCell(atomlistSet, scaleOp, 
+	fullatomlist = pdblib.translateUnitCell(atomlistSet, scaleOp,
 		numCopies=cryst.params['unitcells'], maxDist=cryst.params['maxdist'])
 	pdbfile = "%s-cryst.pdb"%(cryst.params['pdbid'])
 	pdblib.writePDB(fullatomlist, pdbfile)
@@ -87,10 +87,10 @@ if __name__ == "__main__":
 	pdbfile = "%s-even.pdb"%(cryst.params['pdbid'])
 	pdblib.writePDB(fullatomlist, pdbfile, evens)
 	pdbfile = "%s-odd.pdb"%(cryst.params['pdbid'])
-	pdblib.writePDB(fullatomlist, pdbfile, odds)	
+	pdblib.writePDB(fullatomlist, pdbfile, odds)
 
-	
-	
-	
-	
-	
+
+
+
+
+

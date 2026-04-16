@@ -2,9 +2,25 @@
 
 Language Model guide to Neil python3 programming
 
+## Common misconceptions
+
+AI agents frequently get these wrong. Read the full sections below for details.
+
+- **Tabs not spaces.** Always indent with tabs. See [USE TABS](#use-tabs).
+- **Avoid try/except.** Do not wrap code in try/except blocks. See [CODE STRUCTURE](#code-structure).
+- **Do not hide bugs with defaults.** Use `dict[key]` when the key must exist, not `dict.get(key, fallback)`. See [DO NOT HIDE BUGS WITH DEFAULTS](#do-not-hide-bugs-with-defaults).
+- **Shebangs only on runnable scripts.** No shebangs on library modules, test files, or helpers. See [CODE STRUCTURE](#code-structure).
+- **Argparse minimalism.** Only add flags users frequently change between runs. See [ARGPARSE](#argparse).
+- **Import the module, not names from it.** Prefer `import os` over `from os import path`. See [IMPORTING](#importing).
+- **No relative imports.** Never use `from . import` or `from ..module import`. See [IMPORTING](#importing).
+- **Declare all third-party imports.** Every non-stdlib, non-local import must be in `pip_requirements.txt`. See [IMPORT REQUIREMENTS](#import-requirements).
+- **No brittle pytest assertions.** Do not assert on dates, collection sizes, required key lists, hardcoded defaults, or function names. See [PYTEST](#pytest).
+
 ## Python version
 
 * I like using one of the latest versions of python, but not the latest, of python3, currently **3.12**.
+* In this repo, run python commands through the bootstrap pattern:
+* `source source_me.sh && python ...`
 
 ## FILENAMES
 * Prefer snake_case for Python filenames and module names.
@@ -31,14 +47,89 @@ Language Model guide to Neil python3 programming
 - Avoid using `sys.exit(1)` prefer to raise Errors.
 - Use f-strings, in older code I used `.format()` or `'%'` system, update to f-strings.
 - I prefer string concatenation `'+='` over multiline strings.
-- If a Python script is intended to be executed as a program, the first line must be:
-	- `#!/usr/bin/env python3`
+- Shebangs apply ONLY to executable scripts - files with a `if __name__ == '__main__':` guard that are meant to be run directly from the command line.
+- The required shebang is `#!/usr/bin/env python3` and it must be the very first line. The module docstring comes after it.
+- Do NOT add shebangs to library modules, helper files, `__init__.py` files, or test files. These are imported, not executed directly.
 - Do not hard-code interpreter paths in shebangs (bad: `#!/opt/homebrew/.../python3.12`).
 - Do not use `/usr/bin/python` or `/usr/bin/python3` in shebangs.
-- The shebang must be the first line of the file. The module docstring comes after it.
+- Files with a shebang must also have the executable bit set, and vice versa. See `tests/test_shebangs.py` for enforcement.
 - Return statements should be simple and should not perform calculations, fill out a dict, or build strings. Store computed values and assembled strings in variables first, including any multiline HTML or text, then return the variable.
 - add comments within the code to describe what different lines are doing, to make for better readability later. especially for complex lines!
 - Please only use ascii characters in the script, if utf characters are need they should be escape e.g. `&alpha;` `&lrarr;`
+
+## DO NOT HIDE BUGS WITH DEFAULTS
+
+Defensive coding patterns that silently supply fallback values hide bugs instead of exposing them. If a key, attribute, or value is required, access it directly so missing data fails loudly.
+
+- Use `dict[key]` when the key must exist. Do not use `dict.get(key, default)` to paper over missing data.
+- Use `dict.get(key, default)` only when the key is genuinely optional and the default is intentional.
+- Do not use `value or fallback` to silently replace None, empty strings, or zero. If the value should never be None, fix the source.
+- Do not catch broad exceptions to continue silently. `except Exception: pass` hides every possible bug.
+
+### Bad (hides missing keys)
+
+```python
+name = config.get("name", "Unknown")
+count = data.get("count", 0)
+```
+
+### Good (fails on missing required keys)
+
+```python
+name = config["name"]
+count = data["count"]
+```
+
+### Good (genuinely optional with intentional default)
+
+```python
+# verbose flag is optional, defaults to off
+verbose = config.get("verbose", False)
+```
+
+## `__init__.py` FILES
+
+`__init__.py` is not where coders look for bugs, so hiding logic there disguises problems. Keep these files minimal.
+
+- Keep `__init__.py` empty or limited to a one-line docstring.
+- No implementation code belongs in `__init__.py`.
+- No hardcoded import lines or re-export facades.
+- No manually curated lists (`__all__`, `_EXPORTED_MODULES`, etc.).
+- No class or function maps (`_MODE_CLASS_MAP`, `_FUNCTION_MAP`, etc.).
+- No auto-discovery or registrar logic (put that in a dedicated loader module).
+- No aliases except as temporary migration shims (mark with a removal date comment).
+- No global variables -- they disguise bugs in a file coders rarely inspect.
+- No `__version__` assignments. Version lives in `pyproject.toml` as the single source of truth. Scattering `__version__` across `__init__.py` files is a maintenance nightmare when upgrading.
+- No `importlib`-based lazy loaders inline. If a package needs lazy loading for startup performance, put the loader in a dedicated module, not in `__init__.py`.
+- Do not add re-exports to satisfy type-checker public API inference. Type checkers that expect names in `__init__.py` can be configured with `py.typed` markers or explicit stubs. Convenience for tooling does not justify cluttering `__init__.py`.
+- Every caller should import from submodules directly.
+
+Good:
+```python
+# __init__.py
+"""Package docstring."""
+```
+
+Bad:
+```python
+# __init__.py
+from .widget import Widget
+from .parser import parse_input
+__all__ = ["Widget", "parse_input"]
+_CLASS_MAP = {"widget": Widget}
+```
+
+Good (caller imports from the submodule):
+```python
+import mypackage.widget
+w = mypackage.widget.Widget()
+```
+
+Bad (caller relies on re-exports in `__init__.py`):
+```python
+import mypackage
+w = mypackage.Widget()
+```
 
 ## QUOTING
 * Avoid backslash escaping quotes inside strings when possible.
@@ -78,10 +169,9 @@ volume_text = f"<span style='font-family: monospace;'>{vol1:.1f} mL</span>"
 - I like to test the code with **pyflakes** and **mypy**
 - For simple functions only, provide an **assert** command.
 - create a folder in most projects called tests for storing test scripts
-- a good repo-wide pyflakes gate is `tests/test_pyflakes.py` (run with pytest)
+- a good repo-wide pyflakes gate is `tests/test_pyflakes_code_lint.py` (run with pytest)
 ```bash
-python3 -m pytest tests/test_pyflakes.py
-/opt/homebrew/opt/python@3.12/bin/python3.12 -m pytest tests/test_pyflakes.py
+source source_me.sh && python -m pytest tests/test_pyflakes_code_lint.py
 ```
 
 ## DO NOT USE HEREDOCS
@@ -172,6 +262,35 @@ assert result == '12 john'
 * Keep tests small and deterministic. Avoid network calls, random behavior, and time based logic unless mocked.
 * Prefer fixtures for setup and shared resources. Use built in fixtures like tmp_path instead of custom temp directories.
 * Avoid complex logic inside tests. If test logic needs comments, move the logic into helper functions and test those helpers.
+* Before writing any test, ask: "will this test still pass next week without code changes?" If not, do not write it.
+* One or two assertions per function is enough. Five assertions for a simple function is overkill.
+* Do not test trivial behavior or thin wrappers around standard library calls.
+
+### What makes a good test
+
+Tests should verify logic that could plausibly be wrong, using assertions that remain stable when unrelated code changes. Good tests survive refactors, renamed fields, added config keys, and tuned constants.
+
+* **Pure function correctness**: fixed inputs produce expected outputs (math, parsing, encoding).
+* **Round-trip invariants**: encode then decode, serialize then deserialize, convert then convert back.
+* **Behavioral properties**: "score A > score B", "output is sorted", "result is within 0 and 1".
+* **Error detection**: invalid input produces errors or warnings.
+* **Boundary enforcement**: architectural rules like "core must not import PySide6".
+
+```python
+# Good: tests logic with fixed inputs
+assert parse_title_year("The.Matrix.1999.BluRay.mkv") == ("The Matrix", "1999")
+
+# Good: round-trip invariant
+scene_x, scene_y = transform.pixel_to_scene(frame, px, py)
+px_rt, py_rt = transform.scene_to_pixel(frame, scene_x, scene_y)
+assert numpy.isclose(px_rt, px, atol=0.5)
+
+# Good: behavioral property, not a hardcoded value
+assert 0.0 <= score <= 1.0
+assert score_exact_match > score_different_title
+```
+
+Avoid tests that assert on dates, collection sizes, lists of required keys, hardcoded defaults, tunable constants, or dataclass storage. These break when unrelated code changes and provide no real value.
 * Basic commands:
 * pytest run all tests
 * pytest -q quiet
@@ -192,6 +311,7 @@ def greater_than(a: int, b: int) -> bool:
 * Never use import *
 * I prefer to keep the original module names, just import numpy is preferred over import numpy as np.
 * This one is flexible but I also prefer to avoid using 'from' in the import statements. 'import PIL.Image' over 'from PIL import Image'. I like to know where commands are coming from.
+* Never use relative imports (`from . import`, `from ..module import`). Always use absolute imports so it is clear where every name comes from. See `tests/test_import_dot.py` for enforcement.
 * Place import modules in the following order (1) external python/pip modules vs. local repo modules with commented headings (2) length of module name with the shortest first, (3) alphabetical 'os' comes before 're'. For example:
 
 ```python
@@ -211,6 +331,16 @@ import PIL.Image #python-pillow
 import bptools
 import aminoacidlib
 ```
+
+## IMPORT REQUIREMENTS
+
+Every import in the repo must come from one of three sources:
+
+- **Python standard library** (os, sys, re, etc.)
+- **Repo-local modules** (other `.py` files tracked in the same repo)
+- **Declared pip dependencies** listed in `pip_requirements.txt` or `pip_requirements-dev.txt`
+
+If you add a new third-party import, add the package to the appropriate requirements file. Some pip packages use a different import name than their package name (e.g., `import yaml` comes from `pyyaml`, `import cv2` comes from `opencv-python`). Known aliases are maintained in `tests/test_import_requirements.py` under `IMPORT_REQUIREMENT_ALIASES`. See `tests/test_import_requirements.py` for enforcement.
 
 ## ARGPARSE
 

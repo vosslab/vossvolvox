@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run both modern and legacy Volume binaries on the same structures.
 
 This script reproduces the full pipeline: download (or reuse) a PDB, convert it

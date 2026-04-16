@@ -104,7 +104,7 @@ $1=="ATOM"||$1=="atom"||$1=="HETATM"||$1=="hetatm"{
 	#
 	if(substr(aname,1,2) ~ /[ 0-9][HhDd]/) aname="H"
 	# However, some bogus PDP files have the H in column 13 so we allow
-	# those too, which means we will treat as Hydrogen helium and hafnium 
+	# those too, which means we will treat as Hydrogen helium and hafnium
 	# but we protect HG ... ... mp
 	#
 	if(substr(aname,1,2) ~ /[Hh][^Gg]/ ) aname="H"
@@ -117,7 +117,7 @@ $1=="ATOM"||$1=="atom"||$1=="HETATM"||$1=="hetatm"{
 	gsub(" ", "", aname);
 
 	for(pat=0;pat<npats;pat++) {
-		if( aname ~ atmpat[pat] && resname ~ respat[pat] ) break 
+		if( aname ~ atmpat[pat] && resname ~ respat[pat] ) break
 		}
 	if(pat==npats) {
 		# Not found

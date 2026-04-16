@@ -10,7 +10,7 @@ if __name__ == "__main__":
 	parser.add_option("-1", "--file1", dest="mrcfile1",
 		help="MRC file 1", metavar="FILE")
 	parser.add_option("-2", "--file2", dest="mrcfile2",
-		help="MRC file 2", metavar="FILE")		
+		help="MRC file 2", metavar="FILE")
 	parser.add_option("-a", "--axes", dest="axes", default="xyz",
 		help="Axis choices, can be combination", metavar="AXES")
 	(options, args) = parser.parse_args()
@@ -30,7 +30,7 @@ if __name__ == "__main__":
 	axes = options.axes
 	root1 = os.path.splitext(file1)[0]
 	root2 = os.path.splitext(file2)[0]
-	
+
 	orig1 = mrc.read(file1)
 	orig2 = mrc.read(file2)
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 		cut_1a[:,:y_index,:] = 0
 		cut_1b[:,y_index:,:] = 0
 		cut_2a[:,:y_index,:] = 0
-		cut_2b[:,y_index:,:] = 0	
+		cut_2b[:,y_index:,:] = 0
 	elif z_maxcrossarea == maxcrossarea:
 		print("Bisecting along Z-axis")
 		z_index = z_linedensity.argmax()

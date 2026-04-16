@@ -320,6 +320,15 @@ def get_diff(path: str) -> str:
 
 #============================================
 
+def get_cached_diff(path: str) -> str:
+	"""Get cached (staged) diff for a path with minimal context and no color."""
+	result = run_git(["diff", "--cached", "--no-color", "--unified=0", "--", path])
+	if result.returncode != 0:
+		raise RuntimeError(result.stderr.strip() or f"git diff --cached failed for {path}")
+	return result.stdout.strip()
+
+#============================================
+
 def extract_added_lines(diff_text: str) -> list[str]:
 	"""Extract added lines from a git diff (no headers, no blanks)."""
 	added: list[str] = []
@@ -338,18 +347,45 @@ def extract_added_lines(diff_text: str) -> list[str]:
 
 def build_message(added_lines: list[str], max_body_lines: int) -> str:
 	"""Build a subject and body from added changelog lines."""
-	version: str | None = None
+	# Count bullet points (changes)
+	bullet_lines: list[str] = []
+	first_bullet_text: str | None = None
+
 	for line in added_lines:
-		m = VERSION_RE.match(line.strip())
-		if m:
-			version = m.group(1)
-			break
+		s = line.strip()
+		if s.startswith("##"):
+			continue
+		if s.startswith("- "):
+			bullet_lines.append(s)
+			if first_bullet_text is None:
+				# Extract first ~50 chars after "- "
+				text = s[2:].strip()
+				# Remove markdown links to get clean text
+				text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+				if len(text) > 50:
+					text = text[:47] + "..."
+				first_bullet_text = text
 
-	if version:
-		subject = f"docs: update changelog for {version}"
+	num_changes = len(bullet_lines)
+
+	# Build subject line
+	if num_changes == 0:
+		subject = "update changelog"
+	elif num_changes == 1 and first_bullet_text:
+		# Single change: use the bullet text as subject
+		subject = first_bullet_text
 	else:
-		subject = "docs: update changelog"
+		# Multiple changes: use first bullet + count
+		if first_bullet_text:
+			subject = f"{first_bullet_text} (+{num_changes - 1} more)"
+		else:
+			subject = f"update changelog ({num_changes} changes)"
 
+	# Limit subject line length
+	if len(subject) > 72:
+		subject = subject[:69] + "..."
+
+	# Build body from all added lines
 	body_lines: list[str] = []
 	for line in added_lines:
 		s = line.strip()
@@ -460,6 +496,9 @@ def main() -> None:
 			return
 
 	diff_text = get_diff(CHANGELOG_PATHSPEC)
+	if not diff_text:
+		# check for staged changes
+		diff_text = get_cached_diff(CHANGELOG_PATHSPEC)
 	if not diff_text:
 		message = f"No changes in {changelog_path}. Nothing to commit."
 		console.print(message, style="yellow")

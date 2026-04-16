@@ -7,8 +7,4 @@ bin/*.exe
 # Generated comparison artifacts
 test/pdb_to_xyzr_results/
 test/volume_results/
-report_shebang.txt
-report_pyflakes.txt
-report_bandit.txt
-report_pyright.txt
-report_ascii_compliance.txt
+report_*.txt
