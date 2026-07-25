@@ -1,11 +1,21 @@
 # TODO
 
-## utils.cpp
-- 2006-06-20: fix `write_ThirdEZD()` and `write_FifthEZD()`.
-- 2005-03-02: use a single-bit flag instead of 8-bit bools. See
-  [bit operations notes](http://www.cs.umd.edu/class/spring2003/cmsc311/Notes/BitOp/bitI.html).
-- 2005-01-27: optimize `trun` grid by doing multiple points at the same time
-  (good for `trun_exclude` and `surface_area`).
-- 2005-01-27: find surface points in groups rather than individually
-  (good for `trun_exclude` and `surface_area`).
-- 2004-12-01: write a smarter fill accessible grid function.
+Small, evidence-backed follow-up tasks without a delivery timeline. For larger
+work, use a dedicated plan or release record instead.
+
+## Installation documentation
+
+- Verify a supported compiler configuration for hosts where `g++`,
+  `-march=native`, or `-mtune=native` is unavailable, as called out in
+  [INSTALL.md](INSTALL.md).
+- Add tested macOS and Linux instructions for making Gemmi headers available
+  to the C++ build, as called out in [INSTALL.md](INSTALL.md).
+- Inventory Python dependencies used by the utilities under `python` and
+  document their installation requirements in [INSTALL.md](INSTALL.md).
+
+## Command-line documentation
+
+- Inventory the executables that write EZD or MRC output, verify their flags
+  from each tool's `--help`, and document the results in [USAGE.md](USAGE.md).
+- Add a small offline structure fixture and use it in the quick-start workflow,
+  as called out in [USAGE.md](USAGE.md).

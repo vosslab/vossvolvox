@@ -2,6 +2,26 @@
 
 Chronological record of user-facing and maintenance changes.
 
+## 2026-07-24
+
+### Additions and New Features
+- Added evidence-backed cookbook, development, FAQ, file-format,
+  troubleshooting, and related-project references.
+
+### Fixes and Maintenance
+- Rebuilt the README as a newcomer-focused landing page with verified build,
+  conversion, analysis, map-format, citation, and documentation routes.
+- Refreshed architecture, file-structure, installation, usage, and TODO
+  documentation against the current C++17 sources, Makefile, CLI help, and
+  regression harnesses.
+- Reduced `AGENTS.md` to repo-specific constraints and pointers to the
+  canonical documentation.
+
+### Developer Tests and Notes
+- Verified current build targets and representative CLI help, then passed the
+  README, Markdown-link, ASCII, and whitespace checks plus a complete-docset
+  scan that includes the newly created files.
+
 ## 2026-04-15
 
 ### Fixes and Maintenance
