@@ -14,7 +14,8 @@ Python helpers, and their deterministic regression checks.
 python3.12 -m pip install -r pip_requirements-dev.txt
 ```
 
-- The YAML suite in [test_suite.py](../tests/test_suite.py) imports `yaml`.
+- The YAML suite in
+  [tests/e2e/e2e_test_suite.py](../tests/e2e/e2e_test_suite.py) imports `yaml`.
   Ensure PyYAML is available in the development environment; it is not yet
   listed in [pip_requirements-dev.txt](../pip_requirements-dev.txt).
 - Gemmi headers are optional for a basic build, but are required when testing
@@ -84,8 +85,8 @@ scenarios without running them, then run the suite when the relevant coverage
 applies:
 
 ```sh
-/opt/homebrew/opt/python@3.12/bin/python3.12 tests/test_suite.py --list
-/opt/homebrew/opt/python@3.12/bin/python3.12 tests/test_suite.py
+/opt/homebrew/opt/python@3.12/bin/python3.12 tests/e2e/e2e_test_suite.py --list
+/opt/homebrew/opt/python@3.12/bin/python3.12 tests/e2e/e2e_test_suite.py
 ```
 
 Run the fast repository checks with pytest:

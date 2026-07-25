@@ -31,7 +31,7 @@ def get_git_root() -> Path:
         ).strip()
         return Path(root)
     except subprocess.CalledProcessError:
-        return Path(__file__).resolve().parent.parent
+        return Path(__file__).resolve().parent.parent.parent
 
 
 REPO_ROOT = get_git_root()
@@ -384,7 +384,7 @@ def find_default_config() -> Path:
     candidates = [
         Path.cwd() / "test_suite.yml",
         Path(__file__).resolve().parent / "test_suite.yml",
-        REPO_ROOT / "tests" / "test_suite.yml",
+        REPO_ROOT / "tests" / "e2e" / "test_suite.yml",
     ]
     for candidate in candidates:
         if candidate.exists():

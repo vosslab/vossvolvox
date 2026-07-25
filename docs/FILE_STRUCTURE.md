@@ -42,9 +42,10 @@ xyzr/                    converter implementations, inputs, and atom-radius tabl
   [xyzr/atmtypenumbers](../xyzr/atmtypenumbers).
 - [python/](../python/) contains command-line PDB/MRC utilities. Its
   [python/pyami/](../python/pyami/) subtree provides MRC and array helper modules.
-- [tests/](../tests/) contains shell regression tests, Python repository checks,
-  [tests/test_suite.py](../tests/test_suite.py), and
-  [tests/test_suite.yml](../tests/test_suite.yml).
+- [tests/](../tests/) contains shell regression tests and Python repository
+  checks. Its [tests/e2e/](../tests/e2e/) subtree contains the YAML-driven
+  [tests/e2e/e2e_test_suite.py](../tests/e2e/e2e_test_suite.py) runner and
+  [tests/e2e/test_suite.yml](../tests/e2e/test_suite.yml) scenarios.
 - [devel/](../devel/) contains version, changelog, release, cleanup, and Markdown
   link-maintenance helpers.
 - Archive files, when created, are stored in `docs/archive/`. The current
@@ -61,7 +62,7 @@ xyzr/                    converter implementations, inputs, and atom-radius tabl
   [tests/test_pdb_to_xyzr.sh](../tests/test_pdb_to_xyzr.sh) for downloaded inputs,
   converted files, and comparison outputs.
 - `tests/volume_results/` is the scenario work directory
-  used by [tests/test_suite.yml](../tests/test_suite.yml).
+  used by [tests/e2e/test_suite.yml](../tests/e2e/test_suite.yml).
 - Shell tests can also create PDB and XYZR files in [tests/](../tests/). The ignore
   rules exclude `*.pdb` and `*.xyzr` globally.
 - [devel/clean_build.sh](../devel/clean_build.sh) and

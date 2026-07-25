@@ -68,9 +68,10 @@ then calculate volumes, cavities, channels, tunnel-related geometry, or density 
 - [tests/test_pdb_to_xyzr.sh](../tests/test_pdb_to_xyzr.sh) stages a PDB input and
   compares native C++, Python, and shell converter outputs, timings, line counts,
   MD5s, and differing lines.
-- [tests/test_suite.py](../tests/test_suite.py) executes the YAML scenarios in
-  [tests/test_suite.yml](../tests/test_suite.yml). The scenarios exercise multiple
-  generated binaries and expected output summaries or files.
+- [tests/e2e/e2e_test_suite.py](../tests/e2e/e2e_test_suite.py) executes the
+  YAML scenarios in [tests/e2e/test_suite.yml](../tests/e2e/test_suite.yml).
+  The scenarios exercise multiple generated binaries and expected output
+  summaries or files.
 - The repository also carries Python checks for formatting, imports, shebangs,
   Markdown links, and test hygiene in [tests/](../tests/).
 

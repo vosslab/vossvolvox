@@ -1,51 +1,3 @@
-import os
-
-import pytest
-
-
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SKIP_ENV = "SKIP_REPO_HYGIENE"
-
-
-#============================================
-@pytest.fixture
-def repo_root() -> str:
-	"""
-	Provide the repository root path.
-	"""
-	return REPO_ROOT
-
-
-#============================================
-def pytest_addoption(parser) -> None:
-	"""
-	Add repo hygiene options.
-	"""
-	group = parser.getgroup("repo-hygiene")
-	group.addoption(
-		"--no-ascii-fix",
-		action="store_true",
-		help="Disable auto-fix for ASCII compliance tests.",
-	)
-
-
-#============================================
-@pytest.fixture
-def skip_repo_hygiene() -> bool:
-	"""
-	Check whether repo hygiene tests should be skipped.
-	"""
-	return os.environ.get(SKIP_ENV) == "1"
-
-
-#============================================
-@pytest.fixture
-def ascii_fix_enabled(request) -> bool:
-	"""
-	Check whether ASCII compliance auto-fix is enabled.
-	"""
-	return not request.config.getoption("--no-ascii-fix")
-
 import sys
 
 import file_utils
@@ -63,6 +15,7 @@ if _repo_root not in sys.path:
 # shell/Python whole-system runners. Both run outside pytest -- see
 # docs/PLAYWRIGHT_USAGE.md and docs/E2E_TESTS.md.
 collect_ignore = ["e2e", "playwright"]
+
 
 # REPO_HYGIENE_FILTERS is the repo-local hygiene-exclusion registry (Layer 2).
 # file_utils.discover_files reads it from this conftest, which is the right
@@ -95,6 +48,7 @@ collect_ignore = ["e2e", "playwright"]
 #       "pyflakes_code_lint": ["devel/scratch_*.py"],
 #   }
 REPO_HYGIENE_FILTERS = {}
+
 
 # === OPTIONAL_HELPERS_MENU ===
 # See meta/docs/PROPAGATION_RULES.md for the managed-block propagation contract.

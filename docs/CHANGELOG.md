@@ -2,6 +2,19 @@
 
 Chronological record of user-facing and maintenance changes.
 
+## 2026-07-25
+
+### Fixes and Maintenance
+
+- Moved the YAML-driven whole-system runner and configuration to `tests/e2e/`
+  so `pytest tests/` excludes the runner instead of attempting to collect its
+  `TestFailure` exception classes.
+
+### Developer Tests and Notes
+
+- Verified the relocated runner lists all 11 YAML scenarios, then passed the
+  fast pytest suite with 567 tests and no collection warnings.
+
 ## 2026-07-24
 
 ### Additions and New Features
