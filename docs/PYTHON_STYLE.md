@@ -6,6 +6,7 @@ Language Model guide to Neil python3 programming
 
 AI agents frequently get these wrong. Read the full sections below for details.
 
+- **Fix the design, not the symptom.** When something behaves wrong, fix the design before adding a fallback. See [Design philosophy](REPO_STYLE.md#core-philosophies).
 - **Tabs not spaces.** Always indent with tabs. See [USE TABS](#use-tabs).
 - **Avoid try/except.** Do not wrap code in try/except blocks. See [CODE STRUCTURE](#code-structure).
 - **Do not hide bugs with defaults.** Use `dict[key]` when the key must exist, not `dict.get(key, fallback)`. See [DO NOT HIDE BUGS WITH DEFAULTS](#do-not-hide-bugs-with-defaults).
@@ -14,7 +15,8 @@ AI agents frequently get these wrong. Read the full sections below for details.
 - **Import the module, not names from it.** Prefer `import os` over `from os import path`. See [IMPORTING](#importing).
 - **No relative imports.** Never use `from . import` or `from ..module import`. See [IMPORTING](#importing).
 - **Declare all third-party imports.** Every non-stdlib, non-local import must be in `pip_requirements.txt`. See [IMPORT REQUIREMENTS](#import-requirements).
-- **No brittle pytest assertions.** Do not assert on dates, collection sizes, required key lists, hardcoded defaults, or function names. See [PYTEST](#pytest).
+- **No brittle pytest assertions.** Do not assert on dates, collection sizes, required key lists, hardcoded defaults, or function names. See [PYTEST_STYLE.md](PYTEST_STYLE.md).
+- **No `assert` in plain scripts.** All `assert` statements live in `tests/test_*.py`, `tests/playwright/` (browser tests), or `tests/e2e/` (shell/Python E2E). Module-level asserts run on every import and slow script startup. See [ASSERT](#assert).
 
 ## Python version
 
@@ -59,7 +61,7 @@ AI agents frequently get these wrong. Read the full sections below for details.
 
 ## DO NOT HIDE BUGS WITH DEFAULTS
 
-Defensive coding patterns that silently supply fallback values hide bugs instead of exposing them. If a key, attribute, or value is required, access it directly so missing data fails loudly.
+This section is the Python expression of "fix the design, not the symptom" (see [Design philosophy](REPO_STYLE.md#core-philosophies)). Defensive coding patterns that silently supply fallback values hide bugs instead of exposing them. If a key, attribute, or value is required, access it directly so missing data fails loudly.
 
 - Use `dict[key]` when the key must exist. Do not use `dict.get(key, default)` to paper over missing data.
 - Use `dict.get(key, default)` only when the key is genuinely optional and the default is intentional.
@@ -167,11 +169,12 @@ volume_text = f"<span style='font-family: monospace;'>{vol1:.1f} mL</span>"
 ## TESTING
 
 - I like to test the code with **pyflakes** and **mypy**
-- For simple functions only, provide an **assert** command.
 - create a folder in most projects called tests for storing test scripts
 - a good repo-wide pyflakes gate is `tests/test_pyflakes_code_lint.py` (run with pytest)
+- For pytest-specific style, test design, and command usage, see [PYTEST_STYLE.md](PYTEST_STYLE.md).
+- For slow end-to-end tests run outside pytest, see [E2E_TESTS.md](E2E_TESTS.md).
 ```bash
-source source_me.sh && python -m pytest tests/test_pyflakes_code_lint.py
+pytest tests/test_pyflakes_code_lint.py
 ```
 
 ## DO NOT USE HEREDOCS
@@ -180,8 +183,6 @@ source source_me.sh && python -m pytest tests/test_pyflakes_code_lint.py
 * Avoid patterns like `python3 - <<EOF`.
 * Python code should live in `.py` files or be passed explicitly as files or modules.
 * Heredocs make code harder to read, harder to lint, and harder to test.
-
-Here is a tightened version that keeps the rule and examples, without extra explanation.
 
 ## ENVIRONMENT VARIABLES
 
@@ -229,83 +230,37 @@ export PYTHONDONTWRITEBYTECODE=1
 * No emoji or special characters in comments, only ascii characters
 
 ## ASSERT
-* For simple functions only, provide an assert command.
-* Do not do complex asserts that would require more than 4 lines or go over 100 characters in length
-* Do not add assert to functions that require user input or read/write to files
 
-### Good examples of Assert
-
-* Simple assertion test for the function: 'check_due_date'
-```python
-result = check_due_date("1970/10/25", {'deadline': {'due date': 'Oct 25, 1970'}})
-assert result == (0.0, 'On-Time', '')
-```
-
-* Simple assertion test for the function: 'get_final_score'
-```python
-test_entry = {}
-test_config = {'total points': '10', 'assignment name': 'HW1'}
-get_final_score(test_entry, test_config)
-assert test_entry['Final Score'] == '10.00'
-```
-
-* Simple assertion test for the function: 'make_key'
-```python
-result = make_key({'ID': 12, 'Name': 'JoHN  '}, ('ID', 'Name'))
-assert result == '12 john'
-```
-
-## PYTEST
-* Prefer pytest for automated tests when a repo has more than a few simple asserts.
-* Store tests in tests/ with files named test_*.py.
-* Test functions should be named test_* and should use plain assert.
-* Keep tests small and deterministic. Avoid network calls, random behavior, and time based logic unless mocked.
-* Prefer fixtures for setup and shared resources. Use built in fixtures like tmp_path instead of custom temp directories.
-* Avoid complex logic inside tests. If test logic needs comments, move the logic into helper functions and test those helpers.
-* Before writing any test, ask: "will this test still pass next week without code changes?" If not, do not write it.
-* One or two assertions per function is enough. Five assertions for a simple function is overkill.
-* Do not test trivial behavior or thin wrappers around standard library calls.
-
-### What makes a good test
-
-Tests should verify logic that could plausibly be wrong, using assertions that remain stable when unrelated code changes. Good tests survive refactors, renamed fields, added config keys, and tuned constants.
-
-* **Pure function correctness**: fixed inputs produce expected outputs (math, parsing, encoding).
-* **Round-trip invariants**: encode then decode, serialize then deserialize, convert then convert back.
-* **Behavioral properties**: "score A > score B", "output is sorted", "result is within 0 and 1".
-* **Error detection**: invalid input produces errors or warnings.
-* **Boundary enforcement**: architectural rules like "core must not import PySide6".
-
-```python
-# Good: tests logic with fixed inputs
-assert parse_title_year("The.Matrix.1999.BluRay.mkv") == ("The Matrix", "1999")
-
-# Good: round-trip invariant
-scene_x, scene_y = transform.pixel_to_scene(frame, px, py)
-px_rt, py_rt = transform.scene_to_pixel(frame, scene_x, scene_y)
-assert numpy.isclose(px_rt, px, atol=0.5)
-
-# Good: behavioral property, not a hardcoded value
-assert 0.0 <= score <= 1.0
-assert score_exact_match > score_different_title
-```
-
-Avoid tests that assert on dates, collection sizes, lists of required keys, hardcoded defaults, tunable constants, or dataclass storage. These break when unrelated code changes and provide no real value.
-* Basic commands:
-* pytest run all tests
-* pytest -q quiet
-* pytest -k name run tests matching a substring
-* pytest -x stop on first failure
+* Do not put `assert` statements in plain `.py` scripts or library modules. All asserts live in `tests/test_*.py`, `tests/playwright/` (browser tests), or `tests/e2e/` (shell/Python E2E).
+* Reason: module-level asserts run at import time, which slows CLI startup. Tests pay the cost once, in the test suite.
+* Do not assert in functions that require user input or read/write to files; cover those with end-to-end checks instead. See [E2E_TESTS.md](E2E_TESTS.md).
+* Keep individual asserts short: under 4 lines and under 100 characters.
+* For pytest test structure and good/brittle assert patterns, see [PYTEST_STYLE.md](PYTEST_STYLE.md).
 
 ## TYPE HINTING
-* Use the python3-style explicit variable type hinting. I think it is good practice. Very little of my code uses it now, but I want to change that. For example,
+
+Type hints are enforced repo-wide by `tests/test_function_typing.py`. Every `def` must carry
+type annotations on every parameter (except `self`, `cls`, `*args`, and `**kwargs`) and a
+return annotation. For example:
+
 ```python
 def greater_than(a: int, b: int) -> bool:
 	return a > b
 ```
-* Avoid using the typing module, only do top level for typing:
-* GOOD: def func(arg: dict)-> tuple:
-* BAD: def func(arg: typing.Dict[str, typing.Any]) -> typing.Tuple[str, str, str]
+
+Use builtin generics (`list`, `dict`, `tuple`, `set`) and PEP 604 unions (`X | None`).
+Use `collections.abc` for callable and iterable params (for example `collections.abc.Callable`,
+`collections.abc.Iterable`). The `typing` module is not used in this repo.
+
+Good:
+```python
+def func(arg: dict) -> tuple:
+```
+
+Bad (uses `typing` module):
+```python
+def func(arg: typing.Dict[str, typing.Any]) -> typing.Tuple[str, str, str]:
+```
 
 ## IMPORTING
 * Never use import *

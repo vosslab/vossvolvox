@@ -1,7 +1,7 @@
 # Install
 
-Install means building the C++17 command-line executables into [bin/](bin/) and
-optionally using the Python utilities under [python/](python/) and [xyzr/](xyzr/).
+Install means building the C++17 command-line executables into `bin` and
+optionally using the Python utilities under `python` and `xyzr`.
 
 ## Requirements
 - C++17 compiler (g++ or clang++).
@@ -19,7 +19,7 @@ make
 cd ..
 ```
 
-- Confirm the executables exist in [bin/](bin/).
+- Confirm the executables exist in `bin`.
 
 ## Verify install
 
@@ -30,4 +30,4 @@ cd ..
 ## Known gaps
 - TODO: Confirm supported operating systems and shells.
 - TODO: Document how to install Gemmi headers for C++ builds on macOS and Linux.
-- TODO: Document any required Python dependencies for [python/](python/) scripts.
+- TODO: Document any required Python dependencies for `python` scripts.

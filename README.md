@@ -2,9 +2,10 @@
 
 Command-line tools for protein structure analysis: convert PDB, mmCIF, PDBML,
 or XYZR files into atomic sphere data, then compute volumes, channels,
-cavities, and tunnel geometry using grid-based methods. Intended for
-researchers in structural biology and molecular biophysics who need
-reproducible, scriptable analyses of protein 3D structure.
+cavities, and tunnel geometry using grid-based methods.
+
+Intended for researchers in structural biology and molecular biophysics. who need reproducible, scriptable
+analyses of protein 3D structure.
 
 ## Documentation
 

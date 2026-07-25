@@ -1,60 +1,25 @@
+# Standard Library
 import os
 import stat
-from typing import Optional
 
-import git_file_utils
+# PIP3 modules
+import pytest
+
+# local repo modules
+import file_utils
 
 
-REPO_ROOT = git_file_utils.get_repo_root()
-SKIP_DIRS = {
-	".git",
-	".venv",
-	"__pycache__",
-	".pytest_cache",
-	".mypy_cache",
-	"old_shell_folder",
-}
+REPO_ROOT = file_utils.get_repo_root()
 PYTHON_SHEBANG = "#!/usr/bin/env python3"
-REPORT_NAME = "report_shebang.txt"
+REPORT_NAME = file_utils.report_name(__file__)
+HEADER = "Shebang issues found:"
+# discover_files excludes symlinks via isfile; no extension filter -- shebangs
+# apply to any file type tracked in the repo.
+FILES = file_utils.discover_files(test_key="shebangs")
 
-
-#============================================
-def iter_repo_files() -> list[str]:
-	"""
-	Collect tracked, non-deleted regular files under the repo root.
-
-	Returns:
-		list[str]: Absolute file paths.
-	"""
-	paths = []
-	for rel_path in git_file_utils.list_tracked_files(REPO_ROOT):
-		if path_has_skip_dir(rel_path):
-			continue
-		path = os.path.join(REPO_ROOT, rel_path)
-		if os.path.islink(path):
-			continue
-		if not os.path.isfile(path):
-			continue
-		paths.append(path)
-	return paths
-
-
-#============================================
-def path_has_skip_dir(rel_path: str) -> bool:
-	"""
-	Check whether a relative path includes a skipped directory.
-
-	Args:
-		rel_path: Path relative to the repo root.
-
-	Returns:
-		bool: True if any skipped directory is part of the path.
-	"""
-	parts = rel_path.split(os.sep)
-	for part in parts:
-		if part in SKIP_DIRS:
-			return True
-	return False
+# Module-level dict of repo-relative POSIX key -> list of violation lines.
+# Populated by the autouse collect_report fixture before any test runs.
+VIOLATIONS_BY_FILE: dict[str, list[str]] = {}
 
 
 #============================================
@@ -159,117 +124,85 @@ def is_test_file(path: str) -> bool:
 
 
 #============================================
-def categorize_errors() -> dict[str, list[str]]:
+def check_file(rel: str) -> list[str]:
 	"""
-	Scan repo for shebang and executable mismatches.
+	Check one file for shebang and executable-bit violations.
 
-	Returns:
-		dict[str, list[str]]: Error categories to path lists.
-	"""
-	errors = {
-		"shebang_not_executable": [],
-		"executable_no_shebang": [],
-		"python_shebang_invalid": [],
-		"shebang_without_main_guard": [],
-		"main_guard_missing_shebang": [],
-		"test_file_has_shebang": [],
-		"test_file_is_executable": [],
-	}
-	for path in iter_repo_files():
-		shebang = read_shebang(path)
-		exec_flag = is_executable(path)
-		is_python = path.endswith(".py")
-		has_guard = has_main_guard(path) if is_python else False
-
-		if shebang and not exec_flag:
-			errors["shebang_not_executable"].append(path)
-		if exec_flag and not shebang:
-			errors["executable_no_shebang"].append(path)
-		if shebang and "python" in shebang:
-			if shebang != PYTHON_SHEBANG:
-				errors["python_shebang_invalid"].append(path)
-
-		# Check Python files for main guard alignment
-		if is_python:
-			if shebang and not has_guard:
-				errors["shebang_without_main_guard"].append(path)
-			if has_guard and not shebang and exec_flag:
-				errors["main_guard_missing_shebang"].append(path)
-
-			# Test files should not have shebangs or executable bits
-			if is_test_file(path):
-				if shebang:
-					errors["test_file_has_shebang"].append(path)
-				if exec_flag:
-					errors["test_file_is_executable"].append(path)
-
-	return errors
-
-
-#============================================
-def format_errors(errors: dict[str, list[str]], limit: Optional[int] = 10) -> str:
-	"""
-	Format error categories for assertion output.
+	Resolves the absolute path from the repo-relative path, then checks all
+	seven shebang/executable categories. Returns one violation line per
+	triggered category in the form "{rel}: {category}".
 
 	Args:
-		errors: Error categories and paths.
-		limit: Max paths to include per category (None for all).
+		rel: Repo-relative POSIX path of the file to check.
 
 	Returns:
-		str: Formatted error summary.
+		list[str]: Violation lines (empty when the file is clean).
 	"""
-	lines = []
-	for key in sorted(errors.keys()):
-		paths = errors[key]
-		if not paths:
-			continue
-		lines.append(f"{key}: {len(paths)}")
-		ordered = sorted(paths)
-		if limit is not None:
-			ordered = ordered[:limit]
-		for path in ordered:
-			display_path = os.path.relpath(path, REPO_ROOT)
-			lines.append(f"  {display_path}")
-	return "\n".join(lines)
+	# Resolve absolute path for all file-level checks.
+	abs_path = os.path.join(REPO_ROOT, rel)
+	shebang = read_shebang(abs_path)
+	exec_flag = is_executable(abs_path)
+	is_python = abs_path.endswith(".py")
+	has_guard = has_main_guard(abs_path) if is_python else False
+
+	violations = []
+	# A shebang must be paired with the executable bit.
+	if shebang and not exec_flag:
+		violations.append(f"{rel}: shebang_not_executable")
+	# An executable bit must be paired with a shebang.
+	if exec_flag and not shebang:
+		violations.append(f"{rel}: executable_no_shebang")
+	# Python shebangs must use exactly the canonical form.
+	if shebang and "python" in shebang:
+		if shebang != PYTHON_SHEBANG:
+			violations.append(f"{rel}: python_shebang_invalid")
+
+	# Python-specific main guard alignment checks.
+	if is_python:
+		if shebang and not has_guard:
+			violations.append(f"{rel}: shebang_without_main_guard")
+		if has_guard and not shebang and exec_flag:
+			violations.append(f"{rel}: main_guard_missing_shebang")
+
+		# Test files must not have shebangs or executable bits.
+		if is_test_file(abs_path):
+			if shebang:
+				violations.append(f"{rel}: test_file_has_shebang")
+			if exec_flag:
+				violations.append(f"{rel}: test_file_is_executable")
+
+	return violations
 
 
 #============================================
-def write_error_report(errors: dict[str, list[str]]) -> str:
+@pytest.fixture(scope="module", autouse=True)
+def collect_report() -> None:
 	"""
-	Write a full shebang report to a repo file.
+	Autouse fixture: clear stale reports, populate VIOLATIONS_BY_FILE, write report.
 
-	Args:
-		errors: Error categories and paths.
-
-	Returns:
-		str: Absolute path to the report file.
+	Runs the guarded once-per-process cleanup first, rebuilds the module-level
+	violations dict via the shared harness, then writes the report only when
+	there are violations. Cleanup owns removal of clean-run reports, so a clean
+	module writes nothing.
 	"""
-	report_path = os.path.join(REPO_ROOT, REPORT_NAME)
-	content = format_errors(errors, limit=None)
-	with open(report_path, "w", encoding="utf-8") as handle:
-		handle.write(content)
-		handle.write("\n")
-	return report_path
+	# Once-per-process guarded cleanup of repo-root report_*.txt (no-op after first call).
+	file_utils.clear_stale_reports()
+	# Clear any state left from a previous collection in the same process.
+	VIOLATIONS_BY_FILE.clear()
+	VIOLATIONS_BY_FILE.update(file_utils.collect_file_violations(FILES, check_file))
+	lines = file_utils.format_violation_report(HEADER, VIOLATIONS_BY_FILE)
+	# Write only when there are violations; cleanup already removed stale reports.
+	if lines:
+		file_utils.write_report_lines(REPORT_NAME, lines)
 
 
 #============================================
-def test_shebang_executable_alignment() -> None:
-	"""
-	Ensure shebangs and executable bits are aligned.
-	"""
-	# Delete old report file before running
-	report_path = os.path.join(REPO_ROOT, REPORT_NAME)
-	if os.path.exists(report_path):
-		os.remove(report_path)
-
-	errors = categorize_errors()
-	if all(not values for values in errors.values()):
-		return
-	report_path = write_error_report(errors)
-	message = format_errors(errors, limit=10)
-	display_report = os.path.relpath(report_path, REPO_ROOT)
-	raise AssertionError(
-		"Shebang issues found:\n"
-		f"{message}\n"
-		f"Full report: {display_report}"
+@pytest.mark.parametrize("path", FILES, ids=file_utils.rel_id)
+def test_shebang_executable_alignment(path: str) -> None:
+	"""Ensure shebangs and executable bits are aligned for every tracked file."""
+	rel = file_utils.rel_to_root(path)
+	# Python evaluates an assert's message expression ONLY when the assert fails,
+	# so format_violation_assert_message runs on the failing path only -- not per pass.
+	assert rel not in VIOLATIONS_BY_FILE, file_utils.format_violation_assert_message(
+		rel, VIOLATIONS_BY_FILE.get(rel, []), REPORT_NAME
 	)

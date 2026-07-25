@@ -1,6 +1,6 @@
 # Usage
 
-Use the executables in [bin/](bin/) to convert structure files into XYZR data
+Use the executables in `bin` to convert structure files into XYZR data
 and run volume, channel, cavity, or tunnel analyses.
 
 ## Quick start
@@ -17,7 +17,7 @@ and run volume, channel, cavity, or tunnel analyses.
 ```
 
 ## CLI
-- Executables live in [bin/](bin/) and expose help via `-h` (for example,
+- Executables live in `bin` and expose help via `-h` (for example,
   `./bin/Volume.exe -h`).
 - Common flags used across tools:
   - `-i <path>` for input files.

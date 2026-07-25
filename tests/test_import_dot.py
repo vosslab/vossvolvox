@@ -1,166 +1,101 @@
+# Standard Library
 import ast
-import os
-import tokenize
 
+# PIP3 modules
 import pytest
 
-import git_file_utils
+# local repo modules
+import file_utils
 
-REPO_ROOT = git_file_utils.get_repo_root()
-SKIP_DIRS = {".git", ".venv", "__pycache__", "old_shell_folder"}
-REPORT_NAME = "report_import_dot.txt"
+FILES = file_utils.discover_files(extensions=(".py",), test_key="import_dot")
 
+REPORT_NAME = file_utils.report_name(__file__)
 
-#============================================
-def path_has_skip_dir(path: str) -> bool:
-	"""
-	Check whether a relative path includes a skipped directory.
-	"""
-	parts = path.split(os.sep)
-	for part in parts:
-		if part in SKIP_DIRS:
-			return True
-	return False
+HEADER = "Import dot report"
 
-
-#============================================
-def filter_py_files(paths: list[str]) -> list[str]:
-	"""
-	Filter candidate paths to Python files that exist.
-	"""
-	matches = []
-	seen = set()
-	for path in paths:
-		if path in seen:
-			continue
-		seen.add(path)
-		if path_has_skip_dir(path):
-			continue
-		if "TEMPLATE" in path:
-			continue
-		if not path.endswith(".py"):
-			continue
-		if not os.path.isfile(path):
-			continue
-		matches.append(path)
-	matches.sort()
-	return matches
-
-
-#============================================
-def gather_files(repo_root: str) -> list[str]:
-	"""
-	Collect tracked Python files.
-	"""
-	paths = []
-	for path in git_file_utils.list_tracked_files(
-		repo_root,
-		patterns=["*.py"],
-		error_message="Failed to list tracked Python files.",
-	):
-		paths.append(os.path.join(repo_root, path))
-	return filter_py_files(paths)
-
-
-#============================================
-def gather_changed_files(repo_root: str) -> list[str]:
-	"""
-	Collect changed Python files.
-	"""
-	paths = []
-	for path in git_file_utils.list_changed_files(repo_root):
-		paths.append(os.path.join(repo_root, path))
-	return filter_py_files(paths)
-
-
-#============================================
-def read_source(path: str) -> str:
-	"""
-	Read Python source using tokenize.open for encoding correctness.
-	"""
-	with tokenize.open(path) as handle:
-		text = handle.read()
-	return text
-
-
-#============================================
-def find_relative_imports(path: str) -> list[tuple[int, str]]:
-	"""
-	Return line numbers for from-import statements using relative imports.
-	"""
-	source = read_source(path)
-	try:
-		tree = ast.parse(source, filename=path)
-	except SyntaxError:
-		return []
-	matches = []
-	for node in ast.walk(tree):
-		if not isinstance(node, ast.ImportFrom):
-			continue
-		if getattr(node, "level", 0) <= 0:
-			continue
-		line_no = getattr(node, "lineno", 0) or 0
-		module_name = node.module or ""
-		import_root = f"{'.' * node.level}{module_name}"
-		matches.append((line_no, import_root))
-	return matches
+# Module-level dict of repo-relative POSIX key -> list of violation lines.
+# Populated by the autouse collect_report fixture before any test runs.
+VIOLATIONS_BY_FILE: dict[str, list[str]] = {}
 
 
 #============================================
 def format_issue(rel_path: str, line_no: int, import_root: str) -> str:
 	"""
 	Format a report line for a relative from-import statement.
+
+	Args:
+		rel_path: Repo-relative POSIX path for the file containing the import.
+		line_no: Line number of the offending import statement.
+		import_root: The leading dot(s) and optional module name, e.g. '.repolib'.
+
+	Returns:
+		str: Human-readable violation line.
 	"""
 	return f"{rel_path}:{line_no}: relative import from {import_root}"
 
 
-_FILES = git_file_utils.collect_files(REPO_ROOT, gather_files, gather_changed_files)
+#============================================
+def check_file(rel: str, tree: ast.Module) -> list[str]:
+	"""
+	Return violations for any relative from-import in the parsed module.
+
+	Scans import nodes via file_utils.iter_imports and records any ImportFrom
+	node whose level > 0. Deduplicates and sorts before returning. Only reached
+	for files that parsed cleanly; the shared collect_python_violations owns
+	SyntaxError capture.
+
+	Args:
+		rel: Repo-relative POSIX path for error messages.
+		tree: Parsed ast.Module for the file.
+
+	Returns:
+		list[str]: Violation lines (empty when the file is clean).
+	"""
+	# Collect each relative from-import node (level > 0 means relative).
+	issues = []
+	for node in file_utils.iter_imports(tree):
+		if not isinstance(node, ast.ImportFrom):
+			continue
+		if getattr(node, "level", 0) <= 0:
+			continue
+		line_no = getattr(node, "lineno", 0) or 0
+		module_name = node.module or ""
+		# Build the dotted import root, e.g. '.' or '.repolib'.
+		import_root = f"{'.' * node.level}{module_name}"
+		issues.append(format_issue(rel, line_no, import_root))
+	# Deduplicate and sort so output is stable.
+	return sorted(set(issues))
 
 
 #============================================
 @pytest.fixture(scope="module", autouse=True)
-def reset_import_dot_report() -> None:
+def collect_report() -> None:
 	"""
-	Remove stale report file before this module runs.
+	Autouse fixture: clear stale reports, populate VIOLATIONS_BY_FILE, write report.
+
+	Runs the guarded once-per-process cleanup first, rebuilds the module-level
+	violations dict via the shared harness, then writes the report only when
+	there are violations. Cleanup owns removal of clean-run reports, so a clean
+	module writes nothing.
 	"""
-	report_path = os.path.join(REPO_ROOT, REPORT_NAME)
-	if os.path.exists(report_path):
-		os.remove(report_path)
+	# Once-per-process guarded cleanup of repo-root report_*.txt (no-op after first call).
+	file_utils.clear_stale_reports()
+	# Clear any state left from a previous collection in the same process.
+	VIOLATIONS_BY_FILE.clear()
+	VIOLATIONS_BY_FILE.update(file_utils.collect_python_violations(FILES, check_file))
+	lines = file_utils.format_violation_report(HEADER, VIOLATIONS_BY_FILE)
+	# Report is exactly format_violation_report's output (header + sorted file lines).
+	if lines:
+		file_utils.write_report_lines(REPORT_NAME, lines)
 
 
 #============================================
-def append_import_dot_report(issues: list[str]) -> str:
-	"""
-	Append relative import violations to the dedicated report file.
-	"""
-	report_path = os.path.join(REPO_ROOT, REPORT_NAME)
-	file_exists = os.path.exists(report_path)
-	with open(report_path, "a", encoding="utf-8") as handle:
-		if not file_exists:
-			handle.write("Import dot report\n")
-			handle.write("Violations:\n")
-		for issue in issues:
-			handle.write(issue + "\n")
-	return report_path
-
-
-#============================================
-@pytest.mark.parametrize(
-	"file_path", _FILES,
-	ids=lambda p: os.path.relpath(p, REPO_ROOT),
-)
-def test_import_dot(file_path: str) -> None:
-	"""Report relative from-import usage in a single Python file."""
-	matches = find_relative_imports(file_path)
-	if not matches:
-		return
-	rel_path = os.path.relpath(file_path, REPO_ROOT)
-	issues = [format_issue(rel_path, line_no, import_root) for line_no, import_root in matches]
-	issues = sorted(set(issues))
-	report_path = append_import_dot_report(issues)
-	display_report = os.path.relpath(report_path, REPO_ROOT)
-	raise AssertionError(
-		"relative import usage detected:\n"
-		+ "\n".join(issues)
-		+ f"\nFull report: {display_report}"
+@pytest.mark.parametrize("path", FILES, ids=file_utils.rel_id)
+def test_import_dot(path: str) -> None:
+	"""Enforce no relative from-imports repo-wide."""
+	rel = file_utils.rel_to_root(path)
+	# Python evaluates an assert's message expression ONLY when the assert fails,
+	# so format_violation_assert_message runs on the failing path only -- not per pass.
+	assert rel not in VIOLATIONS_BY_FILE, file_utils.format_violation_assert_message(
+		rel, VIOLATIONS_BY_FILE.get(rel, []), REPORT_NAME
 	)

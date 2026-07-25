@@ -139,31 +139,113 @@ def apply_simple_fixes(text: str) -> tuple[str, bool]:
 	# Replace ellipsis with three dots.
 	fixed_text = fixed_text.replace("\u2026", "...")
 
-	# Replace arrow characters with ASCII equivalents.
-	fixed_text = fixed_text.replace("\u2192", "->")
-	fixed_text = fixed_text.replace("\u2190", "<-")
+	# Replace arrow characters with ASCII or HTML-entity equivalents.
+	fixed_text = fixed_text.replace("\u2192", "->")        # rightwards arrow
+	fixed_text = fixed_text.replace("\u2190", "<-")        # leftwards arrow
+	fixed_text = fixed_text.replace("\u2194", "<->")       # left-right arrow
+	fixed_text = fixed_text.replace("\u21C4", "<->")       # rightwards arrow over leftwards arrow
+	fixed_text = fixed_text.replace("\u21C6", "<~>")       # leftwards arrow over rightwards arrow
+	fixed_text = fixed_text.replace("\u21D0", "<=")        # leftwards double arrow
+	fixed_text = fixed_text.replace("\u21D2", "=>")        # rightwards double arrow
+	fixed_text = fixed_text.replace("\u21D4", "<=>")       # left-right double arrow
+	fixed_text = fixed_text.replace("\u2191", "&uarr;")    # upwards arrow
+	fixed_text = fixed_text.replace("\u2193", "&darr;")    # downwards arrow
 
 	# Replace bullet points and middot with an asterisk.
 	fixed_text = fixed_text.replace("\u2022", "*")
 	fixed_text = fixed_text.replace("\u00B7", "*")
 
-
+	# Replace checkmarks and crosses. The two-token forms come first so
+	# "<check> Yes" -> "Yes" wins over the bare-checkmark rule below.
+	# Bare-form replacements follow docs/MARKDOWN_STYLE.md alternatives:
+	# checkmark -> "[OK]" (or "OK"/"YES"), cross -> "[x]" (or "NO"/"FAIL"/"[ ]").
 	fixed_text = fixed_text.replace("\u2713 Yes", "Yes")
 	fixed_text = fixed_text.replace("\u2717 No", "No")
+	fixed_text = fixed_text.replace("\u2713", "[OK]")   # check mark
+	fixed_text = fixed_text.replace("\u2705", "[OK]")   # white heavy check mark
+	fixed_text = fixed_text.replace("\u2611", "[OK]")   # ballot box with check
+	fixed_text = fixed_text.replace("\u2717", "[x]")    # ballot x
+	fixed_text = fixed_text.replace("\u274C", "[x]")    # cross mark
+	fixed_text = fixed_text.replace("\u2610", "[x]")    # ballot box
 
-	#greek characters
+	# Greek capital letters as HTML entities (matches the &micro; convention).
+	fixed_text = fixed_text.replace("\u0391", "&Alpha;")
+	fixed_text = fixed_text.replace("\u0392", "&Beta;")
+	fixed_text = fixed_text.replace("\u0393", "&Gamma;")
+	fixed_text = fixed_text.replace("\u0394", "&Delta;")
+	fixed_text = fixed_text.replace("\u0395", "&Epsilon;")
+	fixed_text = fixed_text.replace("\u0396", "&Zeta;")
+	fixed_text = fixed_text.replace("\u0397", "&Eta;")
+	fixed_text = fixed_text.replace("\u0398", "&Theta;")
+	fixed_text = fixed_text.replace("\u0399", "&Iota;")
+	fixed_text = fixed_text.replace("\u039A", "&Kappa;")
+	fixed_text = fixed_text.replace("\u039B", "&Lambda;")
+	fixed_text = fixed_text.replace("\u039C", "&Mu;")
+	fixed_text = fixed_text.replace("\u039D", "&Nu;")
+	fixed_text = fixed_text.replace("\u039E", "&Xi;")
+	fixed_text = fixed_text.replace("\u039F", "&Omicron;")
+	fixed_text = fixed_text.replace("\u03A0", "&Pi;")
+	fixed_text = fixed_text.replace("\u03A1", "&Rho;")
+	fixed_text = fixed_text.replace("\u03A3", "Sum()")
+	fixed_text = fixed_text.replace("\u03A4", "&Tau;")
+	fixed_text = fixed_text.replace("\u03A5", "&Upsilon;")
+	fixed_text = fixed_text.replace("\u03A6", "&Phi;")
+	fixed_text = fixed_text.replace("\u03A7", "&Chi;")
+	fixed_text = fixed_text.replace("\u03A8", "&Psi;")
+	fixed_text = fixed_text.replace("\u03A9", "&Omega;")
+
+	# Greek lowercase letters as HTML entities. \u03BC stays mapped to
+	# &micro; (SI-prefix convention); &mu; would also render correctly.
+	fixed_text = fixed_text.replace("\u03B1", "&alpha;")
+	fixed_text = fixed_text.replace("\u03B2", "&beta;")
+	fixed_text = fixed_text.replace("\u03B3", "&gamma;")
+	fixed_text = fixed_text.replace("\u03B4", "&delta;")
+	fixed_text = fixed_text.replace("\u03B5", "&epsilon;")
+	fixed_text = fixed_text.replace("\u03B6", "&zeta;")
+	fixed_text = fixed_text.replace("\u03B7", "&eta;")
+	fixed_text = fixed_text.replace("\u03B8", "&theta;")
+	fixed_text = fixed_text.replace("\u03B9", "&iota;")
+	fixed_text = fixed_text.replace("\u03BA", "&kappa;")
+	fixed_text = fixed_text.replace("\u03BB", "&lambda;")
 	fixed_text = fixed_text.replace("\u03BC", "&micro;")
+	fixed_text = fixed_text.replace("\u03BD", "&nu;")
+	fixed_text = fixed_text.replace("\u03BE", "&xi;")
+	fixed_text = fixed_text.replace("\u03BF", "&omicron;")
+	fixed_text = fixed_text.replace("\u03C0", "&pi;")
+	fixed_text = fixed_text.replace("\u03C1", "&rho;")
+	fixed_text = fixed_text.replace("\u03C2", "&sigmaf;")
+	fixed_text = fixed_text.replace("\u03C3", "&sigma;")
+	fixed_text = fixed_text.replace("\u03C4", "&tau;")
+	fixed_text = fixed_text.replace("\u03C5", "&upsilon;")
+	fixed_text = fixed_text.replace("\u03C6", "&phi;")
+	fixed_text = fixed_text.replace("\u03C7", "&chi;")
+	fixed_text = fixed_text.replace("\u03C8", "&psi;")
+	fixed_text = fixed_text.replace("\u03C9", "&omega;")
 
-
-
+	# Currency and trademark symbols.
 	fixed_text = fixed_text.replace("\u20AC", "&euro;")
 	fixed_text = fixed_text.replace("\u2122", "&trade;")
 
-
-	#subscripts
-	fixed_text = fixed_text.replace("\u2080", "&#x2080;")
-
-
+	# Subscripts and superscripts as numeric HTML entities.
+	fixed_text = fixed_text.replace("\u2080", "&#x2080;") # subscript 0
+	fixed_text = fixed_text.replace("\u2081", "&#x2081;") # subscript 1
+	fixed_text = fixed_text.replace("\u2082", "&#x2082;") # subscript 2
+	fixed_text = fixed_text.replace("\u2083", "&#x2083;") # subscript 3
+	fixed_text = fixed_text.replace("\u2084", "&#x2084;") # subscript 4
+	fixed_text = fixed_text.replace("\u2085", "&#x2085;") # subscript 5
+	fixed_text = fixed_text.replace("\u2086", "&#x2086;") # subscript 6
+	fixed_text = fixed_text.replace("\u2087", "&#x2087;") # subscript 7
+	fixed_text = fixed_text.replace("\u2088", "&#x2088;") # subscript 8
+	fixed_text = fixed_text.replace("\u2089", "&#x2089;") # subscript 9
+	fixed_text = fixed_text.replace("\u00B2", "&sup2;")   # superscript 2 (ISO-8859-1, kept for clarity)
+	fixed_text = fixed_text.replace("\u00B3", "&sup3;")   # superscript 3 (ISO-8859-1, kept for clarity)
+	fixed_text = fixed_text.replace("\u2070", "&#x2070;") # superscript 0
+	fixed_text = fixed_text.replace("\u2074", "&#x2074;") # superscript 4
+	fixed_text = fixed_text.replace("\u2075", "&#x2075;") # superscript 5
+	fixed_text = fixed_text.replace("\u2076", "&#x2076;") # superscript 6
+	fixed_text = fixed_text.replace("\u2077", "&#x2077;") # superscript 7
+	fixed_text = fixed_text.replace("\u2078", "&#x2078;") # superscript 8
+	fixed_text = fixed_text.replace("\u2079", "&#x2079;") # superscript 9
 
 	# Replace multiplication and division signs.
 	fixed_text = fixed_text.replace("\u00D7", "x")
@@ -175,6 +257,35 @@ def apply_simple_fixes(text: str) -> tuple[str, bool]:
 	fixed_text = fixed_text.replace("\u2265", ">=")
 	fixed_text = fixed_text.replace("\u00B1", "+/-")
 	fixed_text = fixed_text.replace("\u2248", "~")
+	fixed_text = fixed_text.replace("\u2261", "&equiv;")   # identical to
+	fixed_text = fixed_text.replace("\u2245", "&cong;")    # approximately equal to
+	fixed_text = fixed_text.replace("\u221D", "&prop;")    # proportional to
+	fixed_text = fixed_text.replace("\u221E", "&infin;")   # infinity
+	fixed_text = fixed_text.replace("\u221A", "&radic;")   # square root
+	fixed_text = fixed_text.replace("\u2211", "&sum;")     # n-ary summation
+	fixed_text = fixed_text.replace("\u220F", "&prod;")    # n-ary product
+	fixed_text = fixed_text.replace("\u2202", "&part;")    # partial differential
+	fixed_text = fixed_text.replace("\u2207", "&nabla;")   # nabla / del
+	fixed_text = fixed_text.replace("\u222B", "&int;")     # integral
+
+	# Set theory operators.
+	fixed_text = fixed_text.replace("\u2208", "&isin;")    # element of
+	fixed_text = fixed_text.replace("\u2209", "&notin;")   # not an element of
+	fixed_text = fixed_text.replace("\u220B", "&ni;")      # contains as member
+	fixed_text = fixed_text.replace("\u2229", "&cap;")     # intersection
+	fixed_text = fixed_text.replace("\u222A", "&cup;")     # union
+	fixed_text = fixed_text.replace("\u2282", "&sub;")     # subset of
+	fixed_text = fixed_text.replace("\u2283", "&sup;")     # superset of
+	fixed_text = fixed_text.replace("\u2286", "&sube;")    # subset of or equal to
+	fixed_text = fixed_text.replace("\u2287", "&supe;")    # superset of or equal to
+	fixed_text = fixed_text.replace("\u2205", "&empty;")   # empty set
+
+	# Logical quantifiers and operators.
+	fixed_text = fixed_text.replace("\u2200", "&forall;")  # for all
+	fixed_text = fixed_text.replace("\u2203", "&exist;")   # there exists
+	fixed_text = fixed_text.replace("\u2227", "&and;")     # logical and
+	fixed_text = fixed_text.replace("\u2228", "&or;")      # logical or
+	fixed_text = fixed_text.replace("\u22A5", "&perp;")    # perpendicular / up tack
 
 	# Replace box-drawing characters with ASCII equivalents.
 	fixed_text = fixed_text.replace("\u2500", "-")   # horizontal line

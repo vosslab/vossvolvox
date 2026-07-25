@@ -8,3 +8,9 @@ bin/*.exe
 test/pdb_to_xyzr_results/
 test/volume_results/
 report_*.txt
+
+# === UNIVERSAL ===
+output*/
+_temp*.?*
+OTHER_REPOS/
+

@@ -1,27 +1,31 @@
-import ast
+# Standard Library
 import os
 import re
+import ast
 import sys
-import tokenize
 
-import git_file_utils
+# PIP3 modules
+import pytest
 
-SCOPE_ENV = "REPO_HYGIENE_SCOPE"
-FAST_ENV = "FAST_REPO_HYGIENE"
-SKIP_ENV = "SKIP_REPO_HYGIENE"
+# local repo modules
+import file_utils
+
 CHECK_OPTIONAL_IMPORTS_ENV = "CHECK_OPTIONAL_IMPORTS"
-REPO_ROOT = git_file_utils.get_repo_root()
-SKIP_DIRS = {".git", ".venv", "__pycache__", "old_shell_folder"}
-REPORT_NAME = "report_import_requirements.txt"
+REPO_ROOT = file_utils.get_repo_root()
+REPORT_NAME = file_utils.report_name(__file__)
 REQUIREMENT_FILES = (
 	"pip_requirements.txt",
 	"pip_requirements-dev.txt",
+	"pip_requirements-meta.txt",
 	"pip_extras.txt",
 	os.path.join("config_files", "pip_requirements.txt"),
 	os.path.join("config_files", "pip_requirements-dev.txt"),
 	os.path.join("config_files", "pip_extras.txt"),
 )
 LOCAL_IMPORT_WHITELIST = {
+	# Vendored at ~/nsh/local-llm-wrapper and made importable via PYTHONPATH.
+	# Imported by bioproblems_site/llm_helpers.py and problem_set_title.py.
+	"local_llm_wrapper",
 }
 IMPORT_REQUIREMENT_ALIASES = {
 	"applescript": "py-applescript",
@@ -32,6 +36,7 @@ IMPORT_REQUIREMENT_ALIASES = {
 	"crypto": "pycryptodome",
 	"cv2": "opencv-python",
 	"docx": "python-docx",
+	"fitz": "pymupdf",
 	"google": "google-api-python-client",
 	"googleapiclient": "google-api-python-client",
 	"imdb": "IMDbPY",
@@ -46,18 +51,9 @@ IMPORT_REQUIREMENT_ALIASES = {
 }
 REQ_NAME_RE = re.compile(r"^[A-Za-z0-9._-]+")
 
-
-#============================================
-def resolve_scope() -> str:
-	"""
-	Resolve the scan scope from environment.
-	"""
-	scope = os.environ.get(SCOPE_ENV, "").strip().lower()
-	if not scope and os.environ.get(FAST_ENV) == "1":
-		scope = "changed"
-	if scope in ("all", "changed"):
-		return scope
-	return "all"
+# Module-level dict of repo-relative POSIX key -> list of violation lines.
+# Populated by the autouse collect_report fixture before any test runs.
+VIOLATIONS_BY_FILE: dict[str, list[str]] = {}
 
 
 #============================================
@@ -66,78 +62,6 @@ def resolve_check_optional_imports() -> bool:
 	Resolve whether to enforce imports guarded by ImportError handling.
 	"""
 	return os.environ.get(CHECK_OPTIONAL_IMPORTS_ENV) == "1"
-
-
-#============================================
-def path_has_skip_dir(path: str) -> bool:
-	"""
-	Check whether a relative path includes a skipped directory.
-	"""
-	parts = path.split(os.sep)
-	for part in parts:
-		if part in SKIP_DIRS:
-			return True
-	return False
-
-
-#============================================
-def filter_py_files(paths: list[str]) -> list[str]:
-	"""
-	Filter candidate paths to Python files that exist.
-	"""
-	matches = []
-	seen = set()
-	for path in paths:
-		if path in seen:
-			continue
-		seen.add(path)
-		if path_has_skip_dir(path):
-			continue
-		if "TEMPLATE" in path:
-			continue
-		if not path.endswith(".py"):
-			continue
-		if not os.path.isfile(path):
-			continue
-		matches.append(path)
-	matches.sort()
-	return matches
-
-
-#============================================
-def gather_files(repo_root: str) -> list[str]:
-	"""
-	Collect tracked Python files.
-	"""
-	paths = []
-	for path in git_file_utils.list_tracked_files(
-		repo_root,
-		patterns=["*.py"],
-		error_message="Failed to list tracked Python files.",
-	):
-		paths.append(os.path.join(repo_root, path))
-	return filter_py_files(paths)
-
-
-#============================================
-def gather_changed_files(repo_root: str) -> list[str]:
-	"""
-	Collect changed Python files.
-	"""
-	paths = []
-	for path in git_file_utils.list_changed_files(repo_root):
-		paths.append(os.path.join(repo_root, path))
-	return filter_py_files(paths)
-
-
-#============================================
-def read_source(path: str) -> str:
-	"""
-	Read Python source using tokenize.open for encoding correctness.
-	"""
-	with tokenize.open(path) as handle:
-		text = handle.read()
-	return text
 
 
 #============================================
@@ -187,7 +111,7 @@ def load_requirement_modules(repo_root: str) -> tuple[set[str], str]:
 					continue
 				modules.add(normalize_name(requirement_name))
 	if not modules:
-		raise AssertionError(
+		raise RuntimeError(
 			"No requirements file found. Expected one of: "
 			+ ", ".join(REQUIREMENT_FILES)
 		)
@@ -201,7 +125,7 @@ def collect_repo_module_names(paths: list[str]) -> set[str]:
 	"""
 	module_names = set()
 	for path in paths:
-		rel_path = os.path.relpath(path, REPO_ROOT)
+		rel_path = file_utils.rel_to_root(path)
 		for part in rel_path.split(os.sep)[:-1]:
 			if part:
 				module_names.add(part)
@@ -307,10 +231,9 @@ def collect_import_roots(path: str) -> tuple[list[tuple[int, str, bool, str]], s
 	"""
 	Collect imported root module names for one file.
 	"""
-	source = read_source(path)
-	try:
-		tree = ast.parse(source, filename=path)
-	except SyntaxError as error:
+	source = file_utils.read_source(path)
+	tree, error = file_utils.parse_source(path)
+	if error is not None:
 		line_no = getattr(error, "lineno", 0) or 0
 		message = error.msg or "Syntax error while parsing imports."
 		return [], f"{line_no}: {message}"
@@ -330,37 +253,6 @@ def normalize_statement_for_report(statement_text: str) -> str:
 	normalized = normalized.replace("\t", "\\t")
 	normalized = normalized.replace("\n", "\\n")
 	return normalized
-
-
-#============================================
-def write_import_report(
-	repo_root: str,
-	requirement_source: str,
-	check_optional_imports: bool,
-	parse_errors: list[str],
-	import_issues: list[str],
-) -> str:
-	"""
-	Write import-policy findings to the import-requirements report file.
-	"""
-	report_path = os.path.join(repo_root, REPORT_NAME)
-	lines = [
-		"Import requirements report",
-		f"Requirements source: {requirement_source}",
-		f"CHECK_OPTIONAL_IMPORTS: {int(check_optional_imports)}",
-	]
-	if parse_errors:
-		lines.append("Parse errors:")
-		for item in parse_errors:
-			lines.append(item)
-	if import_issues:
-		lines.append("Violations:")
-		for item in import_issues:
-			lines.append(item)
-	with open(report_path, "w", encoding="utf-8") as handle:
-		handle.write("\n".join(lines))
-		handle.write("\n")
-	return report_path
 
 
 #============================================
@@ -403,39 +295,42 @@ def is_allowed_module(
 
 
 #============================================
-def test_import_requirements() -> None:
+def build_violations_by_file(
+	paths: list[str],
+	repo_modules: set[str],
+	stdlib_modules: set[str],
+	requirement_modules: set[str],
+	check_optional_imports: bool,
+) -> dict[str, list[str]]:
 	"""
-	Validate imports against stdlib, repo modules, requirements, and whitelist.
+	Build a per-file violations dict for all given paths.
+
+	For each file, collect import roots and check each against the allowed sets.
+	Parse errors become violation entries for that file. Import-issue lines for
+	a given file are deduped via sorted(set(...)) to preserve the old global-dedup
+	semantics scoped to each file. Parse errors are NOT deduped (one entry per
+	parse-error line, preserving original behavior).
+
+	Args:
+		paths: Absolute paths to Python files to check.
+		repo_modules: Set of normalized repo-local module names.
+		stdlib_modules: Set of normalized stdlib module names.
+		requirement_modules: Set of normalized requirement module names.
+		check_optional_imports: Whether to enforce optional import guards.
+
+	Returns:
+		dict[str, list[str]]: Repo-relative POSIX path -> list of violation lines.
 	"""
-	if os.environ.get(SKIP_ENV) == "1":
-		return
-	report_path = os.path.join(REPO_ROOT, REPORT_NAME)
-	if os.path.exists(report_path):
-		os.remove(report_path)
-
-	scope = resolve_scope()
-	check_optional_imports = resolve_check_optional_imports()
-	if scope == "changed":
-		paths = gather_changed_files(REPO_ROOT)
-	else:
-		paths = gather_files(REPO_ROOT)
-
-	if not paths:
-		print(f"import-requirements: no Python files matched scope {scope}.")
-		return
-
-	repo_modules = collect_repo_module_names(paths)
-	stdlib_modules = get_stdlib_modules()
-	requirement_modules, requirement_source = load_requirement_modules(REPO_ROOT)
-
-	parse_errors = []
-	import_issues = []
-	for path in paths:
+	violations_by_file: dict[str, list[str]] = {}
+	for path in sorted(paths):
+		rel = file_utils.rel_to_root(path)
 		import_roots, parse_error = collect_import_roots(path)
-		rel_path = os.path.relpath(path, REPO_ROOT)
 		if parse_error:
-			parse_errors.append(f"{rel_path}:{parse_error}")
+			# Parse error: record one entry for this file (not deduped).
+			violations_by_file[rel] = [f"{rel}:{parse_error}"]
 			continue
+		# Collect import-policy violations for this file.
+		file_issues: list[str] = []
 		for line_no, module_name, optional_import, statement_text in import_roots:
 			if module_name == "__future__":
 				continue
@@ -449,39 +344,97 @@ def test_import_requirements() -> None:
 			):
 				continue
 			statement = normalize_statement_for_report(statement_text)
-			import_issues.append(f"{rel_path}:{line_no}: {module_name}: {statement}")
+			file_issues.append(f"{rel}:{line_no}: {module_name}: {statement}")
+		# Deduplicate per-file import issues, preserving old global-dedup semantics scoped per file.
+		deduped = sorted(set(file_issues))
+		if deduped:
+			violations_by_file[rel] = deduped
+	return violations_by_file
 
-	if parse_errors:
-		report_path = write_import_report(
-			REPO_ROOT,
-			requirement_source,
-			check_optional_imports,
-			parse_errors,
-			[],
-		)
-		display_report = os.path.relpath(report_path, REPO_ROOT)
-		raise AssertionError(
-			"Import rule parse errors:\n"
-			+ "\n".join(parse_errors)
-			+ f"\nFull report: {display_report}"
-		)
 
-	if import_issues:
-		import_issues = sorted(set(import_issues))
-		report_path = write_import_report(
-			REPO_ROOT,
-			requirement_source,
+#============================================
+def make_report_lines(
+	violations_by_file: dict[str, list[str]],
+	requirement_source: str,
+	check_optional_imports: bool,
+) -> list[str]:
+	"""
+	Build the report lines list from the violations dict.
+
+	Returns an empty list when there are no violations so the caller's
+	`if lines: write_report_lines(...)` guard works correctly.
+
+	Args:
+		violations_by_file: Per-file violations dict.
+		requirement_source: Human-readable requirements source string.
+		check_optional_imports: Whether optional imports are being checked.
+
+	Returns:
+		list[str]: Report lines (empty when clean).
+	"""
+	if not violations_by_file:
+		return []
+	# Use the single module-level HEADER as the report header.
+	lines = file_utils.format_violation_report(HEADER, violations_by_file)
+	# Prepend the metadata lines after the header (index 0).
+	metadata = [
+		f"Requirements source: {requirement_source}",
+		f"CHECK_OPTIONAL_IMPORTS: {int(check_optional_imports)}",
+	]
+	# Insert metadata right after the first header line.
+	lines = [lines[0]] + metadata + lines[1:]
+	return lines
+
+
+FILES = file_utils.discover_files(extensions=(".py",), test_key="import_requirements")
+
+HEADER = "Import requirements report"
+
+
+#============================================
+@pytest.fixture(scope="module", autouse=True)
+def collect_report() -> None:
+	"""
+	Autouse fixture: clear stale reports, populate VIOLATIONS_BY_FILE, write report.
+
+	Builds the three whole-repo module sets once, walks each file distributing
+	issue lines into VIOLATIONS_BY_FILE keyed by repo-relative path, then writes
+	the report only when violations exist. Calls clear_stale_reports() first
+	so a single-module run still clears stale reports.
+	"""
+	# Once-per-process guarded cleanup of repo-root report_*.txt (no-op after first call).
+	file_utils.clear_stale_reports()
+	VIOLATIONS_BY_FILE.clear()
+	if not FILES:
+		return
+	check_optional_imports = resolve_check_optional_imports()
+	repo_modules = collect_repo_module_names(FILES)
+	stdlib_modules = get_stdlib_modules()
+	# load_requirement_modules raises RuntimeError when no requirements file is found;
+	# that is an environment error, not a test failure -- let it propagate.
+	requirement_modules, requirement_source = load_requirement_modules(REPO_ROOT)
+	VIOLATIONS_BY_FILE.update(
+		build_violations_by_file(
+			FILES,
+			repo_modules,
+			stdlib_modules,
+			requirement_modules,
 			check_optional_imports,
-			[],
-			import_issues,
 		)
-		display_report = os.path.relpath(report_path, REPO_ROOT)
-		report_lines = [
-			"Import policy violations found.",
-			f"Requirements source: {requirement_source}",
-			"Allowed imports are stdlib, repo-local modules, requirement modules, and LOCAL_IMPORT_WHITELIST.",
-			"Violations:",
-		]
-		report_lines.extend(import_issues)
-		report_lines.append(f"Full report: {display_report}")
-		raise AssertionError("\n".join(report_lines))
+	)
+	lines = make_report_lines(VIOLATIONS_BY_FILE, requirement_source, check_optional_imports)
+	# Write only when there are violations; cleanup already removed stale reports.
+	if lines:
+		file_utils.write_report_lines(REPORT_NAME, lines)
+
+
+#============================================
+@pytest.mark.parametrize("path", FILES, ids=file_utils.rel_id)
+def test_import_requirements(path: str) -> None:
+	"""Validate imports against stdlib, repo modules, requirements, and whitelist."""
+	rel = file_utils.rel_to_root(path)
+	# Python evaluates an assert's message expression ONLY when the assert fails,
+	# so format_violation_assert_message runs on the failing path only -- not per pass.
+	assert rel not in VIOLATIONS_BY_FILE, file_utils.format_violation_assert_message(
+		rel, VIOLATIONS_BY_FILE.get(rel, []), REPORT_NAME
+	)
